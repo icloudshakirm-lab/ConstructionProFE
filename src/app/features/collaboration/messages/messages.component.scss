@@ -1,0 +1,78 @@
+@use '../collaboration-page';
+
+.messages-split__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(70vh, 640px);
+  overflow: auto;
+}
+
+.messages-split__item {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.messages-split__item--unread .collab-page__item-title {
+  font-weight: 800;
+}
+
+.messages-split__preview {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.messages-split__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--p-primary-color);
+  flex-shrink: 0;
+}
+
+.messages-split__detail {
+  min-width: 0;
+}
+
+:host ::ng-deep .messages-detail-card .p-card-body {
+  padding: 1rem;
+}
+
+.messages-detail__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+}
+
+.messages-detail__meta {
+  margin-top: 0.75rem;
+}
+
+.messages-detail__body {
+  margin: 1rem 0 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.collab-page__empty {
+  margin: 0;
+  padding: 2rem;
+  text-align: center;
+  color: var(--p-text-muted-color);
+}

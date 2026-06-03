@@ -1,0 +1,16 @@
+@use '../collaboration-page';
+
+.todo-item__row {
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.todo-item__title--done {
+  text-decoration: line-through;
+  color: var(--p-text-muted-color);
+}
+
+.collab-page__empty {
+  margin: 0;
+  color: var(--p-text-muted-color);
+}

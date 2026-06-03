@@ -1,0 +1,89 @@
+<div class="collab-page">
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="collab-page__header">
+    <div>
+      <p-tag value="Collaboration" severity="secondary" />
+      <h1>To-Do</h1>
+      <p class="collab-page__subtitle">
+        Task list for site and office follow-ups — {{ openCount() }} open item(s).
+      </p>
+    </div>
+    <div class="collab-page__actions">
+      <p-button label="All" [outlined]="filter() !== 'all'" (onClick)="filter.set('all')" />
+      <p-button label="Open" [outlined]="filter() !== 'open'" (onClick)="filter.set('open')" />
+      <p-button label="Done" [outlined]="filter() !== 'done'" (onClick)="filter.set('done')" />
+      <p-button label="Add task" icon="pi pi-plus" (onClick)="openAdd()" />
+    </div>
+  </header>
+
+  <div class="collab-page__list">
+    @for (item of filteredTodos(); track item.id) {
+      <article class="collab-page__item" [class.collab-page__item--done]="item.completed">
+        <div class="collab-page__item-top todo-item__row">
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="item.completed"
+            (ngModelChange)="setComplete(item, $event)"
+            [inputId]="'todo-' + item.id"
+          />
+          <label [for]="'todo-' + item.id" class="collab-page__item-title" [class.todo-item__title--done]="item.completed">
+            {{ item.title }}
+          </label>
+          <p-tag [value]="item.priority" [severity]="prioritySeverity(item.priority)" />
+        </div>
+        <div class="collab-page__item-meta">
+          <span><i class="pi pi-briefcase"></i> {{ item.project }}</span>
+          <span><i class="pi pi-user"></i> {{ item.assignee }}</span>
+          <span><i class="pi pi-calendar"></i> Due {{ item.dueDate }}</span>
+        </div>
+      </article>
+    } @empty {
+      <p class="collab-page__empty">No tasks in this view.</p>
+    }
+  </div>
+</div>
+
+<p-dialog
+  header="Add task"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 92vw)' }"
+>
+  <div class="collab-form">
+    <div class="collab-form__row">
+      <label for="todoTitle">Task</label>
+      <input id="todoTitle" type="text" pInputText [(ngModel)]="draft().title" />
+    </div>
+    <div class="collab-form__row">
+      <label for="todoProject">Project</label>
+      <input id="todoProject" type="text" [(ngModel)]="draft().project" />
+    </div>
+    <div class="collab-form__row">
+      <label for="todoAssignee">Assignee</label>
+      <input id="todoAssignee" type="text" [(ngModel)]="draft().assignee" />
+    </div>
+    <div class="collab-form__row">
+      <label for="todoDue">Due date</label>
+      <input id="todoDue" type="date" [(ngModel)]="draft().dueDate" />
+    </div>
+    <div class="collab-form__row">
+      <label for="todoPriority">Priority</label>
+      <p-select
+        inputId="todoPriority"
+        [options]="priorityOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="draft().priority"
+        [style]="{ width: '100%' }"
+      />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="collab-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="dialogVisible.set(false)" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="saveTodo()" />
+    </div>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,107 @@
+<div class="collab-page">
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="collab-page__header">
+    <div>
+      <p-tag value="Collaboration" severity="secondary" />
+      <h1>Communication messages</h1>
+      <p class="collab-page__subtitle">
+        Project inbox for email, SMS, and in-app messages — {{ unreadCount() }} unread.
+      </p>
+    </div>
+    <div class="collab-page__actions">
+      <p-button label="Compose" icon="pi pi-send" (onClick)="openCompose()" />
+    </div>
+  </header>
+
+  <div class="collab-page__split messages-split">
+    <aside class="messages-split__list" aria-label="Message list">
+      @for (msg of messages(); track msg.id) {
+        <button
+          type="button"
+          class="collab-page__item messages-split__item"
+          [class.collab-page__item--selected]="selectedId() === msg.id"
+          [class.messages-split__item--unread]="!msg.read"
+          (click)="selectMessage(msg)"
+        >
+          <div class="collab-page__item-top">
+            <h2 class="collab-page__item-title">{{ msg.subject }}</h2>
+            @if (!msg.read) {
+              <span class="messages-split__dot" aria-label="Unread"></span>
+            }
+          </div>
+          <p class="messages-split__preview">{{ msg.preview }}</p>
+          <div class="collab-page__item-meta">
+            <span>{{ msg.from }}</span>
+            <p-tag [value]="msg.channel" severity="secondary" />
+            <span>{{ formatDate(msg.sentAt) }}</span>
+          </div>
+        </button>
+      }
+    </aside>
+
+    <section class="messages-split__detail" aria-label="Message detail">
+      @if (selected(); as msg) {
+        <p-card styleClass="messages-detail-card">
+          <div class="messages-detail__header">
+            <h2>{{ msg.subject }}</h2>
+            <p-tag [value]="msg.channel" />
+          </div>
+          <div class="collab-page__item-meta messages-detail__meta">
+            <span><strong>From:</strong> {{ msg.from }}</span>
+            <span><strong>To:</strong> {{ msg.to }}</span>
+            <span><strong>Project:</strong> {{ msg.project }}</span>
+            <span><strong>Sent:</strong> {{ formatDate(msg.sentAt) }}</span>
+          </div>
+          <p class="messages-detail__body">{{ msg.body }}</p>
+        </p-card>
+      } @else {
+        <p class="collab-page__empty">Select a message to read.</p>
+      }
+    </section>
+  </div>
+</div>
+
+<p-dialog
+  header="Compose message"
+  [visible]="composeVisible()"
+  (visibleChange)="composeVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(600px, 92vw)' }"
+>
+  <div class="collab-form">
+    <div class="collab-form__row">
+      <label for="msgTo">To</label>
+      <input id="msgTo" type="text" [(ngModel)]="draft().to" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msgProject">Project</label>
+      <input id="msgProject" type="text" [(ngModel)]="draft().project" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msgChannel">Channel</label>
+      <p-select
+        inputId="msgChannel"
+        [options]="channelOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="draft().channel"
+        [style]="{ width: '100%' }"
+      />
+    </div>
+    <div class="collab-form__row">
+      <label for="msgSubject">Subject</label>
+      <input id="msgSubject" type="text" pInputText [(ngModel)]="draft().subject" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msgBody">Message</label>
+      <textarea id="msgBody" pTextarea rows="6" [(ngModel)]="draft().body"></textarea>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="collab-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="composeVisible.set(false)" />
+      <p-button label="Send" icon="pi pi-send" (onClick)="sendMessage()" />
+    </div>
+  </ng-template>
+</p-dialog>

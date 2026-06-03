@@ -1,0 +1,80 @@
+<div class="collab-page">
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="collab-page__header">
+    <div>
+      <p-tag value="Collaboration" severity="secondary" />
+      <h1>Notes</h1>
+      <p class="collab-page__subtitle">Project notes and site instructions — pinned items stay at the top.</p>
+    </div>
+    <div class="collab-page__actions">
+      <input
+        type="search"
+        class="collab-page__search"
+        placeholder="Search notes…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+      <p-button label="Add note" icon="pi pi-plus" (onClick)="openAdd()" />
+    </div>
+  </header>
+
+  <div class="collab-page__list">
+    @for (note of filteredNotes(); track note.id) {
+      <article class="collab-page__item" [class.collab-page__item--pinned]="note.pinned">
+        <div class="collab-page__item-top">
+          <h2 class="collab-page__item-title">
+            @if (note.pinned) {
+              <i class="pi pi-thumbtack" aria-hidden="true"></i>
+            }
+            {{ note.title }}
+          </h2>
+          <p-button
+            [icon]="note.pinned ? 'pi pi-thumbtack-fill' : 'pi pi-thumbtack'"
+            [text]="true"
+            [rounded]="true"
+            (onClick)="togglePin(note)"
+            [attr.aria-label]="note.pinned ? 'Unpin note' : 'Pin note'"
+          />
+        </div>
+        <p class="collab-page__item-body">{{ note.body }}</p>
+        <div class="collab-page__item-meta">
+          <span><i class="pi pi-briefcase"></i> {{ note.project }}</span>
+          <span><i class="pi pi-user"></i> {{ note.author }}</span>
+          <span><i class="pi pi-clock"></i> {{ formatDate(note.updatedAt) }}</span>
+        </div>
+      </article>
+    } @empty {
+      <p class="collab-page__empty">No notes match your search.</p>
+    }
+  </div>
+</div>
+
+<p-dialog
+  header="Add note"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(560px, 92vw)' }"
+>
+  <div class="collab-form">
+    <div class="collab-form__row">
+      <label for="noteTitle">Title</label>
+      <input id="noteTitle" type="text" pInputText [(ngModel)]="draft().title" />
+    </div>
+    <div class="collab-form__row">
+      <label for="noteProject">Project</label>
+      <input id="noteProject" type="text" [(ngModel)]="draft().project" />
+    </div>
+    <div class="collab-form__row">
+      <label for="noteBody">Note</label>
+      <textarea id="noteBody" pTextarea rows="5" [(ngModel)]="draft().body"></textarea>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="collab-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="dialogVisible.set(false)" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="saveNote()" />
+    </div>
+  </ng-template>
+</p-dialog>

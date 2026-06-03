@@ -1,0 +1,103 @@
+<div class="collab-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="collab-page__header">
+    <div>
+      <p-tag value="Collaboration" severity="secondary" />
+      <h1>Milestones</h1>
+      <p class="collab-page__subtitle">
+        Contract and internal milestones with planned vs forecast dates and status.
+      </p>
+    </div>
+    <div class="collab-page__actions">
+      <p-select
+        [options]="statusFilterOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+        placeholder="Filter status"
+        [style]="{ minWidth: '11rem' }"
+      />
+      <p-button label="Add milestone" icon="pi pi-plus" (onClick)="openAdd()" />
+    </div>
+  </header>
+
+  <div class="collab-page__list">
+    @for (m of filtered(); track m.id) {
+      <article class="collab-page__item">
+        <div class="collab-page__item-top">
+          <h2 class="collab-page__item-title">{{ m.name }}</h2>
+          <p-tag [value]="m.status" [severity]="statusSeverity(m.status)" />
+        </div>
+        <div class="collab-page__item-meta">
+          <span><i class="pi pi-briefcase"></i> {{ m.project }}</span>
+          <span><i class="pi pi-map-marker"></i> {{ m.site }}</span>
+          <span><i class="pi pi-user"></i> {{ m.owner }}</span>
+        </div>
+        <div class="milestone-dates">
+          <span>Planned <strong>{{ m.plannedDate }}</strong></span>
+          <span>Forecast <strong>{{ m.forecastDate }}</strong></span>
+          @if (slipDays(m.plannedDate, m.forecastDate) > 0) {
+            <p-tag [value]="'+' + slipDays(m.plannedDate, m.forecastDate) + 'd slip'" severity="warn" />
+          }
+        </div>
+        <div class="milestone-status-row">
+          <label [for]="'ms-status-' + m.id">Update status</label>
+          <p-select
+            [inputId]="'ms-status-' + m.id"
+            [options]="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="m.status"
+            (ngModelChange)="updateStatus(m, $event)"
+            [style]="{ minWidth: '10rem' }"
+          />
+        </div>
+      </article>
+    } @empty {
+      <p class="collab-page__empty">No milestones for this filter.</p>
+    }
+  </div>
+</div>
+
+<p-dialog
+  header="Add milestone"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(560px, 92vw)' }"
+>
+  <div class="collab-form">
+    <div class="collab-form__row">
+      <label for="msName">Name</label>
+      <input id="msName" type="text" pInputText [(ngModel)]="draft().name" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msProject">Project</label>
+      <input id="msProject" type="text" [(ngModel)]="draft().project" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msSite">Site</label>
+      <input id="msSite" type="text" [(ngModel)]="draft().site" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msPlanned">Planned date</label>
+      <input id="msPlanned" type="date" [(ngModel)]="draft().plannedDate" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msForecast">Forecast date</label>
+      <input id="msForecast" type="date" [(ngModel)]="draft().forecastDate" />
+    </div>
+    <div class="collab-form__row">
+      <label for="msOwner">Owner</label>
+      <input id="msOwner" type="text" [(ngModel)]="draft().owner" />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="collab-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="dialogVisible.set(false)" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="saveMilestone()" />
+    </div>
+  </ng-template>
+</p-dialog>

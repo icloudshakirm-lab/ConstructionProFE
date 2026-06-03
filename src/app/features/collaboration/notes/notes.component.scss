@@ -1,0 +1,27 @@
+@use '../collaboration-page';
+
+.collab-page__search {
+  min-width: min(220px, 100%);
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--cp-input-bg);
+  color: var(--p-text-color);
+  font: inherit;
+}
+
+.collab-page__item--pinned {
+  border-left: 4px solid var(--p-primary-color);
+}
+
+.collab-page__item-title .pi-thumbtack {
+  margin-right: 0.35rem;
+  color: var(--p-primary-color);
+  font-size: 0.85rem;
+}
+
+.collab-page__empty {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}

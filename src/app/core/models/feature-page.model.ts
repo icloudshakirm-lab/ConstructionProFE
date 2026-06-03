@@ -2,7 +2,11 @@ export type FeaturePageComponent =
   | 'gantt-chart'
   | 'projects-sites-org-chart'
   | 'project-overview'
-  | 'drawing-viewer';
+  | 'drawing-viewer'
+  | 'notes'
+  | 'todo'
+  | 'milestones-page'
+  | 'messages';
 
 export interface FeaturePage {
   id: string;

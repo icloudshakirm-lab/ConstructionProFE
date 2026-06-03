@@ -19,5 +19,17 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'drawing-viewer': () =>
     import('../../features/document-management/drawing-viewer/drawing-viewer.component').then(
       (m) => m.DrawingViewerComponent
+    ),
+  notes: () =>
+    import('../../features/collaboration/notes/notes.component').then((m) => m.NotesComponent),
+  todo: () =>
+    import('../../features/collaboration/todo/todo.component').then((m) => m.TodoComponent),
+  'milestones-page': () =>
+    import('../../features/collaboration/milestones/milestones.component').then(
+      (m) => m.MilestonesPageComponent
+    ),
+  messages: () =>
+    import('../../features/collaboration/messages/messages.component').then(
+      (m) => m.MessagesComponent
     )
 };

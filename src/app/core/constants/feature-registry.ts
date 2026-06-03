@@ -34,7 +34,8 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Milestones',
         description: 'Contractual and internal milestones with planned vs actual dates.',
         icon: 'pi pi-flag',
-        highlights: ['Critical path', 'Slippage alerts', 'Sign-off']
+        highlights: ['Critical path', 'Slippage alerts', 'Sign-off'],
+        component: 'milestones-page'
       },
       {
         id: 'gantt-chart',
@@ -484,6 +485,47 @@ export const FEATURE_MODULES: FeatureModule[] = [
         description: 'Virtual boundaries with entry/exit alerts and attendance validation.',
         icon: 'pi pi-globe',
         highlights: ['Polygon zones', 'Entry/exit', 'Compliance']
+      }
+    ]
+  },
+  {
+    id: 'collaboration',
+    title: 'Collaboration',
+    description: 'Notes, to-do tasks, milestones, and project communication messages.',
+    icon: 'pi pi-comments',
+    routePath: 'collaboration',
+    pages: [
+      {
+        id: 'notes',
+        title: 'Notes',
+        description: 'Pinned project notes and site instructions for the team.',
+        icon: 'pi pi-book',
+        highlights: ['Pin important', 'Search', 'By project'],
+        component: 'notes'
+      },
+      {
+        id: 'todo',
+        title: 'To-Do',
+        description: 'Task list with assignee, due date, and priority for site and office.',
+        icon: 'pi pi-check-square',
+        highlights: ['Open / done', 'Priority', 'Assignee'],
+        component: 'todo'
+      },
+      {
+        id: 'milestones',
+        title: 'Milestones',
+        description: 'Milestone register with planned vs forecast dates and status.',
+        icon: 'pi pi-flag',
+        highlights: ['Slippage', 'Status', 'Owner'],
+        component: 'milestones-page'
+      },
+      {
+        id: 'messages',
+        title: 'Messages',
+        description: 'Project communication inbox — email, SMS, and in-app messages.',
+        icon: 'pi pi-envelope',
+        highlights: ['Unread', 'Compose', 'Channels'],
+        component: 'messages'
       }
     ]
   },

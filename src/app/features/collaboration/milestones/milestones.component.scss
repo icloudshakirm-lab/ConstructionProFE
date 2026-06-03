@@ -1,0 +1,32 @@
+@use '../collaboration-page';
+
+.milestone-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.milestone-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed var(--p-content-border-color);
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--p-text-muted-color);
+  }
+}
+
+.collab-page__empty {
+  margin: 0;
+  color: var(--p-text-muted-color);
+}
