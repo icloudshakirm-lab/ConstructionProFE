@@ -1,20 +1,44 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 import { GisDrawPolygon, GisDrawPolyline } from './gis-draw-handlers';
+import {
+  applyStrokeStyle,
+  buildSegmentLengthMarkers,
+  buildUserLabelMarkers,
+  findNearestSegment,
+  getSketchMeta,
+  layerStamp,
+  newLabelId,
+  setSketchMeta
+} from './gis-line-decorations';
+import {
+  DEFAULT_GIS_LINE_STYLE,
+  type GisLineStyle,
+  type GisSketchMeta
+} from './gis-sketch.model';
 import { MAP_TILES } from '../sites-map/sites-map.data';
 import type { GeoJsonFeatureCollection } from './map-gis.service';
 
 export type SketchEventAction = 'create' | 'update' | 'delete';
+
+type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string };
 
 @Injectable({ providedIn: 'root' })
 export class LeafletGisService {
   private map: L.DrawMap | null = null;
   private tileLayer: L.TileLayer | null = null;
   private drawnItems: L.FeatureGroup | null = null;
+  private annotations: L.FeatureGroup | null = null;
   private drawControl: L.Control.Draw | null = null;
   private activeHandler: { enable: () => void; disable: () => void } | null = null;
   private onGeometryChange?: (action: SketchEventAction) => void;
+  private labelClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+
+  readonly lineStyle = signal<GisLineStyle>({ ...DEFAULT_GIS_LINE_STYLE });
+  readonly showSegmentLengths = signal(true);
+  readonly labelPlacementActive = signal(false);
+  readonly pendingLabelText = signal('');
 
   initialize(
     container: HTMLElement,
@@ -37,7 +61,9 @@ export class LeafletGisService {
     this.tileLayer = this.createTileLayer(options.dark).addTo(this.map);
 
     this.drawnItems = new L.FeatureGroup();
+    this.annotations = new L.FeatureGroup();
     this.map.addLayer(this.drawnItems);
+    this.map.addLayer(this.annotations);
 
     this.drawControl = new L.Control.Draw({
       edit: { featureGroup: this.drawnItems },
@@ -53,22 +79,86 @@ export class LeafletGisService {
 
     this.map.on(L.Draw.Event.CREATED, (event: L.LeafletEvent) => {
       const e = event as L.DrawEvents.Created;
+      this.attachSketchMeta(e.layer);
       this.drawnItems?.addLayer(e.layer);
+      this.refreshLayerDecorations(e.layer);
       this.logLayer('create', e.layer);
       this.onGeometryChange?.('create');
     });
 
     this.map.on(L.Draw.Event.EDITED, (event: L.LeafletEvent) => {
       const e = event as L.DrawEvents.Edited;
-      e.layers.eachLayer((layer) => this.logLayer('update', layer));
+      e.layers.eachLayer((layer) => {
+        this.refreshLayerDecorations(layer);
+        this.logLayer('update', layer);
+      });
       this.onGeometryChange?.('update');
     });
 
     this.map.on(L.Draw.Event.DELETED, (event: L.LeafletEvent) => {
       const e = event as L.DrawEvents.Deleted;
-      e.layers.eachLayer((layer) => this.logLayer('delete', layer));
+      e.layers.eachLayer((layer) => {
+        this.removeLayerDecorations(layer);
+        this.logLayer('delete', layer);
+      });
       this.onGeometryChange?.('delete');
     });
+  }
+
+  setLineStyle(style: Partial<GisLineStyle>): void {
+    this.lineStyle.update((current) => ({ ...current, ...style }));
+  }
+
+  setShowSegmentLengths(show: boolean): void {
+    this.showSegmentLengths.set(show);
+    this.redrawAllDecorations();
+  }
+
+  setPendingLabelText(text: string): void {
+    this.pendingLabelText.set(text);
+  }
+
+  startLabelPlacement(): void {
+    if (!this.map) return;
+    this.cancelDraw();
+    this.stopLabelPlacement();
+    this.labelPlacementActive.set(true);
+
+    this.labelClickHandler = (e: L.LeafletMouseEvent) => {
+      const text = this.pendingLabelText().trim();
+      if (!text) return;
+      this.placeLabelAt(e.latlng, text);
+    };
+    this.map.on('click', this.labelClickHandler);
+    this.map.getContainer().classList.add('gis-label-mode');
+  }
+
+  stopLabelPlacement(): void {
+    if (this.map && this.labelClickHandler) {
+      this.map.off('click', this.labelClickHandler);
+      this.labelClickHandler = null;
+    }
+    this.map?.getContainer().classList.remove('gis-label-mode');
+    this.labelPlacementActive.set(false);
+  }
+
+  placeLabelAt(latlng: L.LatLng, text: string): boolean {
+    if (!this.drawnItems || !this.map) return false;
+
+    const layers: L.Layer[] = [];
+    this.drawnItems.eachLayer((l) => layers.push(l));
+    const hit = findNearestSegment(latlng, this.map, layers);
+    if (!hit) return false;
+
+    const meta = getSketchMeta(hit.layer) ?? this.createDefaultMeta();
+    meta.labels = [
+      ...meta.labels,
+      { id: newLabelId(), lat: hit.midpoint.lat, lng: hit.midpoint.lng, text }
+    ];
+    setSketchMeta(hit.layer, meta);
+    this.refreshLayerDecorations(hit.layer);
+    this.onGeometryChange?.('update');
+    return true;
   }
 
   setBasemap(dark: boolean): void {
@@ -84,12 +174,14 @@ export class LeafletGisService {
 
   startDraw(tool: 'point' | 'polyline' | 'polygon'): void {
     if (!this.map || !this.drawnItems) return;
+    this.stopLabelPlacement();
     this.cancelDraw();
 
+    const style = this.lineStyle();
     const shapeOptions: L.PathOptions = {
-      color: '#2563eb',
-      weight: 3,
-      fillColor: '#3b82f6',
+      color: style.color,
+      weight: style.weight,
+      fillColor: style.color,
       fillOpacity: 0.25
     };
 
@@ -98,7 +190,7 @@ export class LeafletGisService {
         this.activeHandler = new L.Draw.Marker(this.map, {
           icon: L.divIcon({
             className: 'gis-draw-marker',
-            html: '<span></span>',
+            html: `<span style="background:${style.color}"></span>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7]
           })
@@ -131,6 +223,7 @@ export class LeafletGisService {
 
   clearAll(): void {
     this.drawnItems?.clearLayers();
+    this.annotations?.clearLayers();
     this.onGeometryChange?.('delete');
   }
 
@@ -140,6 +233,7 @@ export class LeafletGisService {
     this.drawnItems.eachLayer((layer) => layers.push(layer));
     const last = layers[layers.length - 1];
     if (last) {
+      this.removeLayerDecorations(last);
       this.drawnItems.removeLayer(last);
       this.onGeometryChange?.('delete');
     }
@@ -147,6 +241,7 @@ export class LeafletGisService {
 
   enableEditMode(): void {
     if (!this.map || !this.drawnItems) return;
+    this.stopLabelPlacement();
     this.cancelDraw();
     const Edit = (L as typeof L & { EditToolbar: { Edit: new (...args: unknown[]) => { enable: () => void } } })
       .EditToolbar.Edit;
@@ -160,8 +255,23 @@ export class LeafletGisService {
   }
 
   exportToGeoJSON(): GeoJsonFeatureCollection {
-    const raw = this.drawnItems?.toGeoJSON() ?? { type: 'FeatureCollection', features: [] };
-    return raw as GeoJsonFeatureCollection;
+    const features: GeoJSON.Feature[] = [];
+    this.drawnItems?.eachLayer((layer) => {
+      const gjFn = (layer as L.Layer & { toGeoJSON?: () => GeoJSON.Feature }).toGeoJSON;
+      if (!gjFn) return;
+      const feature = gjFn.call(layer);
+      const meta = getSketchMeta(layer);
+      if (meta) {
+        feature.properties = {
+          ...feature.properties,
+          strokeColor: meta.strokeColor,
+          strokeWeight: meta.strokeWeight,
+          labels: meta.labels
+        };
+      }
+      features.push(feature);
+    });
+    return { type: 'FeatureCollection', features } as GeoJsonFeatureCollection;
   }
 
   invalidateSize(): void {
@@ -169,13 +279,70 @@ export class LeafletGisService {
   }
 
   destroy(): void {
+    this.stopLabelPlacement();
     this.cancelDraw();
     this.map?.remove();
     this.map = null;
     this.tileLayer = null;
     this.drawnItems = null;
+    this.annotations = null;
     this.drawControl = null;
     this.onGeometryChange = undefined;
+  }
+
+  private createDefaultMeta(): GisSketchMeta {
+    const style = this.lineStyle();
+    return {
+      strokeColor: style.color,
+      strokeWeight: style.weight,
+      labels: []
+    };
+  }
+
+  private attachSketchMeta(layer: L.Layer): void {
+    if (layer instanceof L.Polyline || layer instanceof L.Marker) {
+      const meta = this.createDefaultMeta();
+      setSketchMeta(layer, meta);
+      applyStrokeStyle(layer, meta);
+    }
+  }
+
+  private refreshLayerDecorations(layer: L.Layer): void {
+    if (!this.map || !this.annotations) return;
+    this.removeLayerDecorations(layer);
+
+    if (!(layer instanceof L.Polyline)) return;
+    const meta = getSketchMeta(layer);
+    if (!meta) return;
+
+    applyStrokeStyle(layer, meta);
+
+    if (this.showSegmentLengths()) {
+      for (const marker of buildSegmentLengthMarkers(layer, this.map, meta)) {
+        this.annotations.addLayer(marker);
+      }
+    }
+
+    for (const marker of buildUserLabelMarkers(layer, meta)) {
+      this.annotations.addLayer(marker);
+    }
+  }
+
+  private removeLayerDecorations(layer: L.Layer): void {
+    if (!this.annotations) return;
+    const stamp = layerStamp(layer);
+    const toRemove: L.Layer[] = [];
+    this.annotations.eachLayer((m) => {
+      const tagged = m as LabelMarker;
+      if (tagged.gisParent === stamp) toRemove.push(m);
+    });
+    toRemove.forEach((m) => this.annotations?.removeLayer(m));
+  }
+
+  private redrawAllDecorations(): void {
+    if (!this.drawnItems) return;
+    this.annotations?.clearLayers();
+    this.drawnItems.eachLayer((layer) => this.refreshLayerDecorations(layer));
   }
 
   private createTileLayer(dark: boolean): L.TileLayer {

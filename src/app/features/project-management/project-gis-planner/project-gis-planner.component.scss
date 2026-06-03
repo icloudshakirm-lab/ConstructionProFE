@@ -76,6 +76,33 @@
   width: 100%;
 }
 
+.gis-planner-page__color-input {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.35rem;
+  cursor: pointer;
+  background: transparent;
+}
+
+.gis-planner-page__label-input {
+  min-width: min(180px, 28vw);
+}
+
+.gis-planner-page__checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+
+  label {
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
 .gis-planner-page__status {
   margin: 0;
   font-size: 0.8125rem;
@@ -159,8 +186,47 @@
 
   .gis-planner-page__map .leaflet-container.gis-draw-active,
   .gis-planner-page__map .leaflet-container.gis-draw-active .leaflet-grab,
-  .gis-planner-page__map .leaflet-container.gis-draw-active .leaflet-dragging {
+  .gis-planner-page__map .leaflet-container.gis-draw-active .leaflet-dragging,
+  .gis-planner-page__map .leaflet-container.gis-label-mode,
+  .gis-planner-page__map .leaflet-container.gis-label-mode .leaflet-grab {
     cursor: crosshair !important;
+  }
+
+  .gis-segment-length {
+    background: transparent;
+    border: none;
+    pointer-events: none;
+
+    span {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #0f172a;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .gis-line-label {
+    background: transparent;
+    border: none;
+
+    span {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255, 251, 235, 0.95);
+      color: #1e293b;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 2px solid;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    }
   }
 
   .gis-angle-label {

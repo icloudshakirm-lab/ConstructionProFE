@@ -41,6 +41,67 @@
       </div>
 
       <div class="gis-planner-page__toolbar-group">
+        <span class="gis-planner-page__toolbar-label">Line style</span>
+        <p-select
+          [options]="colorPresets"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="mapGis.lineStyle().color"
+          (ngModelChange)="onLineColorChange($event)"
+          placeholder="Color"
+          [style]="{ minWidth: '120px' }"
+        />
+        <input
+          type="color"
+          class="gis-planner-page__color-input"
+          [ngModel]="mapGis.lineStyle().color"
+          (ngModelChange)="onLineColorChange($event)"
+          title="Custom color"
+          aria-label="Custom line color"
+        />
+        <p-select
+          [options]="weightOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="mapGis.lineStyle().weight"
+          (ngModelChange)="onLineWeightChange($event)"
+          placeholder="Thickness"
+          [style]="{ minWidth: '130px' }"
+        />
+        <div class="gis-planner-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="mapGis.showSegmentLengths()"
+            (ngModelChange)="onShowSegmentLengthsChange($event)"
+            [binary]="true"
+            inputId="gisShowLengths"
+          />
+          <label for="gisShowLengths">Segment lengths</label>
+        </div>
+      </div>
+
+      <div class="gis-planner-page__toolbar-group">
+        <span class="gis-planner-page__toolbar-label">Labels</span>
+        <input
+          type="text"
+          pInputText
+          class="gis-planner-page__label-input"
+          placeholder="Label text…"
+          [ngModel]="labelText()"
+          (ngModelChange)="onLabelTextChange($event)"
+        />
+        <p-button
+          label="Place on line"
+          icon="pi pi-tag"
+          [severity]="mapGis.labelPlacementActive() ? 'primary' : 'secondary'"
+          [outlined]="!mapGis.labelPlacementActive()"
+          (onClick)="startPlaceLabel()"
+        />
+        @if (mapGis.labelPlacementActive()) {
+          <p-button label="Cancel" icon="pi pi-times" [text]="true" (onClick)="cancelPlaceLabel()" />
+        }
+      </div>
+
+      <div class="gis-planner-page__toolbar-group">
         <span class="gis-planner-page__toolbar-label">Edit</span>
         <p-button label="Edit shapes" icon="pi pi-pencil" [outlined]="true" (onClick)="enableEdit()" />
         <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="deleteSelected()" />
@@ -91,8 +152,10 @@
     <h2>How to use</h2>
     <ol>
       <li><strong>Point</strong> — single click on the map.</li>
-      <li><strong>Line</strong> — click vertices, double-click to finish. Angles (0°, 45°, 90°, 135°, 180°, …) show on the cursor and snap within ~6°.</li>
-      <li><strong>Polygon</strong> — same angle guides and snapping as lines; double-click to close.</li>
+      <li><strong>Line style</strong> — pick color and thickness before drawing; each line keeps its style.</li>
+      <li><strong>Line</strong> — click vertices, double-click to finish. Segment lengths (m) appear on each segment.</li>
+      <li><strong>Labels</strong> — enter text, click <em>Place on line</em>, then click the target line.</li>
+      <li><strong>Polygon</strong> — same style, lengths on edges, and labels as lines.</li>
       <li><strong>Edit shapes</strong> — enable edit mode, then drag vertices.</li>
       <li><strong>Delete</strong> — edit a shape, then use Delete.</li>
       <li><strong>Export GeoJSON</strong> — logs to browser console (F12) and shows preview below the map.</li>
