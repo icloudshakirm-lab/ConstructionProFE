@@ -47,5 +47,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'sites-map': () =>
     import('../../features/project-management/sites-map/sites-map.component').then(
       (m) => m.SitesMapComponent
+    ),
+  'project-gis-planner': () =>
+    import('../../features/project-management/project-gis-planner/project-gis-planner.component').then(
+      (m) => m.ProjectGisPlannerComponent
     )
 };

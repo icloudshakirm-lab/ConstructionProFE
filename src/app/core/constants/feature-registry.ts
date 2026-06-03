@@ -31,6 +31,15 @@ export const FEATURE_MODULES: FeatureModule[] = [
         component: 'sites-map'
       },
       {
+        id: 'project-gis-planner',
+        title: 'Project GIS Planner',
+        description:
+          'Leaflet map to draw, edit, and export project geometries (point, line, polygon) with GeoJSON export.',
+        icon: 'pi pi-pencil',
+        highlights: ['Leaflet draw', 'Draw & edit', 'GeoJSON export'],
+        component: 'project-gis-planner'
+      },
+      {
         id: 'tasks',
         title: 'Tasks',
         description: 'Work breakdown tasks assigned to teams with dependencies and due dates.',

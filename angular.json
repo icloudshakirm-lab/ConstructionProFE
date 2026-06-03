@@ -47,16 +47,18 @@
                 "glob": "**/*",
                 "input": "node_modules/leaflet/dist/images",
                 "output": "leaflet-images"
-              }
+              },
             ],
             "allowedCommonJsDependencies": [
               "@mlightcad/cad-simple-viewer",
               "@mlightcad/data-model",
               "lodash-es",
-              "leaflet"
+              "leaflet",
+              "leaflet-draw"
             ],
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
+              "node_modules/leaflet-draw/dist/leaflet.draw.css",
               "src/styles.scss"
             ]
           },
