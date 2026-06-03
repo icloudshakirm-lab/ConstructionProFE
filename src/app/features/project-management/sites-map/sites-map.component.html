@@ -10,157 +10,165 @@
         catalog.
       </p>
     </div>
-    <div class="sites-map-page__header-actions">
-      <label class="sites-map-page__field-label" for="mapProject">Project</label>
-      <p-select
-        inputId="mapProject"
-        [options]="projectFilterOptions"
-        optionLabel="label"
-        optionValue="value"
-        [filter]="true"
-        filterPlaceholder="Search project…"
-        [ngModel]="projectFilter()"
-        (ngModelChange)="projectFilter.set($event)"
-        [style]="{ minWidth: 'min(300px, 90vw)' }"
-      />
-    </div>
   </header>
 
-  <div class="sites-map-page__layout">
-    <div
-      #mapFullscreenHost
-      class="sites-map-page__map-panel"
-      [class.sites-map-page__map-panel--resizing]="isResizing()"
-      [class.sites-map-page__map-panel--fullscreen]="isFullscreen()"
-      [style.height.px]="isFullscreen() ? null : panelHeight()"
-    >
-      <div class="sites-map-page__map-toolbar" role="toolbar" aria-label="Map controls">
+  <div
+    #mapFullscreenHost
+    class="sites-map-page__workspace"
+    [class.sites-map-page__workspace--resizing]="isResizing()"
+  >
+    <div class="sites-map-page__workspace-toolbar" role="toolbar" aria-label="Map workspace controls">
+      <div class="sites-map-page__toolbar-filters">
+        <label class="sites-map-page__field-label" for="mapProject">Project</label>
+        <p-select
+          inputId="mapProject"
+          [options]="projectFilterOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterPlaceholder="Search project…"
+          [ngModel]="projectFilter()"
+          (ngModelChange)="projectFilter.set($event)"
+          [style]="{ minWidth: 'min(280px, 42vw)' }"
+        />
+      </div>
+      <div class="sites-map-page__toolbar-actions">
         <p-button label="Fit all sites" icon="pi pi-map-marker" [outlined]="true" (onClick)="fitAllSites()" />
         <p-button
           [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
           [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
           [outlined]="true"
           (onClick)="toggleFullscreen()"
-          [attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen map'"
+          [attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen map and site details'"
         />
       </div>
-
-      <div #mapContainer class="sites-map-page__map" role="application" aria-label="Construction sites map"></div>
-
-      <p class="sites-map-page__attribution">
-        @if (themeService.theme() === 'dark') {
-          Dark map © OpenStreetMap · CARTO
-        } @else {
-          Map tiles © OpenStreetMap
-        }
-        ·
-        <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
-      </p>
-
-      @if (!isFullscreen()) {
-        <button
-          type="button"
-          class="sites-map-page__resize-handle"
-          aria-label="Resize map height"
-          title="Drag to resize map height"
-          (mousedown)="startResize($event)"
-        ></button>
-      }
     </div>
 
-    <aside class="sites-map-page__sidebar" aria-label="Site list and photo catalog">
-      <div class="sites-map-page__sidebar-head">
-        <h2>Sites ({{ filteredMarkers().length }})</h2>
-        <span class="sites-map-page__legend">
-          <span class="sites-map-page__legend-item"><i style="background:#22c55e"></i> ≥70%</span>
-          <span class="sites-map-page__legend-item"><i style="background:#3b82f6"></i> 35–69%</span>
-          <span class="sites-map-page__legend-item"><i style="background:#f59e0b"></i> 1–34%</span>
-          <span class="sites-map-page__legend-item"><i style="background:#94a3b8"></i> 0%</span>
-        </span>
+    <div class="sites-map-page__layout">
+      <div
+        #mapPanel
+        class="sites-map-page__map-panel"
+        [style.height.px]="isFullscreen() ? null : panelHeight()"
+      >
+        <div #mapContainer class="sites-map-page__map" role="application" aria-label="Construction sites map"></div>
+
+        <p class="sites-map-page__attribution">
+          @if (themeService.theme() === 'dark') {
+            Dark map © OpenStreetMap · CARTO
+          } @else {
+            Map tiles © OpenStreetMap
+          }
+          ·
+          <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
+        </p>
+
+        @if (!isFullscreen()) {
+          <button
+            type="button"
+            class="sites-map-page__resize-handle"
+            aria-label="Resize map height"
+            title="Drag to resize map height"
+            (mousedown)="startResize($event)"
+          ></button>
+        }
       </div>
 
-      <ul class="sites-map-page__list">
-        @for (marker of filteredMarkers(); track marker.id) {
-          <li>
-            <button
-              type="button"
-              class="sites-map-page__list-btn"
-              [class.sites-map-page__list-btn--active]="selectedMarkerId() === marker.id"
-              (click)="selectMarker(marker)"
-            >
-              <span class="sites-map-page__list-title">{{ marker.siteName }}</span>
-              <span class="sites-map-page__list-project">{{ marker.projectName }}</span>
-              <span class="sites-map-page__list-meta">
-                {{ marker.locationLabel }} · {{ marker.progressPct }}% ·
-                {{ photoCount(marker.siteId) }} photos
-              </span>
-              <p-tag [value]="marker.projectStatus" [severity]="statusSeverity(marker.projectStatus)" />
-            </button>
-          </li>
-        } @empty {
-          <li class="sites-map-page__empty">No sites for this project.</li>
+      <aside class="sites-map-page__sidebar" aria-label="Site list and photo catalog">
+        <div class="sites-map-page__sidebar-head">
+          <h2>Sites ({{ filteredMarkers().length }})</h2>
+          <span class="sites-map-page__legend">
+            <span class="sites-map-page__legend-item"><i style="background:#22c55e"></i> ≥70%</span>
+            <span class="sites-map-page__legend-item"><i style="background:#3b82f6"></i> 35–69%</span>
+            <span class="sites-map-page__legend-item"><i style="background:#f59e0b"></i> 1–34%</span>
+            <span class="sites-map-page__legend-item"><i style="background:#94a3b8"></i> 0%</span>
+          </span>
+        </div>
+
+        <ul class="sites-map-page__list">
+          @for (marker of filteredMarkers(); track marker.id) {
+            <li>
+              <button
+                type="button"
+                class="sites-map-page__list-btn"
+                [class.sites-map-page__list-btn--active]="selectedMarkerId() === marker.id"
+                (click)="selectMarker(marker)"
+              >
+                <span class="sites-map-page__list-title">{{ marker.siteName }}</span>
+                <span class="sites-map-page__list-project">{{ marker.projectName }}</span>
+                <span class="sites-map-page__list-meta">
+                  {{ marker.locationLabel }} · {{ marker.progressPct }}% ·
+                  {{ photoCount(marker.siteId) }} photos
+                </span>
+                <p-tag [value]="marker.projectStatus" [severity]="statusSeverity(marker.projectStatus)" />
+              </button>
+            </li>
+          } @empty {
+            <li class="sites-map-page__empty">No sites for this project.</li>
+          }
+        </ul>
+
+        @if (selectedMarker(); as sel) {
+          <p-card class="sites-map-page__detail">
+            <h3>{{ sel.siteName }}</h3>
+            <dl>
+              <div>
+                <dt>Project</dt>
+                <dd>{{ sel.projectName }}</dd>
+              </div>
+              <div>
+                <dt>Location</dt>
+                <dd>{{ sel.locationLabel }}</dd>
+              </div>
+              <div>
+                <dt>Coordinates</dt>
+                <dd>{{ sel.lat.toFixed(4) }}, {{ sel.lng.toFixed(4) }}</dd>
+              </div>
+              <div>
+                <dt>Progress</dt>
+                <dd>{{ sel.progressPct }}%</dd>
+              </div>
+              <div>
+                <dt>Superintendent</dt>
+                <dd>{{ sel.superintendent }}</dd>
+              </div>
+            </dl>
+          </p-card>
+
+          <section class="sites-map-page__gallery" aria-label="Site photo catalog">
+            <div class="sites-map-page__gallery-head">
+              <h3>Photo catalog</h3>
+              <span>{{ selectedSitePhotos().length }} images</span>
+            </div>
+            <div class="sites-map-page__gallery-grid">
+              @for (photo of selectedSitePhotos(); track photo.id) {
+                <figure class="sites-map-page__gallery-item">
+                  <p-image
+                    [src]="photo.thumbnailUrl"
+                    [alt]="photo.title"
+                    [previewImageSrc]="photo.url"
+                    width="100%"
+                    [preview]="true"
+                  />
+                  <figcaption>
+                    <strong>{{ photo.category }}</strong>
+                    <span>{{ photo.caption }}</span>
+                    <time>{{ photo.takenAt }}</time>
+                  </figcaption>
+                </figure>
+              } @empty {
+                <p class="sites-map-page__empty">No photos for this site.</p>
+              }
+            </div>
+          </section>
         }
-      </ul>
-
-      @if (selectedMarker(); as sel) {
-        <p-card class="sites-map-page__detail">
-          <h3>{{ sel.siteName }}</h3>
-          <dl>
-            <div>
-              <dt>Project</dt>
-              <dd>{{ sel.projectName }}</dd>
-            </div>
-            <div>
-              <dt>Location</dt>
-              <dd>{{ sel.locationLabel }}</dd>
-            </div>
-            <div>
-              <dt>Coordinates</dt>
-              <dd>{{ sel.lat.toFixed(4) }}, {{ sel.lng.toFixed(4) }}</dd>
-            </div>
-            <div>
-              <dt>Progress</dt>
-              <dd>{{ sel.progressPct }}%</dd>
-            </div>
-            <div>
-              <dt>Superintendent</dt>
-              <dd>{{ sel.superintendent }}</dd>
-            </div>
-          </dl>
-        </p-card>
-
-        <section class="sites-map-page__gallery" aria-label="Site photo catalog">
-          <div class="sites-map-page__gallery-head">
-            <h3>Photo catalog</h3>
-            <span>{{ selectedSitePhotos().length }} images</span>
-          </div>
-          <div class="sites-map-page__gallery-grid">
-            @for (photo of selectedSitePhotos(); track photo.id) {
-              <figure class="sites-map-page__gallery-item">
-                <p-image
-                  [src]="photo.thumbnailUrl"
-                  [alt]="photo.title"
-                  [previewImageSrc]="photo.url"
-                  width="100%"
-                  [preview]="true"
-                />
-                <figcaption>
-                  <strong>{{ photo.category }}</strong>
-                  <span>{{ photo.caption }}</span>
-                  <time>{{ photo.takenAt }}</time>
-                </figcaption>
-              </figure>
-            } @empty {
-              <p class="sites-map-page__empty">No photos for this site.</p>
-            }
-          </div>
-        </section>
-      }
-    </aside>
+      </aside>
+    </div>
   </div>
 
-  <p class="sites-map-page__hint">
-    Drag the handle on the bottom-right of the map to change height. Click a thumbnail to preview full size.
-    Demo photos use royalty-free placeholders (Picsum).
-  </p>
+  @if (!isFullscreen()) {
+    <p class="sites-map-page__hint">
+      Drag the handle on the bottom-right of the map to change height. Full screen includes the map and site
+      details panel. Click a thumbnail to preview full size.
+    </p>
+  }
 </div>

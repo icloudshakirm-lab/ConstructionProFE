@@ -52,6 +52,7 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   readonly themeService = inject(ThemeService);
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('mapPanel', { static: true }) mapPanel!: ElementRef<HTMLDivElement>;
   @ViewChild('mapFullscreenHost', { static: true }) mapFullscreenHost!: ElementRef<HTMLDivElement>;
 
   readonly projectFilterOptions = PROJECT_FILTER_OPTIONS;
@@ -193,9 +194,9 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
     event.stopPropagation();
     this.teardownResize();
 
-    const host = this.mapFullscreenHost.nativeElement;
+    const panel = this.mapPanel.nativeElement;
     const startY = event.clientY;
-    const startHeight = host.offsetHeight;
+    const startHeight = panel.offsetHeight;
 
     this.isResizing.set(true);
     document.body.classList.add('sites-map-page--resizing');
