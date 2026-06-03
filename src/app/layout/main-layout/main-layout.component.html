@@ -92,6 +92,16 @@
       />
       <h2 class="shell__page-title">{{ pageTitle() }}</h2>
       <div class="shell__topbar-actions">
+        <p-button
+          [icon]="themeService.theme() === 'dark' ? 'pi pi-sun' : 'pi pi-moon'"
+          [text]="true"
+          [rounded]="true"
+          (onClick)="themeService.toggle()"
+          [pTooltip]="themeService.theme() === 'dark' ? 'Light mode' : 'Dark mode'"
+          [attr.aria-label]="
+            themeService.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+          "
+        />
         <p-button icon="pi pi-bell" [text]="true" [rounded]="true" pTooltip="Notifications" />
         <p-avatar label="SE" shape="circle" pTooltip="Site Engineer" />
       </div>

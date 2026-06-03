@@ -6,6 +6,7 @@ import {
   ViewChild,
   computed,
   effect,
+  inject,
   signal
 } from '@angular/core';
 import Gantt from 'frappe-gantt';
@@ -23,6 +24,7 @@ import {
   GANTT_VIEW_MODES,
   GanttViewMode
 } from './gantt-chart.data';
+import { ThemeService } from '../../../core/services/theme.service';
 
 type ActivityStatus = 'done' | 'active' | 'planned' | 'milestone';
 
@@ -52,6 +54,8 @@ interface ActivityDraft {
   styleUrl: './gantt-chart.component.scss'
 })
 export class GanttChartComponent implements AfterViewInit, OnDestroy {
+  private readonly themeService = inject(ThemeService);
+
   @ViewChild('ganttContainer', { static: true }) ganttContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('fullscreenHost', { static: true }) fullscreenHost!: ElementRef<HTMLDivElement>;
 
@@ -102,6 +106,13 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
       const tasks = this.tasks();
       if (this.gantt) {
         this.gantt.refresh(tasks);
+      }
+    });
+
+    effect(() => {
+      this.themeService.theme();
+      if (this.gantt) {
+        this.renderGantt();
       }
     });
   }

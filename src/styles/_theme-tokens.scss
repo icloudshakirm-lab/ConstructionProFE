@@ -1,0 +1,98 @@
+/* Semantic tokens for features that need fixed accent hues in both themes */
+
+/*
+ * Aura dark mode keeps --p-surface-0 as #fff (used for text refs).
+ * Use --cp-* layout tokens for page/panel backgrounds, not --p-surface-0/50.
+ */
+:root {
+  --cp-app-bg: var(--p-surface-50);
+  --cp-panel-bg: var(--p-surface-0);
+  --cp-subtle-bg: var(--p-surface-100);
+  --cp-muted-bg: var(--p-surface-50);
+  --cp-gradient-from: var(--p-primary-50);
+  --cp-gradient-to: var(--p-surface-0);
+  --cp-code-bg: var(--p-surface-50);
+  --cp-input-bg: var(--p-surface-0);
+  --cp-highlight-bg: var(--p-primary-50);
+
+  --cp-shadow-soft: rgb(0 0 0 / 7%);
+  --cp-overlay-backdrop: rgb(0 0 0 / 40%);
+  --cp-entity-role: var(--p-blue-500);
+  --cp-entity-contractor: var(--p-teal-600);
+  --cp-entity-subcontractor: var(--p-teal-500);
+  --cp-entity-consultant: var(--p-purple-500);
+  --cp-entity-client: var(--p-amber-500);
+  --cp-entity-supplier: var(--p-slate-500);
+  --cp-entity-authority: var(--p-red-600);
+  --cp-entity-vendor: var(--p-indigo-500);
+  --cp-entity-labor: var(--p-yellow-600);
+  --cp-entity-finance: var(--p-green-600);
+  --cp-entity-site: var(--p-slate-400);
+  --cp-entity-milestone: var(--p-amber-500);
+
+  --cp-gantt-done-fill: var(--p-green-100);
+  --cp-gantt-done-stroke: var(--p-green-500);
+  --cp-gantt-done-progress: var(--p-green-500);
+  --cp-gantt-planned-fill: var(--p-surface-100);
+  --cp-gantt-planned-stroke: var(--p-slate-400);
+  --cp-gantt-planned-progress: var(--p-slate-300);
+  --cp-gantt-milestone-fill: var(--p-amber-100);
+  --cp-gantt-milestone-stroke: var(--p-amber-500);
+  --cp-gantt-milestone-progress: var(--p-amber-400);
+
+  --cp-milestone-not-started-bg: var(--p-surface-100);
+  --cp-milestone-not-started-text: var(--p-slate-600);
+  --cp-milestone-not-started-border: var(--p-slate-300);
+  --cp-milestone-in-progress-bg: var(--p-blue-50);
+  --cp-milestone-in-progress-text: var(--p-blue-700);
+  --cp-milestone-in-progress-border: var(--p-blue-500);
+  --cp-milestone-at-risk-bg: var(--p-amber-50);
+  --cp-milestone-at-risk-text: var(--p-amber-700);
+  --cp-milestone-at-risk-border: var(--p-amber-500);
+  --cp-milestone-completed-bg: var(--p-green-50);
+  --cp-milestone-completed-text: var(--p-green-700);
+  --cp-milestone-completed-border: var(--p-green-500);
+  --cp-milestone-delayed-bg: var(--p-red-50);
+  --cp-milestone-delayed-text: var(--p-red-700);
+  --cp-milestone-delayed-border: var(--p-red-500);
+}
+
+html.app-dark {
+  --cp-app-bg: var(--p-surface-950);
+  --cp-panel-bg: var(--p-surface-900);
+  --cp-subtle-bg: var(--p-surface-800);
+  --cp-muted-bg: var(--p-surface-900);
+  --cp-gradient-from: color-mix(in srgb, var(--p-primary-500) 18%, var(--p-surface-900));
+  --cp-gradient-to: var(--p-surface-900);
+  --cp-code-bg: var(--p-surface-900);
+  --cp-input-bg: var(--p-surface-950);
+  --cp-highlight-bg: color-mix(in srgb, var(--p-primary-color) 22%, transparent);
+
+  --cp-shadow-soft: rgb(0 0 0 / 35%);
+  --cp-overlay-backdrop: rgb(0 0 0 / 55%);
+  --cp-gantt-done-fill: color-mix(in srgb, var(--p-green-500) 22%, var(--p-surface-900));
+  --cp-gantt-done-stroke: var(--p-green-400);
+  --cp-gantt-done-progress: var(--p-green-400);
+  --cp-gantt-planned-fill: var(--p-surface-800);
+  --cp-gantt-planned-stroke: var(--p-slate-500);
+  --cp-gantt-planned-progress: var(--p-slate-400);
+  --cp-gantt-milestone-fill: color-mix(in srgb, var(--p-amber-500) 20%, var(--p-surface-900));
+  --cp-gantt-milestone-stroke: var(--p-amber-400);
+  --cp-gantt-milestone-progress: var(--p-amber-300);
+
+  --cp-milestone-not-started-bg: var(--p-surface-800);
+  --cp-milestone-not-started-text: var(--p-slate-300);
+  --cp-milestone-not-started-border: var(--p-slate-600);
+  --cp-milestone-in-progress-bg: color-mix(in srgb, var(--p-blue-500) 18%, var(--p-surface-900));
+  --cp-milestone-in-progress-text: var(--p-blue-300);
+  --cp-milestone-in-progress-border: var(--p-blue-400);
+  --cp-milestone-at-risk-bg: color-mix(in srgb, var(--p-amber-500) 18%, var(--p-surface-900));
+  --cp-milestone-at-risk-text: var(--p-amber-300);
+  --cp-milestone-at-risk-border: var(--p-amber-400);
+  --cp-milestone-completed-bg: color-mix(in srgb, var(--p-green-500) 18%, var(--p-surface-900));
+  --cp-milestone-completed-text: var(--p-green-300);
+  --cp-milestone-completed-border: var(--p-green-400);
+  --cp-milestone-delayed-bg: color-mix(in srgb, var(--p-red-500) 18%, var(--p-surface-900));
+  --cp-milestone-delayed-text: var(--p-red-300);
+  --cp-milestone-delayed-border: var(--p-red-400);
+}

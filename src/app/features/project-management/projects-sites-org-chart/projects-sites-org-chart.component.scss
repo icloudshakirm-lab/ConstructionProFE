@@ -39,7 +39,7 @@
   padding: 0.25rem 0.25rem;
   border: 1px solid var(--p-content-border-color);
   border-radius: 0.75rem;
-  background: var(--p-surface-0);
+  background: var(--cp-panel-bg);
 }
 
 .org-page__label {
@@ -64,9 +64,13 @@
 }
 
 .org-page__pill--active {
-  background: var(--p-primary-50);
+  background: color-mix(in srgb, var(--p-primary-color) 14%, var(--cp-panel-bg));
   color: var(--p-primary-700);
   font-weight: 700;
+}
+
+html.app-dark .org-page__pill--active {
+  color: var(--p-primary-300);
 }
 
 .org-page__kpis {
@@ -163,7 +167,7 @@
 .node {
   border-radius: 0.75rem;
   border: 1px solid var(--p-content-border-color);
-  background: var(--p-surface-0);
+  background: var(--cp-panel-bg);
   text-align: left;
 
   i {
@@ -191,7 +195,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--p-primary-700);
-  background: var(--p-primary-50);
+  background: var(--cp-highlight-bg);
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
 }
@@ -199,8 +203,8 @@
 .node__pct {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--p-green-700, #15803d);
-  background: var(--p-green-50, #dcfce7);
+  color: var(--cp-milestone-completed-text);
+  background: var(--cp-milestone-completed-bg);
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
 }
@@ -216,7 +220,7 @@
 }
 
 .node--root {
-  background: linear-gradient(135deg, var(--p-primary-50), var(--p-surface-0));
+  background: linear-gradient(135deg, var(--cp-gradient-from), var(--cp-gradient-to));
   border-color: var(--p-primary-100);
 }
 
@@ -231,7 +235,7 @@
   padding: 0.85rem;
   min-width: 220px;
   max-width: 300px;
-  border-left: 4px solid #94a3b8;
+  border-left: 4px solid var(--cp-entity-site);
 
   > i {
     margin-top: 0.15rem;
@@ -245,7 +249,7 @@
   padding: 0.5rem 0.65rem;
   min-width: 280px;
   max-width: 340px;
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid var(--cp-entity-milestone);
   text-align: left;
 }
 
@@ -290,7 +294,7 @@
   font-size: 0.6875rem;
   font-weight: 700;
   color: var(--p-primary-700);
-  background: var(--p-primary-50);
+  background: var(--cp-highlight-bg);
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
 }
@@ -321,32 +325,34 @@
   }
 }
 
-@mixin milestone-select-status($bg, $text, $border) {
-  .p-select-label {
-    background-color: $bg !important;
-    color: $text !important;
-    border: 1px solid $border !important;
-  }
+:host ::ng-deep .milestone-status--not-started .p-select-label {
+  background-color: var(--cp-milestone-not-started-bg) !important;
+  color: var(--cp-milestone-not-started-text) !important;
+  border: 1px solid var(--cp-milestone-not-started-border) !important;
 }
 
-:host ::ng-deep .milestone-status--not-started {
-  @include milestone-select-status(#f1f5f9, #475569, #cbd5e1);
+:host ::ng-deep .milestone-status--in-progress .p-select-label {
+  background-color: var(--cp-milestone-in-progress-bg) !important;
+  color: var(--cp-milestone-in-progress-text) !important;
+  border: 1px solid var(--cp-milestone-in-progress-border) !important;
 }
 
-:host ::ng-deep .milestone-status--in-progress {
-  @include milestone-select-status(#dbeafe, #1d4ed8, #3b82f6);
+:host ::ng-deep .milestone-status--at-risk .p-select-label {
+  background-color: var(--cp-milestone-at-risk-bg) !important;
+  color: var(--cp-milestone-at-risk-text) !important;
+  border: 1px solid var(--cp-milestone-at-risk-border) !important;
 }
 
-:host ::ng-deep .milestone-status--at-risk {
-  @include milestone-select-status(#fef3c7, #b45309, #f59e0b);
+:host ::ng-deep .milestone-status--completed .p-select-label {
+  background-color: var(--cp-milestone-completed-bg) !important;
+  color: var(--cp-milestone-completed-text) !important;
+  border: 1px solid var(--cp-milestone-completed-border) !important;
 }
 
-:host ::ng-deep .milestone-status--completed {
-  @include milestone-select-status(#dcfce7, #15803d, #22c55e);
-}
-
-:host ::ng-deep .milestone-status--delayed {
-  @include milestone-select-status(#fee2e2, #b91c1c, #ef4444);
+:host ::ng-deep .milestone-status--delayed .p-select-label {
+  background-color: var(--cp-milestone-delayed-bg) !important;
+  color: var(--cp-milestone-delayed-text) !important;
+  border: 1px solid var(--cp-milestone-delayed-border) !important;
 }
 
 .org-page__hint {
@@ -368,7 +374,7 @@
   font-size: 0.75rem;
   line-height: 1.45;
   color: var(--p-text-color);
-  background: var(--p-surface-50);
+  background: var(--cp-code-bg);
   border: 1px solid var(--p-content-border-color);
   border-radius: 0.5rem;
   white-space: pre-wrap;

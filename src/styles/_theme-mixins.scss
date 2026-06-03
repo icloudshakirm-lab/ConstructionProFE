@@ -1,0 +1,11 @@
+@mixin milestone-select-status($bg, $text, $border) {
+  .p-select-label {
+    background-color: $bg !important;
+    color: $text !important;
+    border: 1px solid $border !important;
+  }
+}
+
+@mixin entity-border-left($color, $width: 4px) {
+  border-left: $width solid $color;
+}

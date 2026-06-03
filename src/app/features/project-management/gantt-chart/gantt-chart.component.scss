@@ -50,7 +50,7 @@
   border-radius: 2px;
 
   &--done {
-    background: #22c55e;
+    background: var(--cp-gantt-done-stroke);
   }
 
   &--active {
@@ -58,11 +58,11 @@
   }
 
   &--planned {
-    background: #94a3b8;
+    background: var(--cp-gantt-planned-stroke);
   }
 
   &--milestone {
-    background: #f59e0b;
+    background: var(--cp-gantt-milestone-stroke);
   }
 }
 
@@ -81,12 +81,12 @@
   }
 
   .bar-done .bar {
-    fill: #dcfce7;
-    stroke: #22c55e;
+    fill: var(--cp-gantt-done-fill);
+    stroke: var(--cp-gantt-done-stroke);
   }
 
   .bar-done .bar-progress {
-    fill: #22c55e;
+    fill: var(--cp-gantt-done-progress);
   }
 
   .bar-active .bar {
@@ -99,21 +99,21 @@
   }
 
   .bar-planned .bar {
-    fill: #f1f5f9;
-    stroke: #94a3b8;
+    fill: var(--cp-gantt-planned-fill);
+    stroke: var(--cp-gantt-planned-stroke);
   }
 
   .bar-planned .bar-progress {
-    fill: #cbd5e1;
+    fill: var(--cp-gantt-planned-progress);
   }
 
   .bar-milestone .bar {
-    fill: #fef3c7;
-    stroke: #f59e0b;
+    fill: var(--cp-gantt-milestone-fill);
+    stroke: var(--cp-gantt-milestone-stroke);
   }
 
   .bar-milestone .bar-progress {
-    fill: #fbbf24;
+    fill: var(--cp-gantt-milestone-progress);
   }
 }
 
@@ -153,7 +153,7 @@
     padding: 0 0.65rem;
     border-radius: 0.5rem;
     border: 1px solid var(--p-content-border-color);
-    background: var(--p-surface-0);
+    background: var(--cp-input-bg);
     color: var(--p-text-color);
     font: inherit;
   }
@@ -194,7 +194,7 @@
   font-size: 0.75rem;
   line-height: 1.45;
   color: var(--p-text-color);
-  background: var(--p-surface-50);
+  background: var(--cp-code-bg);
   border: 1px solid var(--p-content-border-color);
   border-radius: 0.5rem;
   white-space: pre-wrap;

@@ -8,6 +8,7 @@ import { RippleModule } from 'primeng/ripple';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { FEATURE_MODULES } from '../../core/constants/feature-registry';
+import { ThemeService } from '../../core/services/theme.service';
 @Component({
   selector: 'app-main-layout',
   imports: [
@@ -25,6 +26,7 @@ import { FEATURE_MODULES } from '../../core/constants/feature-registry';
 })
 export class MainLayoutComponent {
   private readonly router = inject(Router);
+  readonly themeService = inject(ThemeService);
 
   readonly modules = FEATURE_MODULES;
   readonly sidebarVisible = signal(false);

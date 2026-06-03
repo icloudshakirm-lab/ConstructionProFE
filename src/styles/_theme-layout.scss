@@ -1,0 +1,70 @@
+/* Global dark-mode fixes for PrimeNG Aura + custom layout */
+
+html.app-dark {
+  color-scheme: dark;
+
+  /* Native inputs */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  textarea,
+  select {
+    background: var(--cp-input-bg);
+    border-color: var(--p-content-border-color);
+    color: var(--p-text-color);
+  }
+
+  /* Tables */
+  .p-datatable .p-datatable-thead > tr > th {
+    background: var(--cp-subtle-bg);
+    color: var(--p-text-color);
+  }
+
+  .p-datatable .p-datatable-tbody > tr {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+  }
+
+  .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+    background: var(--cp-muted-bg);
+  }
+
+  /* Breadcrumb */
+  .p-breadcrumb {
+    background: transparent;
+  }
+
+  /* Organization chart nodes (Prime default can look light) */
+  .p-organizationchart .p-organizationchart-node-content {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    border-color: var(--p-content-border-color);
+  }
+
+  /* Cards & panels */
+  .p-card {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    border: 1px solid var(--p-content-border-color);
+  }
+
+  .p-card .p-card-title {
+    color: var(--p-text-color);
+  }
+
+  .p-card .p-card-subtitle {
+    color: var(--p-text-muted-color);
+  }
+
+  .p-dialog .p-dialog-content,
+  .p-dialog .p-dialog-header {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+  }
+
+  .p-select-overlay,
+  .p-menu,
+  .p-tieredmenu {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    border-color: var(--p-content-border-color);
+  }
+}

@@ -81,7 +81,7 @@
   }
 
   .drawings-page__row--active {
-    background: color-mix(in srgb, var(--p-primary-color) 12%, var(--p-surface-100)) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 14%, var(--cp-panel-bg)) !important;
   }
 }
 
@@ -121,7 +121,7 @@
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--p-content-border-color);
   border-bottom: none;
-  background: var(--p-surface-0);
+  background: var(--cp-panel-bg);
   flex-shrink: 0;
   position: relative;
   z-index: 30;
@@ -147,7 +147,7 @@
 .drawings-page__viewer-panel {
   min-height: min(68vh, 640px);
   overflow: hidden;
-  background: var(--p-surface-100);
+  background: var(--cp-subtle-bg);
 }
 
 .drawings-page__viewer-wrap {
@@ -179,7 +179,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: color-mix(in srgb, var(--p-surface-0) 82%, transparent);
+  background: color-mix(in srgb, var(--cp-panel-bg) 82%, transparent);
   color: var(--p-text-muted-color);
   font-size: 0.875rem;
   pointer-events: none;
@@ -219,7 +219,7 @@
   max-height: 100vh;
   border: none;
   border-radius: 0;
-  background: var(--p-surface-100);
+  background: var(--cp-subtle-bg);
 
   .drawings-page__canvas {
     flex: 1;

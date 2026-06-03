@@ -10,6 +10,24 @@
       content="ConstructPro construction ERP: projects, inventory, BOQ billing, equipment, HR, and site mobile."
     />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      (function () {
+        var k = 'constructpro-theme';
+        var t = localStorage.getItem(k);
+        var dark =
+          t === 'dark' ||
+          (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        if (dark) {
+          root.classList.add('app-dark');
+          root.dataset.theme = 'dark';
+          root.style.colorScheme = 'dark';
+        } else {
+          root.dataset.theme = 'light';
+          root.style.colorScheme = 'light';
+        }
+      })();
+    </script>
   </head>
   <body>
     <app-root></app-root>

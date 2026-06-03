@@ -5,6 +5,7 @@ import {
   ElementRef,
   OnDestroy,
   ViewChild,
+  effect,
   inject,
   signal
 } from '@angular/core';
@@ -18,6 +19,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
+import { ThemeService } from '../../../core/services/theme.service';
 import { CadViewerService } from './cad-viewer.service';
 import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
 
@@ -42,6 +44,7 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   private readonly cadViewer = inject(CadViewerService);
   private readonly messages = inject(MessageService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly themeService = inject(ThemeService);
 
   @ViewChild('cadHost', { static: true }) cadHost!: ElementRef<HTMLDivElement>;
   @ViewChild('viewerFullscreenHost', { static: true })
@@ -62,6 +65,15 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   readonly isBrowserFullscreen = signal(false);
   /** Bumped after layout changes so toolbar buttons re-render reliably. */
   readonly toolbarKey = signal(0);
+
+  constructor() {
+    effect(() => {
+      this.themeService.theme();
+      if (this.cadHost?.nativeElement) {
+        this.scheduleLayoutRefresh();
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     if (typeof document !== 'undefined') {

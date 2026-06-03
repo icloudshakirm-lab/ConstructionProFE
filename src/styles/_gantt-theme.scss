@@ -1,0 +1,68 @@
+/* Frappe Gantt reads html[data-theme]; sync with ThemeService + Prime surfaces */
+
+html[data-theme='light'] {
+  --g-arrow-color: var(--p-text-color);
+  --g-bar-color: var(--cp-panel-bg);
+  --g-bar-border: var(--p-content-border-color);
+  --g-tick-color-thick: var(--p-surface-200);
+  --g-tick-color: var(--cp-subtle-bg);
+  --g-actions-background: var(--cp-subtle-bg);
+  --g-border-color: var(--p-content-border-color);
+  --g-text-muted: var(--p-text-muted-color);
+  --g-text-light: var(--cp-panel-bg);
+  --g-text-dark: var(--p-text-color);
+  --g-progress-color: var(--p-surface-300);
+  --g-handle-color: var(--p-text-color);
+  --g-weekend-label-color: var(--p-surface-300);
+  --g-expected-progress: var(--p-primary-200);
+  --g-header-background: var(--cp-panel-bg);
+  --g-row-color: var(--cp-app-bg);
+  --g-row-border-color: var(--p-content-border-color);
+  --g-today-highlight: var(--p-primary-color);
+  --g-popup-actions: var(--cp-subtle-bg);
+  --g-weekend-highlight-color: var(--cp-muted-bg);
+}
+
+html[data-theme='dark'],
+html.app-dark {
+  --g-arrow-color: var(--p-text-color);
+  --g-bar-color: var(--p-surface-800);
+  --g-bar-border: var(--p-content-border-color);
+  --g-tick-color-thick: var(--p-surface-700);
+  --g-tick-color: var(--p-surface-950);
+  --g-actions-background: var(--p-surface-800);
+  --g-border-color: var(--p-content-border-color);
+  --g-text-muted: var(--p-text-muted-color);
+  --g-text-light: var(--p-surface-200);
+  --g-text-dark: var(--p-text-color);
+  --g-progress-color: var(--p-surface-600);
+  --g-handle-color: var(--p-text-color);
+  --g-weekend-label-color: var(--p-surface-600);
+  --g-expected-progress: var(--p-primary-400);
+  --g-header-background: var(--cp-panel-bg);
+  --g-row-color: var(--cp-app-bg);
+  --g-row-border-color: var(--p-content-border-color);
+  --g-today-highlight: var(--p-primary-color);
+  --g-popup-actions: var(--p-surface-800);
+  --g-weekend-highlight-color: var(--p-surface-800);
+}
+
+.gantt-container {
+  background: var(--cp-panel-bg);
+  color: var(--p-text-color);
+}
+
+.gantt-popup {
+  background: var(--cp-panel-bg);
+  color: var(--p-text-color);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  box-shadow: var(--p-overlay-modal-shadow, 0 4px 16px rgb(0 0 0 / 12%));
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--p-text-muted-color);
+    font-size: 0.8125rem;
+  }
+}
