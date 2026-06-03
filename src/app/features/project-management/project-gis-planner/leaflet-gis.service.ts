@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
+import { GisDrawPolygon, GisDrawPolyline } from './gis-draw-handlers';
 import { MAP_TILES } from '../sites-map/sites-map.data';
 import type { GeoJsonFeatureCollection } from './map-gis.service';
 
@@ -12,7 +13,7 @@ export class LeafletGisService {
   private tileLayer: L.TileLayer | null = null;
   private drawnItems: L.FeatureGroup | null = null;
   private drawControl: L.Control.Draw | null = null;
-  private activeHandler: L.Draw.Marker | L.Draw.Polyline | L.Draw.Polygon | null = null;
+  private activeHandler: { enable: () => void; disable: () => void } | null = null;
   private onGeometryChange?: (action: SketchEventAction) => void;
 
   initialize(
@@ -104,10 +105,19 @@ export class LeafletGisService {
         });
         break;
       case 'polyline':
-        this.activeHandler = new L.Draw.Polyline(this.map, { shapeOptions });
+        this.activeHandler = new GisDrawPolyline(this.map, {
+          shapeOptions,
+          showLength: true,
+          metric: true
+        });
         break;
       case 'polygon':
-        this.activeHandler = new L.Draw.Polygon(this.map, { shapeOptions });
+        this.activeHandler = new GisDrawPolygon(this.map, {
+          shapeOptions,
+          showLength: false,
+          showArea: false,
+          metric: true
+        });
         break;
     }
 

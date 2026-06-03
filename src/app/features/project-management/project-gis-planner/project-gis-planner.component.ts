@@ -105,7 +105,13 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     if (!tool) return;
     this.activeTool.set(tool);
     this.mapGis.startDraw(tool);
-    this.lastAction.set(`Drawing ${tool} — click on the map. Double-click to finish lines/polygons.`);
+    const angleHint =
+      tool === 'polyline' || tool === 'polygon'
+        ? ' Segment angles snap to 45° / 90° (like Esri).'
+        : '';
+    this.lastAction.set(
+      `Drawing ${tool} — click on the map. Double-click to finish lines/polygons.${angleHint}`
+    );
   }
 
   cancelDraw(): void {
