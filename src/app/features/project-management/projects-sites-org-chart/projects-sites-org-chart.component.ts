@@ -1,6 +1,6 @@
 import { Component, computed, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { TreeNode } from 'primeng/api';
+import { PrimeTemplate, TreeNode } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Card } from 'primeng/card';
@@ -23,6 +23,7 @@ type ScopeMode = 'all' | 'single';
   imports: [
     NgClass,
     FormsModule,
+    PrimeTemplate,
     Breadcrumb,
     Card,
     OrganizationChart,
