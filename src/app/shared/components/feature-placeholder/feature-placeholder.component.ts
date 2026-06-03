@@ -1,27 +1,37 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { ChipModule } from 'primeng/chip';
-import { TagModule } from 'primeng/tag';
+import { Breadcrumb } from 'primeng/breadcrumb';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { Chip } from 'primeng/chip';
+import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
 import { MenuItem } from 'primeng/api';
 
+type RouteData = { moduleId: string; pageId: string };
+
 @Component({
   selector: 'app-feature-placeholder',
-  imports: [RouterLink, BreadcrumbModule, ButtonModule, CardModule, ChipModule, TagModule],
+  imports: [RouterLink, Breadcrumb, Button, Card, Chip, Tag],
   templateUrl: './feature-placeholder.component.html',
   styleUrl: './feature-placeholder.component.scss'
 })
 export class FeaturePlaceholderComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
-  private readonly routeData = toSignal(
-    this.route.data.pipe(map((data) => data as { moduleId: string; pageId: string }))
-  );
+  readonly routeData = signal<RouteData | undefined>(this.readRouteData());
+
+  constructor() {
+    this.route.data
+      .pipe(
+        map((data) => data as RouteData),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((data) => this.routeData.set(data));
+  }
 
   readonly module = computed(() => {
     const data = this.routeData();
@@ -49,4 +59,12 @@ export class FeaturePlaceholderComponent {
       { label: page.title }
     ];
   });
+
+  private readRouteData(): RouteData | undefined {
+    const data = this.route.snapshot.data as Partial<RouteData>;
+    if (data.moduleId && data.pageId) {
+      return { moduleId: data.moduleId, pageId: data.pageId };
+    }
+    return undefined;
+  }
 }

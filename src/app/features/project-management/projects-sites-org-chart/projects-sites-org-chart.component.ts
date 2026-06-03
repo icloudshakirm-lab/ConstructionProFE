@@ -2,11 +2,11 @@ import { Component, computed, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { TreeNode } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { CardModule } from 'primeng/card';
-import { OrganizationChartModule } from 'primeng/organizationchart';
-import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
+import { Breadcrumb } from 'primeng/breadcrumb';
+import { Card } from 'primeng/card';
+import { OrganizationChart } from 'primeng/organizationchart';
+import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
 import {
   DEMO_PROJECTS,
   MILESTONE_STATUS_OPTIONS,
@@ -23,11 +23,11 @@ type ScopeMode = 'all' | 'single';
   imports: [
     NgClass,
     FormsModule,
-    BreadcrumbModule,
-    CardModule,
-    OrganizationChartModule,
-    SelectModule,
-    TagModule
+    Breadcrumb,
+    Card,
+    OrganizationChart,
+    Select,
+    Tag
   ],
   templateUrl: './projects-sites-org-chart.component.html',
   styleUrl: './projects-sites-org-chart.component.scss'

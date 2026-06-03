@@ -14,16 +14,16 @@ import {
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MenuItem, MessageService } from 'primeng/api';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
-import { Menu, MenuModule } from 'primeng/menu';
-import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
-import { TooltipModule } from 'primeng/tooltip';
+import { Breadcrumb } from 'primeng/breadcrumb';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { Dialog } from 'primeng/dialog';
+import { InputText } from 'primeng/inputtext';
+import { Menu } from 'primeng/menu';
+import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
+import { Toast } from 'primeng/toast';
+import { Tooltip } from 'primeng/tooltip';
 import {
   DEMO_OVERVIEW_PROJECTS,
   DiagramConnector,
@@ -50,16 +50,16 @@ type ConnectorStyle = 'curved' | 'orthogonal';
   selector: 'app-project-overview',
   imports: [
     FormsModule,
-    BreadcrumbModule,
-    ButtonModule,
-    CardModule,
-    DialogModule,
-    InputTextModule,
-    MenuModule,
-    SelectModule,
-    TagModule,
-    ToastModule,
-    TooltipModule
+    Breadcrumb,
+    Button,
+    Card,
+    Dialog,
+    InputText,
+    Menu,
+    Select,
+    Tag,
+    Toast,
+    Tooltip
   ],
   providers: [MessageService],
   templateUrl: './project-overview.component.html',

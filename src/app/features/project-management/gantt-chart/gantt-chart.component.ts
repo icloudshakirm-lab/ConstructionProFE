@@ -10,13 +10,13 @@ import {
   signal
 } from '@angular/core';
 import Gantt from 'frappe-gantt';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { DialogModule } from 'primeng/dialog';
-import { SelectButtonModule } from 'primeng/selectbutton';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
+import { Breadcrumb } from 'primeng/breadcrumb';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { Dialog } from 'primeng/dialog';
+import { SelectButton } from 'primeng/selectbutton';
+import { Tag } from 'primeng/tag';
+import { Tooltip } from 'primeng/tooltip';
 import { MenuItem } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import {
@@ -42,13 +42,13 @@ interface ActivityDraft {
   selector: 'app-gantt-chart',
   imports: [
     FormsModule,
-    BreadcrumbModule,
-    ButtonModule,
-    CardModule,
-    DialogModule,
-    SelectButtonModule,
-    TagModule,
-    TooltipModule
+    Breadcrumb,
+    Button,
+    Card,
+    Dialog,
+    SelectButton,
+    Tag,
+    Tooltip
   ],
   templateUrl: './gantt-chart.component.html',
   styleUrl: './gantt-chart.component.scss'

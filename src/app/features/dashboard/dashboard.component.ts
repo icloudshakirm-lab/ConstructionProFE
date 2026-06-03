@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
+import { Card } from 'primeng/card';
+import { Tag } from 'primeng/tag';
 import { FEATURE_MODULES } from '../../core/constants/feature-registry';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, CardModule, TagModule],
+  imports: [RouterLink, Card, Tag],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })

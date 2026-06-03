@@ -11,14 +11,14 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MenuItem, MessageService } from 'primeng/api';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { InputTextModule } from 'primeng/inputtext';
+import { Breadcrumb } from 'primeng/breadcrumb';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
-import { TooltipModule } from 'primeng/tooltip';
+import { Tag } from 'primeng/tag';
+import { Toast } from 'primeng/toast';
+import { Tooltip } from 'primeng/tooltip';
 import { ThemeService } from '../../../core/services/theme.service';
 import { CadViewerService } from './cad-viewer.service';
 import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
@@ -27,14 +27,14 @@ import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
   selector: 'app-drawing-viewer',
   imports: [
     FormsModule,
-    BreadcrumbModule,
-    ButtonModule,
-    CardModule,
-    InputTextModule,
+    Breadcrumb,
+    Button,
+    Card,
+    InputText,
     TableModule,
-    TagModule,
-    ToastModule,
-    TooltipModule
+    Tag,
+    Toast,
+    Tooltip
   ],
   providers: [MessageService],
   templateUrl: './drawing-viewer.component.html',
