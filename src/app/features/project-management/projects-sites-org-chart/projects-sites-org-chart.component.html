@@ -1,0 +1,166 @@
+<div class="org-page">
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="org-page__header">
+    <div>
+      <p-tag value="Project Management" severity="secondary" />
+      <h1>Projects → Sites Chart</h1>
+      <p class="org-page__subtitle">
+        Projects, sites, and compact milestone nodes — update status from the dropdown on each item.
+      </p>
+    </div>
+
+    <div class="org-page__actions">
+      <div class="org-page__toggle">
+        <span class="org-page__label">Scope</span>
+        <button
+          type="button"
+          class="org-page__pill"
+          [class.org-page__pill--active]="scope() === 'all'"
+          (click)="scope.set('all')"
+        >
+          All projects
+        </button>
+        <button
+          type="button"
+          class="org-page__pill"
+          [class.org-page__pill--active]="scope() === 'single'"
+          (click)="scope.set('single')"
+        >
+          Single project
+        </button>
+      </div>
+
+      @if (scope() === 'single') {
+        <p-select
+          [options]="projects()"
+          optionLabel="name"
+          optionValue="id"
+          [ngModel]="selectedProjectId()"
+          (ngModelChange)="selectedProjectId.set($event)"
+          [style]="{ width: 'min(360px, 92vw)' }"
+          placeholder="Select a project"
+        />
+      }
+    </div>
+  </header>
+
+  <section class="org-page__kpis">
+    <p-card>
+      <div class="org-page__kpi">
+        <span class="org-page__kpi-value">{{ kpi().projects }}</span>
+        <span class="org-page__kpi-label">Projects</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="org-page__kpi">
+        <span class="org-page__kpi-value">{{ kpi().sites }}</span>
+        <span class="org-page__kpi-label">Sites</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="org-page__kpi">
+        <span class="org-page__kpi-value">{{ kpi().milestones }}</span>
+        <span class="org-page__kpi-label">Milestones</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="org-page__kpi">
+        <span class="org-page__kpi-value">{{ kpi().avgProgress }}%</span>
+        <span class="org-page__kpi-label">Avg site progress</span>
+      </div>
+    </p-card>
+  </section>
+
+  <p-card styleClass="org-page__card">
+    <div class="org-page__chart-scroll" role="region" aria-label="Projects and sites organization chart">
+      <p-organizationChart [value]="nodes()" selectionMode="single" [collapsible]="true" [preserveSpace]="false">
+        <ng-template let-node pTemplate="root">
+          <div class="node node--root">
+            <i class="pi pi-building"></i>
+            <div>
+              <strong>{{ node.data.title }}</strong>
+              <div class="node__sub">{{ node.data.subtitle }}</div>
+            </div>
+          </div>
+        </ng-template>
+
+        <ng-template let-node pTemplate="project">
+          <div class="node node--project">
+            <i class="pi pi-briefcase"></i>
+            <div>
+              <strong>{{ node.data.title }}</strong>
+              <div class="node__sub">{{ node.data.subtitle }}</div>
+              <div class="node__meta">
+                <span class="node__id">{{ node.data.id }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+
+        <ng-template let-node pTemplate="site">
+          <div class="node node--site">
+            <i class="pi pi-map-marker"></i>
+            <div>
+              <strong>{{ node.data.title }}</strong>
+              <div class="node__sub">{{ node.data.subtitle }}</div>
+              <div class="node__meta">
+                <span class="node__id">{{ node.data.id }}</span>
+                <span class="node__pct">{{ node.data.progressPct }}%</span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+
+        <ng-template let-node pTemplate="milestones">
+          <div class="milestones-column" (mousedown)="stopEvent($event)" (click)="stopEvent($event)">
+            @for (m of node.data.items; track m.id) {
+              <div class="node node--milestone">
+                @if (m.showHeading) {
+                  <span class="milestone-heading">Milestone</span>
+                }
+                <div class="milestone-line milestone-line--1">
+                  <strong class="milestone-list__name" [title]="m.title">{{ m.title }}</strong>
+                  <span class="milestone-list__code">{{ m.id }}</span>
+                </div>
+                <div class="milestone-line milestone-line--2">
+                  <span class="milestone-list__date">
+                    @if (m.targetDate) {
+                      Target {{ m.targetDate }}
+                    } @else {
+                      No target date
+                    }
+                  </span>
+                  <p-select
+                    class="milestone-list__select"
+                    [ngClass]="milestoneStatusClass(m.status)"
+                    [options]="milestoneStatusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="m.status"
+                    (ngModelChange)="
+                      updateMilestoneStatus(node.data.projectId, node.data.siteId, m.id, $event)
+                    "
+                    appendTo="body"
+                    placeholder="Status"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+        </ng-template>
+      </p-organizationChart>
+    </div>
+  </p-card>
+
+  <p class="org-page__hint">
+    Milestones stack vertically under each site; projects and sites stay in the standard org-chart layout. Use toggles to
+    expand or collapse.
+  </p>
+
+  <p-card styleClass="chart-data-card">
+    <ng-template pTemplate="title">Chart data (JSON)</ng-template>
+    <ng-template pTemplate="subtitle">How this org chart is built — updates when scope or milestone status changes</ng-template>
+    <pre class="chart-data-json" aria-label="Organization chart JSON structure">{{ chartJson() }}</pre>
+  </p-card>
+</div>

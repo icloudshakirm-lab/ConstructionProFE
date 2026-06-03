@@ -1,0 +1,21 @@
+@import 'primeicons/primeicons.css';
+@import 'frappe-gantt';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--p-font-family, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  background: var(--p-surface-50);
+  color: var(--p-text-color);
+}
+
+a {
+  color: inherit;
+}

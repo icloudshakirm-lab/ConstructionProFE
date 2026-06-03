@@ -1,0 +1,56 @@
+<div class="dashboard">
+  <header class="dashboard__hero">
+    <div>
+      <h1>ConstructPro</h1>
+      <p>
+        Construction ERP with PrimeNG — project control, site inventory, BOQ billing, fleet, and field
+        mobile workflows in one platform.
+      </p>
+    </div>
+    <div class="dashboard__hero-tags">
+      <p-tag value="BOQ & IPC Billing" severity="success" />
+      <p-tag value="Site Mobile + GPS" severity="info" />
+      <p-tag value="PrimeNG UI" />
+    </div>
+  </header>
+
+  <section class="dashboard__kpis">
+    @for (kpi of kpis; track kpi.label) {
+      <p-card>
+        <div class="dashboard__kpi">
+          <i [class]="kpi.icon"></i>
+          <div>
+            <span class="dashboard__kpi-value">{{ kpi.value }}</span>
+            <span class="dashboard__kpi-label">{{ kpi.label }}</span>
+          </div>
+        </div>
+      </p-card>
+    }
+  </section>
+
+  <section>
+    <h2>Core modules</h2>
+    <p class="dashboard__section-desc">Select a module to open its hub and sub-screens.</p>
+    <div class="dashboard__modules">
+      @for (mod of modules; track mod.id) {
+        <a class="dashboard__module-card" [routerLink]="['/', mod.routePath]">
+          <p-card>
+            <div class="dashboard__module-inner">
+              <i [class]="mod.icon"></i>
+              <div>
+                <div class="dashboard__module-title">
+                  <h3>{{ mod.title }}</h3>
+                  @if (mod.badge) {
+                    <p-tag [value]="mod.badge" severity="warn" />
+                  }
+                </div>
+                <p>{{ mod.description }}</p>
+                <span class="dashboard__module-meta">{{ mod.pages.length }} screens</span>
+              </div>
+            </div>
+          </p-card>
+        </a>
+      }
+    </div>
+  </section>
+</div>

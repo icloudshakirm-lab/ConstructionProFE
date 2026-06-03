@@ -1,0 +1,257 @@
+<div class="overview-page">
+  <p-toast position="top-right" />
+  <p-menu #contextMenu [model]="contextMenuItems()" [popup]="true" appendTo="body" />
+
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="overview-page__header">
+    <div>
+      <p-tag value="Project Management" severity="secondary" />
+      <h1>Project Overview</h1>
+      <p class="overview-page__subtitle">
+        Each project has a unique stakeholder mix. Use the ⋮ menu on any shape to edit, remove, or run other actions.
+        Connectors snap to shape edges.
+      </p>
+    </div>
+    <div class="overview-page__actions">
+      <p-select
+        [options]="projects"
+        optionLabel="name"
+        optionValue="id"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="selectedProjectId.set($event)"
+        [style]="{ width: 'min(380px, 92vw)' }"
+        placeholder="Select project"
+      />
+      <div class="overview-page__connector-toggle">
+        <span class="overview-page__connector-label">Connectors</span>
+        <button
+          type="button"
+          class="overview-page__pill"
+          [class.overview-page__pill--active]="connectorStyle() === 'curved'"
+          (click)="connectorStyle.set('curved')"
+        >
+          Curved
+        </button>
+        <button
+          type="button"
+          class="overview-page__pill"
+          [class.overview-page__pill--active]="connectorStyle() === 'orthogonal'"
+          (click)="connectorStyle.set('orthogonal')"
+        >
+          Orthogonal
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="overview-page__kpis">
+    <p-card>
+      <div class="overview-page__kpi">
+        <span class="overview-page__kpi-value">{{ groups().length }}</span>
+        <span class="overview-page__kpi-label">Stakeholder groups</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="overview-page__kpi">
+        <span class="overview-page__kpi-value">{{ entityCount() }}</span>
+        <span class="overview-page__kpi-label">Entities on chart</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="overview-page__kpi">
+        <span class="overview-page__kpi-value">{{ selectedProject().contractRef }}</span>
+        <span class="overview-page__kpi-label">Contract ref</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="overview-page__kpi overview-page__kpi--wide">
+        <span class="overview-page__kpi-value overview-page__kpi-value--sm">{{ omittedGroupsLabel() }}</span>
+        <span class="overview-page__kpi-label">Not on this project</span>
+      </div>
+    </p-card>
+  </section>
+
+  <p-card styleClass="overview-page__diagram-card">
+    <div #diagramHost class="overview-diagram" role="img" aria-label="Project stakeholder overview diagram">
+      <svg
+        class="overview-diagram__svg"
+        [attr.viewBox]="svgViewBox()"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <marker
+            id="overview-arrow"
+            markerUnits="userSpaceOnUse"
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="5"
+            orient="auto"
+          >
+            <path class="overview-diagram__arrow-head" d="M0,0 L10,5 L0,10 Z" />
+          </marker>
+        </defs>
+        @for (conn of connectorPaths(); track conn.id) {
+          <path
+            fill="none"
+            [attr.d]="conn.path"
+            [class]="conn.variant === 'trade' ? 'overview-diagram__connector overview-diagram__connector--trade' : 'overview-diagram__connector'"
+            [attr.marker-end]="conn.variant === 'hub' ? 'url(#overview-arrow)' : null"
+          />
+        }
+      </svg>
+
+      <div class="overview-diagram__center">
+        <div #centerNode class="shape shape--project shape--resizable">
+          <button
+            type="button"
+            class="shape__menu-btn"
+            aria-label="Project actions"
+            (click)="openProjectMenu($event)"
+          >
+            <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
+          </button>
+          <i class="pi pi-building" aria-hidden="true"></i>
+          <strong>{{ selectedProject().name }}</strong>
+          <span class="shape__sub">{{ selectedProject().client }} · {{ selectedProject().status }}</span>
+          <span class="shape__meta">{{ selectedProject().location }}</span>
+          <span class="shape__meta">{{ selectedProject().contractRef }}</span>
+        </div>
+      </div>
+
+      @for (group of layoutGroups(); track group.id) {
+        <div
+          #groupNode
+          class="overview-diagram__group"
+          [attr.data-group-id]="group.id"
+          [style.left.%]="group.xPct"
+          [style.top.%]="group.yPct"
+        >
+          <h3 class="overview-diagram__group-title">{{ group.title }}</h3>
+          <div class="overview-diagram__entities">
+            @for (entity of group.entities; track entity.id) {
+              <div
+                [class]="'shape shape--resizable shape--' + entity.kind"
+                [pTooltip]="kindLabel(entity.kind) + (entity.detail ? ' — ' + entity.detail : '')"
+                tooltipPosition="top"
+              >
+                <button
+                  type="button"
+                  class="shape__menu-btn"
+                  [attr.aria-label]="'Actions for ' + entity.label"
+                  (click)="openEntityMenu($event, group.id, entity)"
+                >
+                  <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
+                </button>
+                <div class="shape__body">
+                  <i [class]="entity.icon" aria-hidden="true"></i>
+                  <div class="shape__text">
+                    <span class="shape__label">{{ entity.label }}</span>
+                    @if (entity.detail) {
+                      <span class="shape__detail">{{ entity.detail }}</span>
+                    }
+                  </div>
+                </div>
+                @if (entity.children?.length) {
+                  <div #childrenWrap class="shape__children-wrap" [attr.data-parent-id]="entity.id">
+                    <div class="shape__children">
+                      @for (child of entity.children; track child.id) {
+                        <div
+                          class="shape shape--child shape--subcontractor shape--resizable"
+                          [pTooltip]="kindLabel(child.kind)"
+                          tooltipPosition="bottom"
+                        >
+                          <button
+                            type="button"
+                            class="shape__menu-btn"
+                            [attr.aria-label]="'Actions for ' + child.label"
+                            (click)="openEntityMenu($event, group.id, child, entity.id)"
+                          >
+                            <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
+                          </button>
+                          <div class="shape__body">
+                            <i [class]="child.icon" aria-hidden="true"></i>
+                            <span class="shape__label">{{ child.label }}</span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </p-card>
+
+  <section class="overview-page__legend">
+    <h2>Entity types on this chart</h2>
+    <ul class="overview-page__legend-list">
+      <li><span class="legend-swatch legend-swatch--role"></span> Project team (PM, engineers, planners)</li>
+      <li><span class="legend-swatch legend-swatch--contractor"></span> Main contractor</li>
+      <li><span class="legend-swatch legend-swatch--subcontractor"></span> Sub-contractors (gas/plumbing, electrician, trades)</li>
+      <li><span class="legend-swatch legend-swatch--consultant"></span> Consultants & design</li>
+      <li><span class="legend-swatch legend-swatch--client"></span> Client & stakeholders</li>
+      <li><span class="legend-swatch legend-swatch--supplier"></span> Suppliers & procurement</li>
+      <li><span class="legend-swatch legend-swatch--authority"></span> Authorities & permits</li>
+      <li><span class="legend-swatch legend-swatch--vendor"></span> Site vendors (survey, testing, equipment, security)</li>
+      <li><span class="legend-swatch legend-swatch--labor"></span> Manpower / labor</li>
+      <li><span class="legend-swatch legend-swatch--finance"></span> Bank, insurance, bonds</li>
+    </ul>
+    <p class="overview-page__more">
+      You can also attach: commissioning agent, BIM coordinator, logistics / laydown, IT systems integrator, traffic
+      management, waste management, and specialist subcontractors (facade, piling, waterproofing, lifts).
+    </p>
+  </section>
+
+  <p-dialog
+    [header]="editDialogTitle()"
+    [visible]="editDialogVisible()"
+    (visibleChange)="editDialogVisible.set($event)"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: 'min(480px, 92vw)' }"
+  >
+    @if (editMode() === 'project') {
+      <div class="overview-edit-form">
+        <label for="projName">Project name</label>
+        <input id="projName" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="projectDraft().name" />
+        <label for="projClient">Client</label>
+        <input id="projClient" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="projectDraft().client" />
+        <label for="projLoc">Location</label>
+        <input id="projLoc" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="projectDraft().location" />
+        <label for="projRef">Contract ref</label>
+        <input id="projRef" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="projectDraft().contractRef" />
+        <label for="projStatus">Status</label>
+        <p-select
+          inputId="projStatus"
+          [options]="projectStatuses"
+          [(ngModel)]="projectDraft().status"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+    } @else {
+      <div class="overview-edit-form">
+        <label for="entLabel">Label</label>
+        <input id="entLabel" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="entityDraft().label" />
+        <label for="entDetail">Detail / company</label>
+        <input id="entDetail" type="text" pInputText class="overview-edit-form__full" [(ngModel)]="entityDraft().detail" />
+      </div>
+    }
+    <ng-template pTemplate="footer">
+      <p-button label="Cancel" [text]="true" (onClick)="editDialogVisible.set(false)" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="saveEdit()" />
+    </ng-template>
+  </p-dialog>
+
+  <p-card styleClass="chart-data-card">
+    <ng-template pTemplate="title">Chart data (JSON)</ng-template>
+    <ng-template pTemplate="subtitle">Structure used to build the stakeholder diagram</ng-template>
+    <pre class="chart-data-json" aria-label="Project overview JSON structure">{{ chartJson() }}</pre>
+  </p-card>
+</div>

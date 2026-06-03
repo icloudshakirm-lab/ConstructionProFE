@@ -1,0 +1,87 @@
+.module-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.module-hub__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.module-hub__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.75rem;
+  background: var(--p-primary-50);
+  color: var(--p-primary-600);
+  font-size: 1.5rem;
+}
+
+.module-hub h1 {
+  margin: 0.35rem 0 0;
+  font-size: 1.75rem;
+}
+
+.module-hub__header > div > p {
+  margin: 0.35rem 0 0;
+  color: var(--p-text-muted-color);
+  max-width: 40rem;
+}
+
+.module-hub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.module-hub__card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  ::ng-deep .p-card-body {
+    padding: 0;
+  }
+}
+
+.module-hub__card-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 1rem;
+
+  > i:first-child {
+    font-size: 1.25rem;
+    color: var(--p-primary-600);
+    margin-top: 0.15rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    color: var(--p-text-muted-color);
+    line-height: 1.4;
+  }
+}
+
+.module-hub__arrow {
+  color: var(--p-text-muted-color);
+  margin-top: 0.25rem;
+}

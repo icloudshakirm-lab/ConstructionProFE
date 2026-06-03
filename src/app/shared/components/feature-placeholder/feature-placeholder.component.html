@@ -1,0 +1,52 @@
+@if (module(); as mod) {
+  @if (page(); as pg) {
+    <div class="feature-page">
+      <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+      <header class="feature-page__header">
+        <div class="feature-page__title-row">
+          <span class="feature-page__icon"><i [class]="pg.icon"></i></span>
+          <div>
+            <p-tag [value]="mod.title" severity="secondary" />
+            <h1>{{ pg.title }}</h1>
+            <p class="feature-page__desc">{{ pg.description }}</p>
+          </div>
+        </div>
+        <p-button label="Back to module" icon="pi pi-arrow-left" [outlined]="true" [routerLink]="['/', mod.routePath]" />
+      </header>
+
+      @if (pg.highlights?.length) {
+        <section class="feature-page__highlights">
+          @for (item of pg.highlights; track item) {
+            <p-chip [label]="item" />
+          }
+        </section>
+      }
+
+      <div class="feature-page__grid">
+        <p-card header="Planned capabilities">
+          <p class="muted">
+            This screen is scaffolded for <strong>{{ pg.title }}</strong> within
+            <strong>{{ mod.title }}</strong>. Connect your API, forms, and PrimeNG data tables here.
+          </p>
+          <ul class="feature-page__list">
+            <li>CRUD list with filters, export, and row actions</li>
+            <li>Detail drawer or full-page form with validation</li>
+            <li>Role-based actions and approval workflow hooks</li>
+            <li>Audit trail and document attachments where applicable</li>
+          </ul>
+        </p-card>
+
+        <p-card header="Construction context">
+          <p class="muted">
+            ConstructPro is tailored for site operations, BOQ-driven billing, and inventory tied to projects —
+            not generic ERP workflows.
+          </p>
+          @if (mod.badge) {
+            <p-tag [value]="mod.badge" severity="warn" class="feature-page__badge" />
+          }
+        </p-card>
+      </div>
+    </div>
+  }
+}

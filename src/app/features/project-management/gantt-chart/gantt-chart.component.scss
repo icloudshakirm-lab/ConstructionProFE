@@ -1,0 +1,202 @@
+.gantt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.gantt-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h1 {
+    margin: 0.35rem 0 0;
+    font-size: 1.75rem;
+  }
+}
+
+.gantt-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+}
+
+.gantt-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gantt-page__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+
+.legend {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+
+  &--done {
+    background: #22c55e;
+  }
+
+  &--active {
+    background: var(--p-primary-color);
+  }
+
+  &--planned {
+    background: #94a3b8;
+  }
+
+  &--milestone {
+    background: #f59e0b;
+  }
+}
+
+:host ::ng-deep .gantt-page__card .p-card-body {
+  padding: 0;
+}
+
+.gantt-page__chart {
+  min-height: 420px;
+  overflow: auto;
+}
+
+:host ::ng-deep .gantt-page__chart {
+  .gantt-container {
+    min-height: 420px;
+  }
+
+  .bar-done .bar {
+    fill: #dcfce7;
+    stroke: #22c55e;
+  }
+
+  .bar-done .bar-progress {
+    fill: #22c55e;
+  }
+
+  .bar-active .bar {
+    fill: var(--p-primary-50);
+    stroke: var(--p-primary-color);
+  }
+
+  .bar-active .bar-progress {
+    fill: var(--p-primary-color);
+  }
+
+  .bar-planned .bar {
+    fill: #f1f5f9;
+    stroke: #94a3b8;
+  }
+
+  .bar-planned .bar-progress {
+    fill: #cbd5e1;
+  }
+
+  .bar-milestone .bar {
+    fill: #fef3c7;
+    stroke: #f59e0b;
+  }
+
+  .bar-milestone .bar-progress {
+    fill: #fbbf24;
+  }
+}
+
+.gantt-page__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.activity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.activity-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.activity-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  label {
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
+    font-weight: 600;
+  }
+
+  input[type='date'],
+  input[type='number'],
+  select {
+    height: 2.5rem;
+    padding: 0 0.65rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--p-content-border-color);
+    background: var(--p-surface-0);
+    color: var(--p-text-color);
+    font: inherit;
+  }
+
+  select {
+    cursor: pointer;
+  }
+}
+
+.activity-form__help {
+  color: var(--p-text-muted-color);
+
+  code {
+    padding: 0 0.25rem;
+  }
+}
+
+.activity-form__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.activity-form__spacer {
+  flex: 1;
+}
+
+:host ::ng-deep .chart-data-card .p-card-body {
+  padding-top: 0;
+}
+
+.chart-data-json {
+  margin: 0;
+  padding: 1rem;
+  max-height: min(50vh, 480px);
+  overflow: auto;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--p-text-color);
+  background: var(--p-surface-50);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

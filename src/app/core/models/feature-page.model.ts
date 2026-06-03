@@ -1,0 +1,24 @@
+export type FeaturePageComponent =
+  | 'gantt-chart'
+  | 'projects-sites-org-chart'
+  | 'project-overview';
+
+export interface FeaturePage {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  highlights?: string[];
+  /** When set, loads a dedicated screen instead of the generic placeholder. */
+  component?: FeaturePageComponent;
+}
+
+export interface FeatureModule {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  routePath: string;
+  badge?: string;
+  pages: FeaturePage[];
+}

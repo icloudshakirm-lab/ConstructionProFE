@@ -1,0 +1,104 @@
+<div class="shell" [class.shell--mobile-open]="sidebarVisible()">
+  <aside class="shell__sidebar" aria-label="Main navigation">
+    <div class="shell__brand">
+      <span class="shell__logo">CP</span>
+      <div>
+        <strong>ConstructPro</strong>
+        <small>Construction ERP</small>
+      </div>
+      <p-button
+        class="shell__close-btn"
+        icon="pi pi-times"
+        [text]="true"
+        [rounded]="true"
+        (onClick)="closeSidebar()"
+        ariaLabel="Close menu"
+      />
+    </div>
+
+    <nav class="shell__nav">
+      <a
+        class="shell__nav-link shell__nav-link--top"
+        routerLink="/dashboard"
+        routerLinkActive="shell__nav-link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="onNavClick()"
+      >
+        <i class="pi pi-home"></i>
+        <span>Dashboard</span>
+      </a>
+
+      @for (mod of modules; track mod.id) {
+        <div class="shell__nav-group">
+          <button
+            type="button"
+            class="shell__nav-group-toggle"
+            (click)="toggleGroup(mod.id)"
+            [attr.aria-expanded]="isGroupExpanded(mod.id)"
+          >
+            <i [class]="mod.icon"></i>
+            <span class="shell__nav-group-label">{{ mod.title }}</span>
+            @if (mod.badge) {
+              <p-tag [value]="mod.badge" severity="warn" class="shell__mini-tag" />
+            }
+            <i
+              class="pi shell__chevron"
+              [class.pi-chevron-down]="isGroupExpanded(mod.id)"
+              [class.pi-chevron-right]="!isGroupExpanded(mod.id)"
+            ></i>
+          </button>
+
+          @if (isGroupExpanded(mod.id)) {
+            <div class="shell__nav-children">
+              <a
+                class="shell__nav-link shell__nav-link--hub"
+                [routerLink]="['/', mod.routePath]"
+                routerLinkActive="shell__nav-link--active"
+                [routerLinkActiveOptions]="{ exact: true }"
+                (click)="onNavClick()"
+              >
+                Overview
+              </a>
+              @for (page of mod.pages; track page.id) {
+                <a
+                  class="shell__nav-link"
+                  [routerLink]="['/', mod.routePath, page.id]"
+                  routerLinkActive="shell__nav-link--active"
+                  (click)="onNavClick()"
+                >
+                  {{ page.title }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+    </nav>
+  </aside>
+
+  @if (sidebarVisible()) {
+    <button type="button" class="shell__backdrop" aria-label="Close menu" (click)="closeSidebar()"></button>
+  }
+
+  <div class="shell__main">
+    <header class="shell__topbar">
+      <p-button
+        class="shell__menu-btn"
+        icon="pi pi-bars"
+        [text]="true"
+        [rounded]="true"
+        (onClick)="openSidebar()"
+        ariaLabel="Open menu"
+      />
+      <h2 class="shell__page-title">{{ pageTitle() }}</h2>
+      <div class="shell__topbar-actions">
+        <p-button icon="pi pi-bell" [text]="true" [rounded]="true" pTooltip="Notifications" />
+        <p-avatar label="SE" shape="circle" pTooltip="Site Engineer" />
+      </div>
+    </header>
+
+    <main class="shell__content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,0 +1,120 @@
+<div class="gantt-page" #fullscreenHost>
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="gantt-page__header">
+    <div>
+      <p-tag value="Project Management" severity="secondary" />
+      <h1>Gantt Chart</h1>
+      <p class="gantt-page__subtitle">{{ projectLabel }}</p>
+    </div>
+    <div class="gantt-page__actions">
+      <p-button
+        label="Add activity"
+        icon="pi pi-plus"
+        (onClick)="openAddActivity()"
+        pTooltip="Add a new activity to the schedule"
+      />
+      <p-selectButton
+        [options]="viewModes"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="selectedView()"
+        (ngModelChange)="onViewChange($event)"
+        ariaLabel="Timeline view mode"
+      />
+      <p-button
+        label="Today"
+        icon="pi pi-calendar"
+        [outlined]="true"
+        pTooltip="Scroll timeline to today"
+        (onClick)="scrollToToday()"
+      />
+      <p-button
+        [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+        [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+        [outlined]="true"
+        pTooltip="Open the Gantt chart in full screen"
+        (onClick)="toggleFullscreen()"
+      />
+    </div>
+  </header>
+
+  <div class="gantt-page__legend">
+    <span><i class="legend legend--done"></i> Complete</span>
+    <span><i class="legend legend--active"></i> In progress</span>
+    <span><i class="legend legend--planned"></i> Planned</span>
+    <span><i class="legend legend--milestone"></i> Milestone</span>
+  </div>
+
+  <p-card styleClass="gantt-page__card">
+    <div #ganttContainer class="gantt-page__chart" role="img" aria-label="Project Gantt chart"></div>
+  </p-card>
+
+  <p class="gantt-page__hint">
+  Drag bars to reschedule (demo). Connect to your schedule API to load WBS tasks, dependencies, and baseline dates.
+  </p>
+
+  <p-card styleClass="chart-data-card">
+    <ng-template pTemplate="title">Chart data (JSON)</ng-template>
+    <ng-template pTemplate="subtitle">How this Gantt chart is built — updates when tasks or view mode change</ng-template>
+    <pre class="chart-data-json" aria-label="Gantt chart JSON structure">{{ chartJson() }}</pre>
+  </p-card>
+</div>
+
+<p-dialog
+  [visible]="activityDialogVisible()"
+  (visibleChange)="activityDialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(720px, 92vw)' }"
+  [header]="editingExisting() ? 'Edit activity' : 'Add activity'"
+>
+  <div class="activity-form">
+    <div class="activity-form__row">
+      <label for="actName">Activity name</label>
+      <input id="actName" type="text" pInputText [(ngModel)]="activityDraft().name" />
+    </div>
+
+    <div class="activity-form__grid">
+      <div class="activity-form__row">
+        <label for="actStart">Start date</label>
+        <input id="actStart" type="date" [(ngModel)]="activityDraft().start" />
+      </div>
+      <div class="activity-form__row">
+        <label for="actEnd">End date</label>
+        <input id="actEnd" type="date" [(ngModel)]="activityDraft().end" />
+      </div>
+      <div class="activity-form__row">
+        <label for="actProgress">Progress (%)</label>
+        <input id="actProgress" type="number" min="0" max="100" [(ngModel)]="activityDraft().progress" />
+      </div>
+      <div class="activity-form__row">
+        <label for="actStatus">Status</label>
+        <select id="actStatus" [(ngModel)]="activityDraft().status">
+          <option value="planned">Planned</option>
+          <option value="active">In progress</option>
+          <option value="done">Complete</option>
+          <option value="milestone">Milestone</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="activity-form__row">
+      <label for="actDeps">Dependencies (comma-separated task IDs)</label>
+      <input id="actDeps" type="text" pInputText [(ngModel)]="activityDraft().dependencies" />
+      <small class="activity-form__help">Example: <code>earthworks,foundation</code></small>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="activity-form__footer">
+      @if (editingExisting()) {
+        <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="deleteActivity()" />
+      }
+      <span class="activity-form__spacer"></span>
+      <p-button label="Cancel" [outlined]="true" (onClick)="closeActivityDialog()" />
+      <p-button label="Save" icon="pi pi-check" (onClick)="saveActivity()" />
+    </div>
+  </ng-template>
+</p-dialog>
