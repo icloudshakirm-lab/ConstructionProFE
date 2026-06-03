@@ -23,6 +23,14 @@ export const FEATURE_MODULES: FeatureModule[] = [
         highlights: ['Site hierarchy', 'Geofence zones', 'Site contacts']
       },
       {
+        id: 'sites-map',
+        title: 'Construction Sites Map',
+        description: 'Interactive map of all construction sites using open-source Leaflet and OpenStreetMap.',
+        icon: 'pi pi-map',
+        highlights: ['Leaflet map', 'Site markers', 'Project filter'],
+        component: 'sites-map'
+      },
+      {
         id: 'tasks',
         title: 'Tasks',
         description: 'Work breakdown tasks assigned to teams with dependencies and due dates.',

@@ -42,14 +42,21 @@
                 "glob": "dxf-parser-worker.js",
                 "input": "node_modules/@mlightcad/data-model/dist",
                 "output": "/cad-workers"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/leaflet/dist/images",
+                "output": "leaflet-images"
               }
             ],
             "allowedCommonJsDependencies": [
               "@mlightcad/cad-simple-viewer",
               "@mlightcad/data-model",
-              "lodash-es"
+              "lodash-es",
+              "leaflet"
             ],
             "styles": [
+              "node_modules/leaflet/dist/leaflet.css",
               "src/styles.scss"
             ]
           },

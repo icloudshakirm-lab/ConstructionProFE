@@ -9,7 +9,8 @@ export type FeaturePageComponent =
   | 'messages'
   | 'boq-creation'
   | 'boq-revisions'
-  | 'qa-qc-inspections';
+  | 'qa-qc-inspections'
+  | 'sites-map';
 
 export interface FeaturePage {
   id: string;

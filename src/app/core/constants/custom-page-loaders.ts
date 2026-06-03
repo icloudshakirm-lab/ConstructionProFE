@@ -43,5 +43,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'qa-qc-inspections': () =>
     import('../../features/project-management/qa-qc-inspections/qa-qc-inspections.component').then(
       (m) => m.QaQcInspectionsComponent
+    ),
+  'sites-map': () =>
+    import('../../features/project-management/sites-map/sites-map.component').then(
+      (m) => m.SitesMapComponent
     )
 };

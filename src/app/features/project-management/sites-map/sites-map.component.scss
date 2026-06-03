@@ -1,0 +1,239 @@
+.sites-map-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.sites-map-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h1 {
+    margin: 0.35rem 0 0;
+    font-size: 1.75rem;
+  }
+}
+
+.sites-map-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  max-width: 48rem;
+}
+
+.sites-map-page__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.sites-map-page__field-label {
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+}
+
+.sites-map-page__layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: 1rem;
+  min-height: min(72vh, 640px);
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: min(50vh, 420px) auto;
+  }
+}
+
+.sites-map-page__map-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--cp-panel-bg);
+  min-width: 0;
+}
+
+.sites-map-page__map {
+  flex: 1;
+  min-height: min(68vh, 600px);
+  width: 100%;
+  z-index: 0;
+}
+
+.sites-map-page__attribution {
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.6875rem;
+  color: var(--p-text-muted-color);
+  border-top: 1px solid var(--p-content-border-color);
+
+  a {
+    color: var(--p-primary-color);
+  }
+}
+
+.sites-map-page__sidebar {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  min-width: 0;
+  max-height: min(72vh, 640px);
+}
+
+.sites-map-page__sidebar-head {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  h2 {
+    margin: 0 0 0.35rem;
+    font-size: 0.9375rem;
+  }
+}
+
+.sites-map-page__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  font-size: 0.6875rem;
+  color: var(--p-text-muted-color);
+}
+
+.sites-map-page__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+}
+
+.sites-map-page__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.sites-map-page__list-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+
+  &:hover {
+    background: var(--p-content-hover-background);
+  }
+
+  &--active {
+    background: color-mix(in srgb, var(--p-primary-color) 12%, var(--cp-panel-bg));
+    box-shadow: inset 3px 0 0 var(--p-primary-color);
+  }
+}
+
+.sites-map-page__list-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sites-map-page__list-project {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.sites-map-page__list-meta {
+  font-size: 0.6875rem;
+  color: var(--p-text-muted-color);
+}
+
+.sites-map-page__empty {
+  padding: 1rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}
+
+.sites-map-page__detail {
+  margin: 0 0.5rem 0.5rem;
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9375rem;
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  div {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  dt {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--p-text-muted-color);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.8125rem;
+  }
+}
+
+:host ::ng-deep {
+  .sites-map-marker {
+    background: transparent;
+    border: none;
+  }
+
+  .sites-map-marker__dot {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+
+  .sites-map-popup {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+
+    strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  .leaflet-container {
+    font-family: inherit;
+    background: var(--cp-subtle-bg);
+  }
+}
