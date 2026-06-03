@@ -5,6 +5,10 @@
   min-width: 0;
 }
 
+.drawings-page__chrome--hidden {
+  display: none;
+}
+
 .drawings-page__header {
   display: flex;
   flex-wrap: wrap;
@@ -41,7 +45,17 @@
   grid-template-columns: minmax(280px, 360px) 1fr;
   gap: 1rem;
   align-items: start;
-  min-height: min(72vh, 720px);
+}
+
+.drawings-page__register-card--hidden {
+  display: none;
+}
+
+.drawings-page__viewer-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  isolation: isolate;
 }
 
 .drawings-page__filter {
@@ -89,25 +103,77 @@
   color: var(--p-text-muted-color);
 }
 
-.drawings-page__viewer-wrap {
-  position: relative;
-  min-height: min(68vh, 640px);
-  border-radius: 0.5rem;
+:host ::ng-deep .drawings-page__viewer-card {
   overflow: hidden;
+  border-radius: 0 0 0.5rem 0.5rem;
+
+  .p-card-body {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.drawings-page__viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--p-content-border-color);
+  border-bottom: none;
+  background: var(--p-surface-0);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.drawings-page__viewer-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawings-page__viewer-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.drawings-page__viewer-panel {
+  min-height: min(68vh, 640px);
+  overflow: hidden;
   background: var(--p-surface-100);
 }
 
-.drawings-page__canvas {
-  width: 100%;
-  height: min(68vh, 640px);
+.drawings-page__viewer-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-height: 420px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.drawings-page__canvas {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: min(62vh, 580px);
+  min-height: 420px;
+  overflow: hidden;
+  contain: layout paint;
 }
 
 .drawings-page__loading {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -124,9 +190,44 @@
   }
 }
 
-:host ::ng-deep .drawings-page__viewer-card .p-card-body,
 :host ::ng-deep .drawings-page__register-card .p-card-body {
   padding-top: 0.5rem;
+}
+
+.drawings-page--in-app-expanded {
+  gap: 0;
+
+  .drawings-page__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .drawings-page__viewer-panel {
+    min-height: calc(100dvh - 9rem);
+  }
+
+  .drawings-page__canvas {
+    height: calc(100dvh - 12rem);
+    min-height: 480px;
+  }
+}
+
+.drawings-page__viewer-wrap:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border: none;
+  border-radius: 0;
+  background: var(--p-surface-100);
+
+  .drawings-page__canvas {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    contain: none;
+  }
 }
 
 @media (max-width: 960px) {
@@ -137,5 +238,9 @@
   .drawings-page__canvas {
     height: 50vh;
     min-height: 320px;
+  }
+
+  .drawings-page--in-app-expanded .drawings-page__canvas {
+    height: calc(100dvh - 11rem);
   }
 }

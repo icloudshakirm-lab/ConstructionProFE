@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   OnDestroy,
@@ -40,8 +41,11 @@ import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
 export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   private readonly cadViewer = inject(CadViewerService);
   private readonly messages = inject(MessageService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild('cadHost', { static: true }) cadHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('viewerFullscreenHost', { static: true })
+  viewerFullscreenHost!: ElementRef<HTMLDivElement>;
 
   readonly breadcrumbs: MenuItem[] = [
     { label: 'Home', routerLink: '/dashboard' },
@@ -54,12 +58,26 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   readonly loading = signal(false);
   readonly filterText = signal('');
   readonly filteredDrawings = signal(DEMO_DRAWINGS);
+  readonly inAppExpanded = signal(false);
+  readonly isBrowserFullscreen = signal(false);
+  /** Bumped after layout changes so toolbar buttons re-render reliably. */
+  readonly toolbarKey = signal(0);
 
   ngAfterViewInit(): void {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('fullscreenchange', this.onFullscreenChange, { passive: true });
+      this.onFullscreenChange();
+    }
     void this.bootstrapViewer();
   }
 
   ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+      if (document.fullscreenElement === this.viewerFullscreenHost?.nativeElement) {
+        void document.exitFullscreen();
+      }
+    }
     void this.cadViewer.destroy();
   }
 
@@ -127,6 +145,50 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     this.cadViewer.zoomExtents();
   }
 
+  toggleInAppExpanded(): void {
+    if (this.isBrowserFullscreen()) {
+      void this.exitBrowserFullscreen();
+    }
+    const wasExpanded = this.inAppExpanded();
+    this.inAppExpanded.update((v) => !v);
+    this.bumpToolbar();
+    if (wasExpanded) {
+      void this.restoreViewerAfterCollapse();
+    } else {
+      this.scheduleLayoutRefresh();
+    }
+  }
+
+  async toggleBrowserFullscreen(): Promise<void> {
+    const host = this.viewerFullscreenHost?.nativeElement;
+    if (!host || typeof document === 'undefined') {
+      return;
+    }
+
+    if (document.fullscreenElement === host) {
+      await this.exitBrowserFullscreen();
+      return;
+    }
+
+    try {
+      await host.requestFullscreen();
+    } catch (err) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'Full screen unavailable',
+        detail: err instanceof Error ? err.message : 'Your browser blocked full screen.'
+      });
+    }
+  }
+
+  viewerTitle(): string {
+    const d = this.selected();
+    if (!d) {
+      return 'Drawing viewer';
+    }
+    return `${d.sheet} — ${d.title} (Rev ${d.revision})`;
+  }
+
   private async bootstrapViewer(): Promise<void> {
     const first = this.selected();
     if (!first) {
@@ -153,5 +215,66 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async exitBrowserFullscreen(): Promise<void> {
+    if (typeof document === 'undefined' || !document.fullscreenElement) {
+      return;
+    }
+    await document.exitFullscreen();
+  }
+
+  private readonly onFullscreenChange = (): void => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const host = this.viewerFullscreenHost?.nativeElement;
+    const active = !!host && document.fullscreenElement === host;
+    this.isBrowserFullscreen.set(active);
+    this.bumpToolbar();
+    this.cdr.detectChanges();
+    this.scheduleLayoutRefresh();
+  };
+
+  private bumpToolbar(): void {
+    this.toolbarKey.update((k) => k + 1);
+  }
+
+  /** Remount CAD after leaving expanded layout so canvas cannot cover the toolbar. */
+  private async restoreViewerAfterCollapse(): Promise<void> {
+    this.scheduleLayoutRefresh();
+    if (typeof window === 'undefined') {
+      return;
+    }
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 150));
+    const drawing = this.selected();
+    if (!drawing) {
+      this.cadViewer.refreshLayout();
+      this.cdr.detectChanges();
+      return;
+    }
+    await this.cadViewer.remount(this.cadHost.nativeElement);
+    const ok = await this.cadViewer.openUrl(drawing.fileUrl);
+    if (ok) {
+      this.cadViewer.zoomExtents();
+    }
+    this.bumpToolbar();
+    this.cdr.detectChanges();
+  }
+
+  private scheduleLayoutRefresh(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const run = (): void => {
+      this.cadViewer.refreshLayout();
+      this.cadViewer.zoomExtents();
+      this.cdr.detectChanges();
+    };
+    window.requestAnimationFrame(() => {
+      run();
+      window.setTimeout(run, 120);
+      window.setTimeout(run, 320);
+    });
   }
 }

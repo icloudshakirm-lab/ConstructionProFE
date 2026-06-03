@@ -43,6 +43,12 @@ export class CadViewerService {
     await manager.loadDefaultFonts();
   }
 
+  /** Force destroy + mount on the same host (e.g. after layout / expand changes). */
+  async remount(host: HTMLElement): Promise<void> {
+    await this.destroy();
+    await this.mount(host);
+  }
+
   async openUrl(url: string): Promise<boolean> {
     const { AcEdOpenMode } = await this.loadCad();
     return this.requireManager().openUrl(url, { mode: AcEdOpenMode.Read });
@@ -56,6 +62,13 @@ export class CadViewerService {
 
   zoomExtents(): void {
     this.manager?.curView.zoomToFitDrawing();
+  }
+
+  /** After layout / fullscreen changes so the canvas recalculates size. */
+  refreshLayout(): void {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('resize'));
+    }
   }
 
   async destroy(): Promise<void> {
