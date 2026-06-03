@@ -106,6 +106,7 @@
   [modal]="true"
   [draggable]="false"
   [resizable]="false"
+  [appendTo]="overlayAppendTarget()"
   [style]="{ width: 'min(720px, 92vw)' }"
   [header]="editingExisting() ? 'Edit activity' : 'Add activity'"
 >
