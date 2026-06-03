@@ -236,4 +236,40 @@
     font-family: inherit;
     background: var(--cp-subtle-bg);
   }
+
+  .sites-map-page__map--dark .leaflet-container {
+    background: #0f1419;
+  }
+
+  .leaflet-control-zoom a,
+  .leaflet-bar a {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    border-color: var(--p-content-border-color);
+  }
+
+  .leaflet-control-zoom a:hover,
+  .leaflet-bar a:hover {
+    background: var(--p-content-hover-background);
+  }
+
+  .leaflet-control-attribution {
+    background: color-mix(in srgb, var(--cp-panel-bg) 88%, transparent);
+    color: var(--p-text-muted-color);
+
+    a {
+      color: var(--p-primary-color);
+    }
+  }
+
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  .leaflet-popup-content {
+    margin: 0.65rem 0.75rem;
+  }
 }

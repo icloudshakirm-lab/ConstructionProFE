@@ -36,6 +36,25 @@ const DEFAULT_COORD = { lat: 25.12, lng: 55.2, superintendent: 'Site Superintend
 export const MAP_CENTER: [number, number] = [25.12, 55.2];
 export const MAP_DEFAULT_ZOOM = 11;
 
+export interface MapTileConfig {
+  url: string;
+  attribution: string;
+}
+
+/** Light: OpenStreetMap. Dark: CARTO Dark Matter (free, OSM-based). */
+export const MAP_TILES = {
+  light: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>'
+  }
+} satisfies Record<'light' | 'dark', MapTileConfig>;
+
 export const PROJECT_FILTER_OPTIONS = [
   { label: 'All projects', value: 'all' },
   ...DEMO_PROJECTS.map((p) => ({ label: p.name, value: p.id }))

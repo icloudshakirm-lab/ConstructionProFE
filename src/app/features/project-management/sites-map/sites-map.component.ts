@@ -19,10 +19,12 @@ import { Card } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { ThemeService } from '../../../core/services/theme.service';
 import {
   ALL_SITE_MARKERS,
   MAP_CENTER,
   MAP_DEFAULT_ZOOM,
+  MAP_TILES,
   PROJECT_FILTER_OPTIONS,
   SiteMapMarker,
   progressMarkerColor,
@@ -37,6 +39,7 @@ import {
 })
 export class SitesMapComponent implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  readonly themeService = inject(ThemeService);
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
@@ -45,6 +48,7 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   readonly selectedMarkerId = signal<string | null>(ALL_SITE_MARKERS[0]?.id ?? null);
 
   private map: L.Map | null = null;
+  private tileLayer: L.TileLayer | null = null;
   private markerLayer: L.LayerGroup | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private mapReady = false;
@@ -80,6 +84,13 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
       const selected = this.selectedMarkerId();
       if (selected && !markers.some((m) => m.id === selected)) {
         this.selectedMarkerId.set(markers[0]?.id ?? null);
+      }
+    });
+
+    effect(() => {
+      const isDark = this.themeService.theme() === 'dark';
+      if (this.mapReady) {
+        this.applyMapTheme(isDark);
       }
     });
   }
@@ -130,19 +141,34 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   }
 
   private initMap(): void {
+    const isDark = this.themeService.isDark();
+    this.mapContainer.nativeElement.classList.toggle('sites-map-page__map--dark', isDark);
+
     this.map = L.map(this.mapContainer.nativeElement, {
       center: MAP_CENTER,
       zoom: MAP_DEFAULT_ZOOM,
       scrollWheelZoom: true
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-    }).addTo(this.map);
-
+    this.tileLayer = this.createTileLayer(isDark).addTo(this.map);
     this.markerLayer = L.layerGroup().addTo(this.map);
+  }
+
+  private createTileLayer(isDark: boolean): L.TileLayer {
+    const config = isDark ? MAP_TILES.dark : MAP_TILES.light;
+    return L.tileLayer(config.url, {
+      maxZoom: 19,
+      attribution: config.attribution
+    });
+  }
+
+  private applyMapTheme(isDark: boolean): void {
+    if (!this.map || !this.tileLayer) return;
+
+    this.mapContainer.nativeElement.classList.toggle('sites-map-page__map--dark', isDark);
+    this.map.removeLayer(this.tileLayer);
+    this.tileLayer = this.createTileLayer(isDark).addTo(this.map);
+    this.tileLayer.bringToBack();
   }
 
   private renderMarkers(markers: SiteMapMarker[]): void {

@@ -31,11 +31,12 @@
     <div class="sites-map-page__map-panel">
       <div #mapContainer class="sites-map-page__map" role="application" aria-label="Construction sites map"></div>
       <p class="sites-map-page__attribution">
-        Map tiles ©
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
-          >OpenStreetMap</a
-        >
-        · Powered by
+        @if (themeService.theme() === 'dark') {
+          Dark map © OpenStreetMap · CARTO
+        } @else {
+          Map tiles © OpenStreetMap
+        }
+        ·
         <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
       </p>
     </div>
