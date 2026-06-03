@@ -17,7 +17,7 @@ import { Dialog } from 'primeng/dialog';
 import { SelectButton } from 'primeng/selectbutton';
 import { Tag } from 'primeng/tag';
 import { Tooltip } from 'primeng/tooltip';
-import { MenuItem } from 'primeng/api';
+import { MenuItem, PrimeTemplate } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import {
   CONSTRUCTION_GANTT_TASKS,
@@ -42,6 +42,7 @@ interface ActivityDraft {
   selector: 'app-gantt-chart',
   imports: [
     FormsModule,
+    PrimeTemplate,
     Breadcrumb,
     Button,
     Card,
@@ -57,7 +58,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
   private readonly themeService = inject(ThemeService);
 
   @ViewChild('ganttContainer', { static: true }) ganttContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('fullscreenHost', { static: true }) fullscreenHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('ganttFullscreenHost', { static: true }) ganttFullscreenHost!: ElementRef<HTMLDivElement>;
 
   readonly breadcrumbs: MenuItem[] = [
     { label: 'Home', routerLink: '/dashboard' },
@@ -91,8 +92,18 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
   readonly editingExisting = signal(false);
 
   readonly isFullscreen = signal(false);
+  readonly panReady = signal(false);
+  readonly isResizing = signal(false);
+  readonly panelHeight = signal(520);
+
+  private static readonly MIN_PANEL_HEIGHT = 360;
+  private static readonly MAX_PANEL_HEIGHT = 1200;
 
   private gantt?: Gantt;
+  private panCleanup?: () => void;
+  private resizeCleanup?: () => void;
+  private fullscreenResizeListener?: () => void;
+  private resizeRaf = 0;
 
   ngAfterViewInit(): void {
     this.initGantt();
@@ -118,6 +129,9 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.teardownChartPan();
+    this.teardownResize();
+    this.detachFullscreenResizeListener();
     this.gantt?.clear();
     this.gantt = undefined;
 
@@ -178,7 +192,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
   }
 
   async toggleFullscreen(): Promise<void> {
-    const host = this.fullscreenHost?.nativeElement;
+    const host = this.ganttFullscreenHost?.nativeElement;
     if (!host || typeof document === 'undefined') return;
 
     if (!document.fullscreenElement) {
@@ -189,6 +203,62 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
     await document.exitFullscreen();
   }
 
+  overlayAppendTarget(): HTMLElement | 'body' {
+    if (this.isFullscreen() && this.ganttFullscreenHost?.nativeElement) {
+      return this.ganttFullscreenHost.nativeElement;
+    }
+    return 'body';
+  }
+
+  startResize(event: MouseEvent): void {
+    if (this.isFullscreen() || typeof window === 'undefined') return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.teardownResize();
+
+    const host = this.ganttFullscreenHost.nativeElement;
+    const startY = event.clientY;
+    const startHeight = host.offsetHeight;
+
+    this.isResizing.set(true);
+    document.body.classList.add('gantt-page--resizing');
+
+    const onMove = (moveEvent: MouseEvent): void => {
+      const maxHeight = Math.min(
+        GanttChartComponent.MAX_PANEL_HEIGHT,
+        window.innerHeight - 120
+      );
+
+      this.panelHeight.set(
+        clamp(startHeight + (moveEvent.clientY - startY), GanttChartComponent.MIN_PANEL_HEIGHT, maxHeight)
+      );
+
+      cancelAnimationFrame(this.resizeRaf);
+      this.resizeRaf = requestAnimationFrame(() => this.applyChartDimensions(false));
+    };
+
+    const onUp = (): void => {
+      this.teardownResize();
+      this.applyChartDimensions(true);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    this.resizeCleanup = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }
+
+  private teardownResize(): void {
+    cancelAnimationFrame(this.resizeRaf);
+    this.resizeCleanup?.();
+    this.resizeCleanup = undefined;
+    this.isResizing.set(false);
+    document.body.classList.remove('gantt-page--resizing');
+  }
+
   private renderGantt(scrollTo: 'today' | 'start' = 'today'): void {
     const el = this.ganttContainer.nativeElement;
     el.innerHTML = '';
@@ -197,6 +267,7 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
       view_mode: this.selectedView(),
       bar_height: 28,
       padding: 18,
+      container_height: this.getChartContainerHeight(),
       date_format: 'YYYY-MM-DD',
       scroll_to: scrollTo,
       today_button: true,
@@ -208,15 +279,184 @@ export class GanttChartComponent implements AfterViewInit, OnDestroy {
       `,
       on_click: (task: Gantt.Task) => this.openEditActivity(task)
     });
+
+    queueMicrotask(() => this.setupChartPan());
+  }
+
+  private setupChartPan(): void {
+    this.teardownChartPan();
+
+    const scrollEl = this.ganttContainer.nativeElement.querySelector(
+      '.gantt-container'
+    ) as HTMLElement | null;
+
+    if (!scrollEl) {
+      this.panReady.set(false);
+      return;
+    }
+
+    let panning = false;
+    let startX = 0;
+    let startY = 0;
+    let originScrollLeft = 0;
+    let originScrollTop = 0;
+
+    const isInteractiveTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false;
+      return !!target.closest(
+        '.bar-wrapper, .handle, .bar, .popup-wrapper, .gantt-page__resize-handle, button, a, input, select, textarea, label'
+      );
+    };
+
+    const onMouseDown = (event: MouseEvent): void => {
+      if (event.button !== 0 || isInteractiveTarget(event.target)) return;
+
+      panning = true;
+      scrollEl.classList.add('gantt-page__chart--panning');
+      startX = event.clientX;
+      startY = event.clientY;
+      originScrollLeft = scrollEl.scrollLeft;
+      originScrollTop = scrollEl.scrollTop;
+      event.preventDefault();
+    };
+
+    const onMouseMove = (event: MouseEvent): void => {
+      if (!panning) return;
+      scrollEl.scrollLeft = originScrollLeft - (event.clientX - startX);
+      scrollEl.scrollTop = originScrollTop - (event.clientY - startY);
+    };
+
+    const endPan = (): void => {
+      if (!panning) return;
+      panning = false;
+      scrollEl.classList.remove('gantt-page__chart--panning');
+    };
+
+    scrollEl.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', endPan);
+    scrollEl.addEventListener('mouseleave', endPan);
+
+    this.panReady.set(true);
+    this.panCleanup = () => {
+      scrollEl.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', endPan);
+      scrollEl.removeEventListener('mouseleave', endPan);
+      scrollEl.classList.remove('gantt-page__chart--panning');
+    };
+  }
+
+  private teardownChartPan(): void {
+    this.panCleanup?.();
+    this.panCleanup = undefined;
+    this.panReady.set(false);
   }
 
   private initGantt(): void {
     this.renderGantt();
   }
 
+  /** Frappe sets container height from row count; use panel / viewport height when set. */
+  private getChartContainerHeight(): number | 'auto' {
+    const host = this.ganttFullscreenHost?.nativeElement;
+    if (!host) return 'auto';
+
+    const toolbar = host.querySelector('.gantt-page__chart-toolbar') as HTMLElement | null;
+    const toolbarHeight = toolbar?.offsetHeight ?? 0;
+    const available = host.clientHeight - toolbarHeight;
+
+    if (this.isFullscreen()) {
+      return Math.max(available, GanttChartComponent.MIN_PANEL_HEIGHT);
+    }
+
+    return Math.max(available, 280);
+  }
+
+  private applyChartDimensions(rerender = true): void {
+    if (!this.gantt || this.isFullscreen()) return;
+
+    const height = this.getChartContainerHeight();
+    if (typeof height !== 'number') return;
+
+    const scrollEl = this.ganttContainer.nativeElement.querySelector(
+      '.gantt-container'
+    ) as HTMLElement | null;
+
+    if (scrollEl) {
+      scrollEl.style.setProperty('height', `${height}px`, 'important');
+      scrollEl.style.setProperty('min-height', `${height}px`, 'important');
+    }
+
+    if (rerender) {
+      const scrollLeft = scrollEl?.scrollLeft ?? 0;
+      const scrollTop = scrollEl?.scrollTop ?? 0;
+      this.renderGantt('start');
+      queueMicrotask(() => {
+        const nextScrollEl = this.ganttContainer.nativeElement.querySelector(
+          '.gantt-container'
+        ) as HTMLElement | null;
+        if (!nextScrollEl) return;
+        nextScrollEl.scrollLeft = scrollLeft;
+        nextScrollEl.scrollTop = scrollTop;
+      });
+    }
+  }
+
+  private syncChartViewport(): void {
+    if (!this.gantt) return;
+
+    const scrollEl = this.ganttContainer.nativeElement.querySelector(
+      '.gantt-container'
+    ) as HTMLElement | null;
+    const scrollLeft = scrollEl?.scrollLeft ?? 0;
+    const scrollTop = scrollEl?.scrollTop ?? 0;
+
+    this.renderGantt('start');
+
+    queueMicrotask(() => {
+      const nextScrollEl = this.ganttContainer.nativeElement.querySelector(
+        '.gantt-container'
+      ) as HTMLElement | null;
+      if (!nextScrollEl) return;
+      nextScrollEl.scrollLeft = scrollLeft;
+      nextScrollEl.scrollTop = scrollTop;
+    });
+  }
+
+  private attachFullscreenResizeListener(): void {
+    if (typeof window === 'undefined' || this.fullscreenResizeListener) return;
+    this.fullscreenResizeListener = () => this.syncChartViewport();
+    window.addEventListener('resize', this.fullscreenResizeListener, { passive: true });
+  }
+
+  private detachFullscreenResizeListener(): void {
+    if (typeof window === 'undefined' || !this.fullscreenResizeListener) return;
+    window.removeEventListener('resize', this.fullscreenResizeListener);
+    this.fullscreenResizeListener = undefined;
+  }
+
   private readonly onFullscreenChange = (): void => {
     if (typeof document === 'undefined') return;
-    this.isFullscreen.set(!!document.fullscreenElement);
+    const host = this.ganttFullscreenHost?.nativeElement;
+    const active = !!host && document.fullscreenElement === host;
+    const wasFullscreen = this.isFullscreen();
+
+    if (wasFullscreen === active) return;
+
+    this.isFullscreen.set(active);
+
+    if (active) {
+      this.attachFullscreenResizeListener();
+    } else {
+      this.detachFullscreenResizeListener();
+    }
+
+    if (!this.gantt) return;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.syncChartViewport());
+    });
   };
 
   private newDraft(): ActivityDraft {

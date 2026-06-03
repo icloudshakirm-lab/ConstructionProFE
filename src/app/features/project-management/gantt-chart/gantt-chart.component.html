@@ -1,4 +1,4 @@
-<div class="gantt-page" #fullscreenHost>
+<div class="gantt-page">
   <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
 
   <header class="gantt-page__header">
@@ -6,36 +6,6 @@
       <p-tag value="Project Management" severity="secondary" />
       <h1>Gantt Chart</h1>
       <p class="gantt-page__subtitle">{{ projectLabel }}</p>
-    </div>
-    <div class="gantt-page__actions">
-      <p-button
-        label="Add activity"
-        icon="pi pi-plus"
-        (onClick)="openAddActivity()"
-        pTooltip="Add a new activity to the schedule"
-      />
-      <p-selectButton
-        [options]="viewModes"
-        optionLabel="label"
-        optionValue="value"
-        [ngModel]="selectedView()"
-        (ngModelChange)="onViewChange($event)"
-        ariaLabel="Timeline view mode"
-      />
-      <p-button
-        label="Today"
-        icon="pi pi-calendar"
-        [outlined]="true"
-        pTooltip="Scroll timeline to today"
-        (onClick)="scrollToToday()"
-      />
-      <p-button
-        [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
-        [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
-        [outlined]="true"
-        pTooltip="Open the Gantt chart in full screen"
-        (onClick)="toggleFullscreen()"
-      />
     </div>
   </header>
 
@@ -47,11 +17,80 @@
   </div>
 
   <p-card styleClass="gantt-page__card">
-    <div #ganttContainer class="gantt-page__chart" role="img" aria-label="Project Gantt chart"></div>
+    <div
+      #ganttFullscreenHost
+      class="gantt-page__chart-panel"
+      [class.gantt-page__chart-panel--resizing]="isResizing()"
+      [style.height.px]="isFullscreen() ? null : panelHeight()"
+    >
+      <div class="gantt-page__chart-toolbar" role="toolbar" aria-label="Gantt chart controls">
+        <div class="gantt-page__chart-toolbar-main">
+          <p-button
+            label="Add activity"
+            icon="pi pi-plus"
+            (onClick)="openAddActivity()"
+            pTooltip="Add a new activity to the schedule"
+            [appendTo]="overlayAppendTarget()"
+          />
+          <p-selectButton
+            [options]="viewModes"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedView()"
+            (ngModelChange)="onViewChange($event)"
+            ariaLabel="Timeline view mode"
+          />
+          <p-button
+            label="Today"
+            icon="pi pi-calendar"
+            [outlined]="true"
+            pTooltip="Scroll timeline to today"
+            [appendTo]="overlayAppendTarget()"
+            (onClick)="scrollToToday()"
+          />
+        </div>
+
+        <div class="gantt-page__chart-toolbar-actions">
+          <span class="gantt-page__pan-hint">
+            <i class="pi pi-arrows-alt" aria-hidden="true"></i>
+            Drag chart background to pan
+          </span>
+          <p-button
+            [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+            [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+            [outlined]="true"
+            (onClick)="toggleFullscreen()"
+            [pTooltip]="isFullscreen() ? 'Exit full screen' : 'Open chart in full screen'"
+            [appendTo]="overlayAppendTarget()"
+            [attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+          />
+        </div>
+      </div>
+
+      <div
+        #ganttContainer
+        class="gantt-page__chart"
+        [class.gantt-page__chart--pan-ready]="panReady()"
+        role="img"
+        aria-label="Project Gantt chart"
+      ></div>
+
+      @if (!isFullscreen()) {
+        <button
+          type="button"
+          class="gantt-page__resize-handle"
+          aria-label="Resize chart"
+          title="Drag to resize chart height"
+          (mousedown)="startResize($event)"
+        ></button>
+      }
+    </div>
   </p-card>
 
   <p class="gantt-page__hint">
-  Drag bars to reschedule (demo). Connect to your schedule API to load WBS tasks, dependencies, and baseline dates.
+    Drag the bottom-right corner to resize chart height (width stays full). Drag the chart background to pan; use scroll
+    wheel on the timeline
+    to move horizontally. Drag task bars to reschedule (demo).
   </p>
 
   <p-card styleClass="chart-data-card">

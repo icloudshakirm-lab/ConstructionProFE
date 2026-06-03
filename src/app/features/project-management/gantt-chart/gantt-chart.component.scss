@@ -22,11 +22,84 @@
   color: var(--p-text-muted-color);
 }
 
-.gantt-page__actions {
+.gantt-page__chart-panel {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+
+  &--resizing {
+    user-select: none;
+  }
+}
+
+.gantt-page__resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  z-index: 6;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 0 0 6px 0;
+  cursor: ns-resize;
+  background: linear-gradient(
+    135deg,
+    transparent 0 45%,
+    var(--p-content-border-color) 45% 52%,
+    transparent 52% 62%,
+    var(--p-content-border-color) 62% 70%,
+    transparent 70%
+  );
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid color-mix(in srgb, var(--p-primary-color) 35%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+.gantt-page__chart-panel:fullscreen .gantt-page__resize-handle {
+  display: none;
+}
+
+.gantt-page__chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+  background: var(--cp-panel-bg);
+}
+
+.gantt-page__chart-toolbar-main,
+.gantt-page__chart-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
+}
+
+.gantt-page__chart-toolbar-actions {
+  margin-left: auto;
+}
+
+.gantt-page__pan-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .gantt-page__legend {
@@ -66,18 +139,41 @@
   }
 }
 
-:host ::ng-deep .gantt-page__card .p-card-body {
-  padding: 0;
+:host ::ng-deep .gantt-page__card {
+  min-width: 0;
+
+  .p-card-body {
+    padding: 0;
+    min-width: 0;
+  }
 }
 
 .gantt-page__chart {
-  min-height: 420px;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 :host ::ng-deep .gantt-page__chart {
   .gantt-container {
-    min-height: 420px;
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  &.gantt-page__chart--pan-ready .gantt-container {
+    cursor: grab;
+  }
+
+  .gantt-container.gantt-page__chart--panning {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .gantt-container .popup-wrapper {
+    cursor: default;
   }
 
   .bar-done .bar {
@@ -114,6 +210,48 @@
 
   .bar-milestone .bar-progress {
     fill: var(--cp-gantt-milestone-progress);
+  }
+}
+
+.gantt-page__chart-panel:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  background: var(--cp-app-bg);
+
+  .gantt-page__chart-toolbar {
+    flex-shrink: 0;
+    z-index: 2;
+  }
+
+  .gantt-page__chart {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+:host ::ng-deep .gantt-page__chart-panel:fullscreen .gantt-page__chart {
+  .gantt-container {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: 100% !important;
+    width: 100%;
+  }
+
+  svg.gantt {
+    min-height: 100%;
+  }
+}
+
+:host ::ng-deep .gantt-page__chart-panel {
+  .p-tooltip {
+    z-index: 1100;
   }
 }
 
@@ -183,6 +321,11 @@
 
 :host ::ng-deep .chart-data-card .p-card-body {
   padding-top: 0;
+}
+
+:global(body.gantt-page--resizing) {
+  cursor: ns-resize !important;
+  user-select: none;
 }
 
 .chart-data-json {
