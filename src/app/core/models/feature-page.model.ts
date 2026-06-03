@@ -6,7 +6,9 @@ export type FeaturePageComponent =
   | 'notes'
   | 'todo'
   | 'milestones-page'
-  | 'messages';
+  | 'messages'
+  | 'boq-creation'
+  | 'boq-revisions';
 
 export interface FeaturePage {
   id: string;

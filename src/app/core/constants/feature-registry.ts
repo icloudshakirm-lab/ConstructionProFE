@@ -542,14 +542,16 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'BOQ Creation',
         description: 'Create detailed BOQ with items, units, rates, and sections.',
         icon: 'pi pi-plus-circle',
-        highlights: ['Sections', 'Units', 'Rate build-up']
+        highlights: ['Sections', 'Units', 'Rate build-up'],
+        component: 'boq-creation'
       },
       {
         id: 'boq-revisions',
         title: 'BOQ Revisions',
         description: 'Revision history with comparison and approval before billing.',
         icon: 'pi pi-clone',
-        highlights: ['Diff view', 'Approval', 'Effective date']
+        highlights: ['Diff view', 'Approval', 'Effective date'],
+        component: 'boq-revisions'
       },
       {
         id: 'boq-vs-actual',

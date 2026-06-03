@@ -1,0 +1,262 @@
+<div class="boq-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="boq-page__header">
+    <div>
+      <p-tag value="BOQ & Client Billing" severity="success" />
+      <h1>BOQ Creation</h1>
+      <p class="boq-page__subtitle">
+        Bill of Quantities — sections, line items, qty × rate. Used for estimating, tendering, procurement,
+        progress billing, and variations.
+      </p>
+    </div>
+    <div class="boq-page__header-actions">
+      <label class="boq-page__field-label" for="boqProject">Project</label>
+      <p-select
+        inputId="boqProject"
+        [options]="projectOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search project…"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="onProjectChange($event)"
+        [style]="{ minWidth: 'min(320px, 92vw)' }"
+      />
+    </div>
+  </header>
+
+  <div class="boq-page__kpis">
+    <p-card>
+      <div class="boq-page__kpi">
+        <span class="boq-page__kpi-value">{{ boqTitle() }}</span>
+        <span class="boq-page__kpi-label">BOQ title</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-page__kpi">
+        <span class="boq-page__kpi-value">{{ sectionRows().length }}</span>
+        <span class="boq-page__kpi-label">Sections / groups</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-page__kpi">
+        <span class="boq-page__kpi-value">{{ totalLineCount() }}</span>
+        <span class="boq-page__kpi-label">Line items</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-page__kpi boq-page__kpi--total">
+        <span class="boq-page__kpi-value">{{ formatMoney(grandTotal()) }}</span>
+        <span class="boq-page__kpi-label">Grand total (PKR)</span>
+      </div>
+    </p-card>
+  </div>
+
+  <div class="boq-page__layout">
+    <aside class="boq-page__sections" aria-label="BOQ sections">
+      <div class="boq-page__panel-head">
+        <h2>BOQ structure</h2>
+        <p-button
+          label="Section"
+          icon="pi pi-plus"
+          size="small"
+          [outlined]="true"
+          (onClick)="openAddSection()"
+        />
+      </div>
+      <ul class="boq-page__section-list">
+        @for (row of sectionRows(); track row.section.id) {
+          <li>
+            <button
+              type="button"
+              class="boq-page__section-btn"
+              [class.boq-page__section-btn--active]="selectedSectionId() === row.section.id"
+              [style.paddingLeft.rem]="0.75 + row.depth * 1.1"
+              (click)="selectSection(row.section.id)"
+            >
+              <span class="boq-page__section-code">{{ row.section.code }}</span>
+              <span class="boq-page__section-title">{{ row.section.title }}</span>
+              <span class="boq-page__section-amt">{{ formatMoney(row.subtotal) }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </aside>
+
+    <section class="boq-page__editor">
+      @if (selectedSection(); as section) {
+        <div class="boq-page__panel-head">
+          <div>
+            <h2>Section {{ section.code }} — {{ section.title }}</h2>
+            <p class="boq-page__panel-hint">Amount = Qty × Rate. Edit cells inline; use searchable dropdowns for codes and units.</p>
+          </div>
+          <p-button label="Add line" icon="pi pi-plus" (onClick)="addLineItem()" />
+        </div>
+
+        <div class="boq-page__table-wrap">
+          <table class="boq-table">
+            <thead>
+              <tr>
+                <th>Sr</th>
+                <th>Item code</th>
+                <th>Description</th>
+                <th>Unit</th>
+                <th class="boq-table__num">Qty</th>
+                <th class="boq-table__num">Rate</th>
+                <th class="boq-table__num">Amount</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of selectedItems(); track item.id; let idx = $index) {
+                <tr>
+                  <td class="boq-table__sr">{{ idx + 1 }}</td>
+                  <td>
+                    <p-select
+                      [options]="itemCodeOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      [filter]="true"
+                      filterPlaceholder="Search code…"
+                      [showClear]="true"
+                      [ngModel]="item.itemCode"
+                      (ngModelChange)="onItemCodeChange(item, $event)"
+                      placeholder="Item code"
+                      appendTo="body"
+                      [style]="{ width: '100%', minWidth: '10rem' }"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      class="boq-table__input"
+                      [ngModel]="item.description"
+                      (ngModelChange)="updateLineItem(item.id, { description: $event })"
+                    />
+                  </td>
+                  <td>
+                    <p-select
+                      [options]="unitOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      [filter]="true"
+                      filterPlaceholder="Unit…"
+                      [ngModel]="item.unit"
+                      (ngModelChange)="updateLineItem(item.id, { unit: $event })"
+                      appendTo="body"
+                      [style]="{ width: '100%', minWidth: '5.5rem' }"
+                    />
+                  </td>
+                  <td class="boq-table__num">
+                    <p-inputNumber
+                      [ngModel]="item.qty"
+                      (ngModelChange)="updateLineItem(item.id, { qty: $event ?? 0 })"
+                      [minFractionDigits]="0"
+                      [maxFractionDigits]="2"
+                      mode="decimal"
+                    />
+                  </td>
+                  <td class="boq-table__num">
+                    <p-inputNumber
+                      [ngModel]="item.rate"
+                      (ngModelChange)="updateLineItem(item.id, { rate: $event ?? 0 })"
+                      [minFractionDigits]="0"
+                      [maxFractionDigits]="0"
+                      mode="decimal"
+                    />
+                  </td>
+                  <td class="boq-table__num boq-table__amount">
+                    {{ formatMoney(calcLineAmount(item)) }}
+                  </td>
+                  <td>
+                    <p-button
+                      icon="pi pi-trash"
+                      [text]="true"
+                      [rounded]="true"
+                      severity="danger"
+                      (onClick)="removeLineItem(item.id)"
+                      ariaLabel="Remove line"
+                    />
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="boq-table__empty">
+                    No line items in this section. Use <strong>Add line</strong> or select a child section with items.
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="boq-table__subtotal">
+                <td colspan="6">Section subtotal — {{ section.code }}</td>
+                <td class="boq-table__num">{{ formatMoney(selectedSectionSubtotal()) }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+
+  <footer class="boq-page__grand-total">
+    <strong>Grand total</strong>
+    <span>{{ formatMoney(grandTotal()) }}</span>
+  </footer>
+</div>
+
+<p-dialog
+  header="Add BOQ section"
+  [visible]="sectionDialogVisible()"
+  (visibleChange)="sectionDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 92vw)' }"
+>
+  <div class="boq-form">
+    <div class="boq-form__row">
+      <label for="secCode">Section code</label>
+      <input
+        id="secCode"
+        type="text"
+        pInputText
+        placeholder="e.g. C or ELC"
+        [ngModel]="sectionDraftCode()"
+        (ngModelChange)="sectionDraftCode.set($event)"
+      />
+    </div>
+    <div class="boq-form__row">
+      <label for="secTitle">Title</label>
+      <input
+        id="secTitle"
+        type="text"
+        pInputText
+        placeholder="e.g. Electrical Works"
+        [ngModel]="sectionDraftTitle()"
+        (ngModelChange)="sectionDraftTitle.set($event)"
+      />
+    </div>
+    <div class="boq-form__row">
+      <label for="secParent">Parent section (optional)</label>
+      <p-select
+        inputId="secParent"
+        [options]="parentSectionOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search parent…"
+        [ngModel]="sectionDraftParentId()"
+        (ngModelChange)="sectionDraftParentId.set($event)"
+        [style]="{ width: '100%' }"
+        appendTo="body"
+      />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="boq-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="sectionDialogVisible.set(false)" />
+      <p-button label="Add section" icon="pi pi-check" (onClick)="saveSection()" />
+    </div>
+  </ng-template>
+</p-dialog>

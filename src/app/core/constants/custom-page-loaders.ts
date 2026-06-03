@@ -31,5 +31,13 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   messages: () =>
     import('../../features/collaboration/messages/messages.component').then(
       (m) => m.MessagesComponent
+    ),
+  'boq-creation': () =>
+    import('../../features/boq-billing/boq-creation/boq-creation.component').then(
+      (m) => m.BoqCreationComponent
+    ),
+  'boq-revisions': () =>
+    import('../../features/boq-billing/boq-revisions/boq-revisions.component').then(
+      (m) => m.BoqRevisionsComponent
     )
 };

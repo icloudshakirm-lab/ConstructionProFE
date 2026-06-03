@@ -1,0 +1,398 @@
+<div class="boq-rev-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="boq-rev-page__header">
+    <div>
+      <p-tag value="BOQ & Client Billing" severity="success" />
+      <h1>BOQ Revisions</h1>
+      <p class="boq-rev-page__subtitle">
+        Revision history with comparison and approval before billing. Track effective dates, review diffs,
+        and approve revisions for IPCs and progress claims.
+      </p>
+    </div>
+    <div class="boq-rev-page__header-actions">
+      <label class="boq-rev-page__field-label" for="revProject">Project</label>
+      <p-select
+        inputId="revProject"
+        [options]="projectOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search project…"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="onProjectChange($event)"
+        [style]="{ minWidth: 'min(320px, 92vw)' }"
+      />
+    </div>
+  </header>
+
+  <div class="boq-rev-page__kpis">
+    <p-card>
+      <div class="boq-rev-page__kpi">
+        <span class="boq-rev-page__kpi-value">{{ projectRevisions().length }}</span>
+        <span class="boq-rev-page__kpi-label">Revisions</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-rev-page__kpi">
+        <span class="boq-rev-page__kpi-value">{{ pendingCount() }}</span>
+        <span class="boq-rev-page__kpi-label">Pending approval</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-rev-page__kpi">
+        @if (activeApprovedRevision(); as active) {
+          <span class="boq-rev-page__kpi-value">{{ active.revisionNo }}</span>
+          <span class="boq-rev-page__kpi-label">Active for billing · {{ formatDate(active.effectiveDate) }}</span>
+        } @else {
+          <span class="boq-rev-page__kpi-value">—</span>
+          <span class="boq-rev-page__kpi-label">No approved revision</span>
+        }
+      </div>
+    </p-card>
+    <p-card>
+      <div class="boq-rev-page__kpi boq-rev-page__kpi--total">
+        @if (activeApprovedRevision(); as active) {
+          <span class="boq-rev-page__kpi-value">{{ formatMoney(revisionTotal(active)) }}</span>
+          <span class="boq-rev-page__kpi-label">Approved BOQ total (PKR)</span>
+        } @else {
+          <span class="boq-rev-page__kpi-value">—</span>
+          <span class="boq-rev-page__kpi-label">Approved BOQ total</span>
+        }
+      </div>
+    </p-card>
+  </div>
+
+  <div class="boq-rev-page__tabs">
+    <p-button
+      label="Revision detail"
+      [outlined]="viewMode() !== 'detail'"
+      (onClick)="viewMode.set('detail')"
+    />
+    <p-button
+      label="Compare revisions"
+      icon="pi pi-arrow-right-arrow-left"
+      [outlined]="viewMode() !== 'compare'"
+      (onClick)="openCompare()"
+    />
+  </div>
+
+  @if (viewMode() === 'detail') {
+    <div class="boq-rev-page__layout">
+      <aside class="boq-rev-page__list" aria-label="Revision history">
+        <div class="boq-rev-page__panel-head">
+          <h2>Revision history</h2>
+        </div>
+        <ul class="boq-rev-page__rev-list">
+          @for (rev of projectRevisions(); track rev.id) {
+            <li>
+              <button
+                type="button"
+                class="boq-rev-page__rev-btn"
+                [class.boq-rev-page__rev-btn--active]="selectedRevisionId() === rev.id"
+                (click)="selectRevision(rev.id)"
+              >
+                <span class="boq-rev-page__rev-head">
+                  <strong>{{ rev.revisionNo }}</strong>
+                  <p-tag [value]="statusLabels[rev.status]" [severity]="statusSeverity(rev.status)" />
+                </span>
+                <span class="boq-rev-page__rev-title">{{ rev.title }}</span>
+                <span class="boq-rev-page__rev-meta">
+                  {{ formatDateTime(rev.createdAt) }} · {{ rev.createdBy }}
+                </span>
+                <span class="boq-rev-page__rev-total">
+                  {{ formatMoney(revisionTotal(rev)) }}
+                  @let delta = revisionChange(rev);
+                  @if (delta !== 0) {
+                    <span
+                      class="boq-rev-page__delta"
+                      [class.boq-rev-page__delta--up]="delta > 0"
+                      [class.boq-rev-page__delta--down]="delta < 0"
+                    >
+                      {{ delta > 0 ? '+' : '' }}{{ formatMoney(delta) }}
+                    </span>
+                  }
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <section class="boq-rev-page__detail">
+        @if (selectedRevision(); as rev) {
+          <div class="boq-rev-page__panel-head">
+            <div>
+              <h2>{{ rev.revisionNo }} — {{ rev.title }}</h2>
+              <p class="boq-rev-page__panel-hint">{{ rev.changeSummary }}</p>
+            </div>
+            <div class="boq-rev-page__actions">
+              @if (rev.status === 'draft') {
+                <p-button
+                  label="Submit for approval"
+                  icon="pi pi-send"
+                  [outlined]="true"
+                  (onClick)="submitForApproval(rev)"
+                />
+              }
+              @if (rev.status === 'pending') {
+                <p-button
+                  label="Reject"
+                  icon="pi pi-times"
+                  severity="danger"
+                  [outlined]="true"
+                  (onClick)="rejectRevision(rev)"
+                />
+                <p-button label="Approve" icon="pi pi-check" (onClick)="openApprove(rev)" />
+              }
+              <p-button
+                label="Compare"
+                icon="pi pi-arrow-right-arrow-left"
+                [outlined]="true"
+                (onClick)="openCompare()"
+              />
+            </div>
+          </div>
+
+          <dl class="boq-rev-page__meta-grid">
+            <div>
+              <dt>Status</dt>
+              <dd><p-tag [value]="statusLabels[rev.status]" [severity]="statusSeverity(rev.status)" /></dd>
+            </div>
+            <div>
+              <dt>Grand total</dt>
+              <dd>{{ formatMoney(revisionTotal(rev)) }} PKR</dd>
+            </div>
+            <div>
+              <dt>Change vs previous</dt>
+              <dd>
+                @if (previousRevision(); as prev) {
+                  {{ formatMoney(revisionChange(rev)) }} PKR
+                  <span class="boq-rev-page__muted">(from {{ prev.revisionNo }})</span>
+                } @else {
+                  Baseline
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Effective date</dt>
+              <dd>{{ formatDate(rev.effectiveDate) }}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ formatDateTime(rev.createdAt) }} · {{ rev.createdBy }}</dd>
+            </div>
+            <div>
+              <dt>Approved</dt>
+              <dd>
+                @if (rev.approvedAt) {
+                  {{ formatDateTime(rev.approvedAt) }} · {{ rev.approvedBy }}
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+          </dl>
+
+          <div class="boq-rev-page__table-wrap">
+            <table class="boq-rev-table">
+              <thead>
+                <tr>
+                  <th>Section</th>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th>Unit</th>
+                  <th class="boq-rev-table__num">Qty</th>
+                  <th class="boq-rev-table__num">Rate</th>
+                  <th class="boq-rev-table__num">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of rev.lines; track line.sectionCode + line.itemCode) {
+                  <tr>
+                    <td>{{ line.sectionCode }}</td>
+                    <td>{{ line.itemCode }}</td>
+                    <td>{{ line.description }}</td>
+                    <td>{{ line.unit }}</td>
+                    <td class="boq-rev-table__num">{{ line.qty }}</td>
+                    <td class="boq-rev-table__num">{{ formatMoney(line.rate) }}</td>
+                    <td class="boq-rev-table__num boq-rev-table__amount">
+                      {{ formatMoney(line.qty * line.rate) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="6">Revision total</td>
+                  <td class="boq-rev-table__num">{{ formatMoney(revisionTotal(rev)) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  } @else {
+    <section class="boq-rev-page__compare">
+      <div class="boq-rev-page__compare-bar">
+        <div class="boq-rev-page__compare-field">
+          <label for="compareFrom">Compare from</label>
+          <p-select
+            inputId="compareFrom"
+            [options]="revisionOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            filterPlaceholder="Search revision…"
+            [ngModel]="compareFromId()"
+            (ngModelChange)="compareFromId.set($event)"
+            appendTo="body"
+            [style]="{ width: '100%', minWidth: '14rem' }"
+          />
+        </div>
+        <span class="boq-rev-page__compare-arrow" aria-hidden="true">→</span>
+        <div class="boq-rev-page__compare-field">
+          <label for="compareTo">Compare to</label>
+          <p-select
+            inputId="compareTo"
+            [options]="revisionOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            filterPlaceholder="Search revision…"
+            [ngModel]="compareToId()"
+            (ngModelChange)="compareToId.set($event)"
+            appendTo="body"
+            [style]="{ width: '100%', minWidth: '14rem' }"
+          />
+        </div>
+        <label class="boq-rev-page__unchanged">
+          <input type="checkbox" [ngModel]="showUnchanged()" (ngModelChange)="showUnchanged.set($event)" />
+          Show unchanged lines
+        </label>
+      </div>
+
+      @if (compareFromRevision(); as from) {
+        @if (compareToRevision(); as to) {
+          <div class="boq-rev-page__diff-kpis">
+            <p-tag [value]="diffSummary().added + ' added'" severity="success" />
+            <p-tag [value]="diffSummary().modified + ' modified'" severity="warn" />
+            <p-tag [value]="diffSummary().removed + ' removed'" severity="danger" />
+            <span class="boq-rev-page__diff-total">
+              Net BOQ change:
+              <strong
+                [class.boq-rev-page__delta--up]="diffSummary().delta > 0"
+                [class.boq-rev-page__delta--down]="diffSummary().delta < 0"
+              >
+                {{ diffSummary().delta > 0 ? '+' : '' }}{{ formatMoney(diffSummary().delta) }} PKR
+              </strong>
+              ({{ formatMoney(revisionTotal(from)) }} → {{ formatMoney(revisionTotal(to)) }})
+            </span>
+          </div>
+
+          <div class="boq-rev-page__table-wrap">
+            <table class="boq-rev-table boq-rev-table--diff">
+              <thead>
+                <tr>
+                  <th>Change</th>
+                  <th>Section</th>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th class="boq-rev-table__num">Qty (from → to)</th>
+                  <th class="boq-rev-table__num">Rate (from → to)</th>
+                  <th class="boq-rev-table__num">Amount Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of diffRows(); track row.key) {
+                  <tr [class]="'boq-rev-table__row--' + row.change">
+                    <td><p-tag [value]="changeLabel(row.change)" [severity]="changeSeverity(row.change)" /></td>
+                    <td>{{ row.sectionCode }}</td>
+                    <td>{{ row.itemCode }}</td>
+                    <td>{{ row.description }}</td>
+                    <td class="boq-rev-table__num">
+                      @if (row.change === 'added') {
+                        — → {{ row.qtyTo }}
+                      } @else if (row.change === 'removed') {
+                        {{ row.qtyFrom }} → —
+                      } @else {
+                        {{ row.qtyFrom }} → {{ row.qtyTo }}
+                      }
+                    </td>
+                    <td class="boq-rev-table__num">
+                      @if (row.change === 'added') {
+                        — → {{ formatMoney(row.rateTo ?? 0) }}
+                      } @else if (row.change === 'removed') {
+                        {{ formatMoney(row.rateFrom ?? 0) }} → —
+                      } @else {
+                        {{ formatMoney(row.rateFrom ?? 0) }} → {{ formatMoney(row.rateTo ?? 0) }}
+                      }
+                    </td>
+                    <td
+                      class="boq-rev-table__num boq-rev-table__amount"
+                      [class.boq-rev-page__delta--up]="row.amountDelta > 0"
+                      [class.boq-rev-page__delta--down]="row.amountDelta < 0"
+                    >
+                      {{ row.amountDelta > 0 ? '+' : '' }}{{ formatMoney(row.amountDelta) }}
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="boq-rev-table__empty">
+                      No differences between selected revisions (or only unchanged lines — enable “Show unchanged”).
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </section>
+  }
+</div>
+
+<p-dialog
+  header="Approve BOQ revision"
+  [visible]="approveDialogVisible()"
+  (visibleChange)="approveDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 92vw)' }"
+>
+  @if (selectedRevision(); as rev) {
+    <p class="boq-rev-page__dialog-lead">
+      Approve <strong>{{ rev.revisionNo }}</strong> for billing. The current approved revision will be marked
+      superseded.
+    </p>
+    <div class="boq-rev-form">
+      <div class="boq-rev-form__row">
+        <label for="effDate">Effective date</label>
+        <input
+          id="effDate"
+          type="date"
+          pInputText
+          [ngModel]="approveEffectiveDate()"
+          (ngModelChange)="approveEffectiveDate.set($event)"
+        />
+      </div>
+      <div class="boq-rev-form__row">
+        <label for="approveComment">Approval comment</label>
+        <textarea
+          id="approveComment"
+          pTextarea
+          rows="3"
+          placeholder="Optional note for audit trail…"
+          [ngModel]="approveComment()"
+          (ngModelChange)="approveComment.set($event)"
+        ></textarea>
+      </div>
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <div class="boq-rev-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="approveDialogVisible.set(false)" />
+      <p-button label="Approve for billing" icon="pi pi-check" (onClick)="confirmApprove()" />
+    </div>
+  </ng-template>
+</p-dialog>
