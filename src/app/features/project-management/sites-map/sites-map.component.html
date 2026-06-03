@@ -6,8 +6,8 @@
       <p-tag value="OpenStreetMap · Leaflet" severity="info" />
       <h1>Construction Sites Map</h1>
       <p class="sites-map-page__subtitle">
-        View active construction sites on an open-source Leaflet map. Filter by project, select a site for
-        details, or fit all markers in view.
+        View construction sites on the map, resize or expand to full screen, and browse each site’s photo
+        catalog.
       </p>
     </div>
     <div class="sites-map-page__header-actions">
@@ -23,13 +23,30 @@
         (ngModelChange)="projectFilter.set($event)"
         [style]="{ minWidth: 'min(300px, 90vw)' }"
       />
-      <p-button label="Fit all sites" icon="pi pi-expand" [outlined]="true" (onClick)="fitAllSites()" />
     </div>
   </header>
 
   <div class="sites-map-page__layout">
-    <div class="sites-map-page__map-panel">
+    <div
+      #mapFullscreenHost
+      class="sites-map-page__map-panel"
+      [class.sites-map-page__map-panel--resizing]="isResizing()"
+      [class.sites-map-page__map-panel--fullscreen]="isFullscreen()"
+      [style.height.px]="isFullscreen() ? null : panelHeight()"
+    >
+      <div class="sites-map-page__map-toolbar" role="toolbar" aria-label="Map controls">
+        <p-button label="Fit all sites" icon="pi pi-map-marker" [outlined]="true" (onClick)="fitAllSites()" />
+        <p-button
+          [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+          [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+          [outlined]="true"
+          (onClick)="toggleFullscreen()"
+          [attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen map'"
+        />
+      </div>
+
       <div #mapContainer class="sites-map-page__map" role="application" aria-label="Construction sites map"></div>
+
       <p class="sites-map-page__attribution">
         @if (themeService.theme() === 'dark') {
           Dark map © OpenStreetMap · CARTO
@@ -39,9 +56,19 @@
         ·
         <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
       </p>
+
+      @if (!isFullscreen()) {
+        <button
+          type="button"
+          class="sites-map-page__resize-handle"
+          aria-label="Resize map height"
+          title="Drag to resize map height"
+          (mousedown)="startResize($event)"
+        ></button>
+      }
     </div>
 
-    <aside class="sites-map-page__sidebar" aria-label="Site list">
+    <aside class="sites-map-page__sidebar" aria-label="Site list and photo catalog">
       <div class="sites-map-page__sidebar-head">
         <h2>Sites ({{ filteredMarkers().length }})</h2>
         <span class="sites-map-page__legend">
@@ -51,6 +78,7 @@
           <span class="sites-map-page__legend-item"><i style="background:#94a3b8"></i> 0%</span>
         </span>
       </div>
+
       <ul class="sites-map-page__list">
         @for (marker of filteredMarkers(); track marker.id) {
           <li>
@@ -63,7 +91,8 @@
               <span class="sites-map-page__list-title">{{ marker.siteName }}</span>
               <span class="sites-map-page__list-project">{{ marker.projectName }}</span>
               <span class="sites-map-page__list-meta">
-                {{ marker.locationLabel }} · {{ marker.progressPct }}% complete
+                {{ marker.locationLabel }} · {{ marker.progressPct }}% ·
+                {{ photoCount(marker.siteId) }} photos
               </span>
               <p-tag [value]="marker.projectStatus" [severity]="statusSeverity(marker.projectStatus)" />
             </button>
@@ -99,7 +128,39 @@
             </div>
           </dl>
         </p-card>
+
+        <section class="sites-map-page__gallery" aria-label="Site photo catalog">
+          <div class="sites-map-page__gallery-head">
+            <h3>Photo catalog</h3>
+            <span>{{ selectedSitePhotos().length }} images</span>
+          </div>
+          <div class="sites-map-page__gallery-grid">
+            @for (photo of selectedSitePhotos(); track photo.id) {
+              <figure class="sites-map-page__gallery-item">
+                <p-image
+                  [src]="photo.thumbnailUrl"
+                  [alt]="photo.title"
+                  [previewImageSrc]="photo.url"
+                  width="100%"
+                  [preview]="true"
+                />
+                <figcaption>
+                  <strong>{{ photo.category }}</strong>
+                  <span>{{ photo.caption }}</span>
+                  <time>{{ photo.takenAt }}</time>
+                </figcaption>
+              </figure>
+            } @empty {
+              <p class="sites-map-page__empty">No photos for this site.</p>
+            }
+          </div>
+        </section>
       }
     </aside>
   </div>
+
+  <p class="sites-map-page__hint">
+    Drag the handle on the bottom-right of the map to change height. Click a thumbnail to preview full size.
+    Demo photos use royalty-free placeholders (Picsum).
+  </p>
 </div>

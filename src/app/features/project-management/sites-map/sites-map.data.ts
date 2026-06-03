@@ -110,3 +110,46 @@ export function progressMarkerColor(pct: number): string {
   if (pct > 0) return '#f59e0b';
   return '#94a3b8';
 }
+
+export interface SiteCatalogPhoto {
+  id: string;
+  siteId: string;
+  title: string;
+  caption: string;
+  category: 'Overview' | 'Progress' | 'Safety' | 'Quality' | 'Equipment';
+  takenAt: string;
+  url: string;
+  thumbnailUrl: string;
+}
+
+const PHOTO_CATEGORIES: SiteCatalogPhoto['category'][] = [
+  'Overview',
+  'Progress',
+  'Safety',
+  'Quality',
+  'Equipment'
+];
+
+function buildSitePhotos(siteId: string, siteName: string): SiteCatalogPhoto[] {
+  return PHOTO_CATEGORIES.map((category, index) => {
+    const seed = `${siteId}-${index + 1}`;
+    return {
+      id: `${siteId}-photo-${index + 1}`,
+      siteId,
+      title: `${siteName} — ${category}`,
+      caption: `Field photo · ${category} documentation`,
+      category,
+      takenAt: `2026-0${(index % 6) + 1}-${10 + index * 3}`,
+      url: `https://picsum.photos/seed/${seed}/960/720`,
+      thumbnailUrl: `https://picsum.photos/seed/${seed}/360/270`
+    };
+  });
+}
+
+const SITE_PHOTOS_BY_ID: Record<string, SiteCatalogPhoto[]> = Object.fromEntries(
+  ALL_SITE_MARKERS.map((m) => [m.siteId, buildSitePhotos(m.siteId, m.siteName)])
+);
+
+export function getSitePhotoCatalog(siteId: string): SiteCatalogPhoto[] {
+  return SITE_PHOTOS_BY_ID[siteId] ?? [];
+}

@@ -16,6 +16,7 @@ import { MenuItem } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { Image } from 'primeng/image';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
@@ -27,31 +28,52 @@ import {
   MAP_TILES,
   PROJECT_FILTER_OPTIONS,
   SiteMapMarker,
+  getSitePhotoCatalog,
   progressMarkerColor,
   projectStatusSeverity
 } from './sites-map.data';
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 @Component({
   selector: 'app-sites-map',
-  imports: [FormsModule, Breadcrumb, Button, Card, Select, Tag],
+  imports: [FormsModule, Breadcrumb, Button, Card, Image, Select, Tag],
   templateUrl: './sites-map.component.html',
   styleUrl: './sites-map.component.scss'
 })
 export class SitesMapComponent implements AfterViewInit, OnDestroy {
+  private static readonly MIN_PANEL_HEIGHT = 280;
+  private static readonly MAX_PANEL_HEIGHT = 880;
+  private static readonly DEFAULT_PANEL_HEIGHT = 480;
+
   private readonly route = inject(ActivatedRoute);
   readonly themeService = inject(ThemeService);
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('mapFullscreenHost', { static: true }) mapFullscreenHost!: ElementRef<HTMLDivElement>;
 
   readonly projectFilterOptions = PROJECT_FILTER_OPTIONS;
   readonly projectFilter = signal('all');
   readonly selectedMarkerId = signal<string | null>(ALL_SITE_MARKERS[0]?.id ?? null);
+  readonly panelHeight = signal(SitesMapComponent.DEFAULT_PANEL_HEIGHT);
+  readonly isFullscreen = signal(false);
+  readonly isResizing = signal(false);
 
   private map: L.Map | null = null;
   private tileLayer: L.TileLayer | null = null;
   private markerLayer: L.LayerGroup | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private mapReady = false;
+  private resizeCleanup?: () => void;
+  private resizeRaf = 0;
+  private readonly onFullscreenChange = (): void => {
+    const host = this.mapFullscreenHost?.nativeElement;
+    const active = !!host && document.fullscreenElement === host;
+    this.isFullscreen.set(active);
+    requestAnimationFrame(() => this.invalidateMapSize());
+  };
 
   readonly filteredMarkers = computed(() => {
     const filter = this.projectFilter();
@@ -62,6 +84,11 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   readonly selectedMarker = computed(() => {
     const id = this.selectedMarkerId();
     return ALL_SITE_MARKERS.find((m) => m.id === id) ?? null;
+  });
+
+  readonly selectedSitePhotos = computed(() => {
+    const marker = this.selectedMarker();
+    return marker ? getSitePhotoCatalog(marker.siteId) : [];
   });
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
@@ -76,6 +103,10 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   });
 
   constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('fullscreenchange', this.onFullscreenChange, { passive: true });
+    }
+
     effect(() => {
       const markers = this.filteredMarkers();
       if (this.mapReady) {
@@ -93,6 +124,14 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
         this.applyMapTheme(isDark);
       }
     });
+
+    effect(() => {
+      if (!this.mapReady) return;
+      this.panelHeight();
+      this.isFullscreen();
+      cancelAnimationFrame(this.resizeRaf);
+      this.resizeRaf = requestAnimationFrame(() => this.invalidateMapSize());
+    });
   }
 
   ngAfterViewInit(): void {
@@ -101,13 +140,14 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
     this.mapReady = true;
     this.renderMarkers(this.filteredMarkers());
 
-    this.resizeObserver = new ResizeObserver(() => {
-      this.map?.invalidateSize();
-    });
+    this.resizeObserver = new ResizeObserver(() => this.invalidateMapSize());
     this.resizeObserver.observe(this.mapContainer.nativeElement);
+    this.resizeObserver.observe(this.mapFullscreenHost.nativeElement);
   }
 
   ngOnDestroy(): void {
+    document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    this.teardownResize();
     this.resizeObserver?.disconnect();
     this.map?.remove();
     this.map = null;
@@ -115,6 +155,10 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
 
   statusSeverity(status: SiteMapMarker['projectStatus']) {
     return projectStatusSeverity(status);
+  }
+
+  photoCount(siteId: string): number {
+    return getSitePhotoCatalog(siteId).length;
   }
 
   selectMarker(marker: SiteMapMarker): void {
@@ -129,6 +173,65 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
     if (!this.map || !markers.length) return;
     const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng] as [number, number]));
     this.map.fitBounds(bounds.pad(0.15));
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    const host = this.mapFullscreenHost?.nativeElement;
+    if (!host || typeof document === 'undefined') return;
+
+    if (!document.fullscreenElement) {
+      await host.requestFullscreen();
+      return;
+    }
+    await document.exitFullscreen();
+  }
+
+  startResize(event: MouseEvent): void {
+    if (this.isFullscreen() || typeof window === 'undefined') return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.teardownResize();
+
+    const host = this.mapFullscreenHost.nativeElement;
+    const startY = event.clientY;
+    const startHeight = host.offsetHeight;
+
+    this.isResizing.set(true);
+    document.body.classList.add('sites-map-page--resizing');
+
+    const onMove = (moveEvent: MouseEvent): void => {
+      const maxHeight = Math.min(SitesMapComponent.MAX_PANEL_HEIGHT, window.innerHeight - 160);
+      this.panelHeight.set(
+        clamp(startHeight + (moveEvent.clientY - startY), SitesMapComponent.MIN_PANEL_HEIGHT, maxHeight)
+      );
+      cancelAnimationFrame(this.resizeRaf);
+      this.resizeRaf = requestAnimationFrame(() => this.invalidateMapSize());
+    };
+
+    const onUp = (): void => {
+      this.teardownResize();
+      this.invalidateMapSize();
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    this.resizeCleanup = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }
+
+  private teardownResize(): void {
+    cancelAnimationFrame(this.resizeRaf);
+    this.resizeCleanup?.();
+    this.resizeCleanup = undefined;
+    this.isResizing.set(false);
+    document.body.classList.remove('sites-map-page--resizing');
+  }
+
+  private invalidateMapSize(): void {
+    this.map?.invalidateSize({ animate: false });
   }
 
   private fixDefaultIcons(): void {
@@ -217,12 +320,14 @@ export class SitesMapComponent implements AfterViewInit, OnDestroy {
   }
 
   private popupHtml(m: SiteMapMarker): string {
+    const photoCount = getSitePhotoCatalog(m.siteId).length;
     return `
       <div class="sites-map-popup">
         <strong>${m.siteName}</strong>
         <div>${m.projectName}</div>
         <div>Progress: ${m.progressPct}% · ${m.locationLabel}</div>
         <div>Superintendent: ${m.superintendent}</div>
+        <div>${photoCount} site photos in catalog</div>
       </div>
     `;
   }
