@@ -1,0 +1,120 @@
+<p-toast />
+<div class="drawings-page">
+  <p-breadcrumb [model]="breadcrumbs" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="drawings-page__header">
+    <div>
+      <p-tag value="View only" severity="info" />
+      <h1>Drawings</h1>
+      <p class="drawings-page__subtitle">
+        Open AutoCAD DWG and DXF files in the browser — view only (pan, zoom, layers). No editing or
+        saving.
+      </p>
+    </div>
+    <div class="drawings-page__header-actions">
+      <input
+        #fileInput
+        type="file"
+        accept=".dwg,.dxf,application/acad,application/x-acad,image/vnd.dwg,image/x-dwg"
+        class="drawings-page__file-input"
+        (change)="onFileSelected($event)"
+      />
+      <p-button
+        label="Open DWG/DXF"
+        icon="pi pi-folder-open"
+        (onClick)="fileInput.click()"
+        pTooltip="Upload a drawing from your computer"
+      />
+      <p-button
+        label="Zoom extents"
+        icon="pi pi-search-plus"
+        [outlined]="true"
+        [disabled]="loading()"
+        (onClick)="zoomExtents()"
+        pTooltip="Fit drawing to view"
+      />
+    </div>
+  </header>
+
+  <div class="drawings-page__layout">
+    <p-card styleClass="drawings-page__register-card">
+      <ng-template #title>Drawing register</ng-template>
+      <div class="drawings-page__filter">
+        <span class="p-input-icon-left drawings-page__filter-field">
+          <i class="pi pi-search"></i>
+          <input
+            pInputText
+            type="search"
+            placeholder="Search sheet, title, discipline…"
+            [ngModel]="filterText()"
+            (ngModelChange)="onFilterChange($event)"
+          />
+        </span>
+      </div>
+      <p-table
+        [value]="filteredDrawings()"
+        [rows]="12"
+        [paginator]="filteredDrawings().length > 12"
+        selectionMode="single"
+        dataKey="id"
+        styleClass="drawings-page__table"
+        [loading]="loading()"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Sheet</th>
+            <th>Title</th>
+            <th>Rev</th>
+            <th>Format</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr
+            class="drawings-page__row"
+            [class.drawings-page__row--active]="selected()?.id === row.id"
+            (click)="selectDrawing(row)"
+          >
+            <td>
+              <strong>{{ row.sheet }}</strong>
+            </td>
+            <td>
+              <span class="drawings-page__title-cell">{{ row.title }}</span>
+              <small>{{ row.discipline }} · {{ row.project }}</small>
+            </td>
+            <td>{{ row.revision }}</td>
+            <td>
+              <p-tag [value]="row.format.toUpperCase()" [severity]="row.format === 'dwg' ? 'warn' : 'success'" />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="4">No drawings match your search.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+      <p class="drawings-page__hint">
+        Mouse: scroll to zoom, drag to pan. View-only mode — no markup or save.
+      </p>
+    </p-card>
+
+    <p-card styleClass="drawings-page__viewer-card">
+      <ng-template #title>
+        @if (selected(); as d) {
+          {{ d.sheet }} — {{ d.title }} (Rev {{ d.revision }})
+        } @else {
+          Custom upload
+        }
+      </ng-template>
+      <div class="drawings-page__viewer-wrap">
+        @if (loading()) {
+          <div class="drawings-page__loading" aria-live="polite">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading drawing…</span>
+          </div>
+        }
+        <div #cadHost class="drawings-page__canvas" role="img" aria-label="CAD drawing viewer"></div>
+      </div>
+    </p-card>
+  </div>
+</div>

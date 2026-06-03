@@ -15,5 +15,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'project-overview': () =>
     import('../../features/project-management/project-overview/project-overview.component').then(
       (m) => m.ProjectOverviewComponent
+    ),
+  'drawing-viewer': () =>
+    import('../../features/document-management/drawing-viewer/drawing-viewer.component').then(
+      (m) => m.DrawingViewerComponent
     )
 };

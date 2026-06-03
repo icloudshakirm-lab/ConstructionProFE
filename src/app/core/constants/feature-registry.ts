@@ -386,9 +386,10 @@ export const FEATURE_MODULES: FeatureModule[] = [
       {
         id: 'drawings',
         title: 'Drawings',
-        description: 'Drawing register with revision control and distribution.',
+        description: 'View AutoCAD DWG and DXF drawings in the browser (read-only).',
         icon: 'pi pi-image',
-        highlights: ['Revision control', 'Transmittal', 'Markups']
+        highlights: ['DWG / DXF viewer', 'Pan & zoom', 'Drawing register'],
+        component: 'drawing-viewer'
       },
       {
         id: 'boqs',

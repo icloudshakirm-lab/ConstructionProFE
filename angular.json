@@ -27,7 +27,27 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "libredwg-parser-worker.js",
+                "input": "node_modules/@mlightcad/cad-simple-viewer/dist",
+                "output": "/cad-workers"
+              },
+              {
+                "glob": "mtext-renderer-worker.js",
+                "input": "node_modules/@mlightcad/cad-simple-viewer/dist",
+                "output": "/cad-workers"
+              },
+              {
+                "glob": "dxf-parser-worker.js",
+                "input": "node_modules/@mlightcad/data-model/dist",
+                "output": "/cad-workers"
               }
+            ],
+            "allowedCommonJsDependencies": [
+              "@mlightcad/cad-simple-viewer",
+              "@mlightcad/data-model",
+              "lodash-es"
             ],
             "styles": [
               "src/styles.scss"
@@ -39,13 +59,18 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
-                }
+                  "maximumWarning": "8kB",
+                  "maximumError": "12kB"
+                },
+                {
+                  "type": "any",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
               ],
               "outputHashing": "all"
             },
@@ -85,7 +110,7 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              }
+              },
             ],
             "styles": [
               "src/styles.scss"
