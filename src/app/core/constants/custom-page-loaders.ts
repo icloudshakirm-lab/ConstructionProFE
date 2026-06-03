@@ -39,5 +39,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'boq-revisions': () =>
     import('../../features/boq-billing/boq-revisions/boq-revisions.component').then(
       (m) => m.BoqRevisionsComponent
+    ),
+  'qa-qc-inspections': () =>
+    import('../../features/project-management/qa-qc-inspections/qa-qc-inspections.component').then(
+      (m) => m.QaQcInspectionsComponent
     )
 };

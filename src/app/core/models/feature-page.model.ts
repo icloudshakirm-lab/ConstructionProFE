@@ -8,7 +8,8 @@ export type FeaturePageComponent =
   | 'milestones-page'
   | 'messages'
   | 'boq-creation'
-  | 'boq-revisions';
+  | 'boq-revisions'
+  | 'qa-qc-inspections';
 
 export interface FeaturePage {
   id: string;

@@ -1,0 +1,455 @@
+<div class="insp-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="insp-page__header">
+    <div>
+      <p-tag value="Project Management" severity="info" />
+      <h1>QA/QC Inspections</h1>
+      <p class="insp-page__subtitle">
+        Site inspection workflow from task assignment through work completion, inspection request, QA assignment,
+        pass / rework / re-inspection, and approval.
+      </p>
+    </div>
+    <div class="insp-page__header-actions">
+      <label class="insp-page__field-label" for="inspProject">Project</label>
+      <p-select
+        inputId="inspProject"
+        [options]="projectOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search project…"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="onProjectChange($event)"
+        [style]="{ minWidth: 'min(320px, 92vw)' }"
+      />
+      <p-button label="New inspection" icon="pi pi-plus" (onClick)="openCreate()" />
+    </div>
+  </header>
+
+  <p-card class="insp-page__flow-card">
+    <ng-template pTemplate="header">
+      <div class="insp-page__flow-head">
+        <div>
+          <h2>Inspection workflow</h2>
+          <p class="insp-page__flow-hint">
+            Process map — highlighted step reflects the selected inspection’s current status.
+          </p>
+        </div>
+        <p-button
+          [icon]="flowchartExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+          [label]="flowchartExpanded() ? 'Collapse' : 'Expand'"
+          [text]="true"
+          (onClick)="flowchartExpanded.set(!flowchartExpanded())"
+        />
+      </div>
+    </ng-template>
+
+    @if (flowchartExpanded()) {
+      <div class="insp-flow" role="img" aria-label="QA/QC inspection process flowchart">
+        <div class="insp-flow__main">
+          <div
+            class="insp-flow__node"
+            [class.insp-flow__node--active]="isFlowActive('task-assigned')"
+            [class.insp-flow__node--past]="isFlowPast('task-assigned')"
+          >
+            Task assigned
+          </div>
+          <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+          <div
+            class="insp-flow__node"
+            [class.insp-flow__node--active]="isFlowActive('work-completed')"
+            [class.insp-flow__node--past]="isFlowPast('work-completed')"
+          >
+            Work completed
+          </div>
+          <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+          <div
+            class="insp-flow__node"
+            [class.insp-flow__node--active]="isFlowActive('inspection-requested')"
+            [class.insp-flow__node--past]="isFlowPast('inspection-requested')"
+          >
+            Inspection requested
+          </div>
+          <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+          <div
+            class="insp-flow__node insp-flow__node--qa"
+            [class.insp-flow__node--active]="isFlowActive('under-inspection')"
+            [class.insp-flow__node--past]="isFlowPast('under-inspection')"
+          >
+            QA/QC assigned · Under inspection
+          </div>
+        </div>
+
+        <div class="insp-flow__branches">
+          <div class="insp-flow__branch insp-flow__branch--pass">
+            <span class="insp-flow__branch-label">Pass</span>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node insp-flow__node--success"
+              [class.insp-flow__node--active]="isFlowActive('approved')"
+              [class.insp-flow__node--past]="isFlowPast('approved')"
+            >
+              Approved
+            </div>
+          </div>
+
+          <div class="insp-flow__branch insp-flow__branch--fail">
+            <span class="insp-flow__branch-label">Fail / Rejected</span>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node insp-flow__node--warn"
+              [class.insp-flow__node--active]="isFlowActive('rework-required') || isFlowActive('rejected')"
+              [class.insp-flow__node--past]="isFlowPast('rework-required')"
+            >
+              Rework required
+            </div>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node"
+              [class.insp-flow__node--active]="isFlowActive('corrective-action-done')"
+              [class.insp-flow__node--past]="isFlowPast('corrective-action-done')"
+            >
+              Corrective action done
+            </div>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node"
+              [class.insp-flow__node--active]="isFlowActive('re-inspection-requested')"
+              [class.insp-flow__node--past]="isFlowPast('re-inspection-requested')"
+            >
+              Re-inspection requested
+            </div>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node insp-flow__node--qa"
+              [class.insp-flow__node--active]="isFlowActive('under-re-inspection')"
+              [class.insp-flow__node--past]="isFlowPast('under-re-inspection')"
+            >
+              Under re-inspection
+            </div>
+            <div class="insp-flow__arrow" aria-hidden="true">↓</div>
+            <div
+              class="insp-flow__node insp-flow__node--success"
+              [class.insp-flow__node--active]="isFlowActive('approved')"
+            >
+              Approved
+            </div>
+          </div>
+        </div>
+      </div>
+
+      @if (selectedInspection(); as sel) {
+        <p class="insp-page__flow-status">
+          <strong>{{ sel.refNo }}</strong> — current status:
+          <p-tag [value]="statusLabels[sel.status]" [severity]="statusSeverity(sel.status)" />
+        </p>
+      }
+    }
+  </p-card>
+
+  <div class="insp-page__kpis">
+    <p-card>
+      <div class="insp-page__kpi">
+        <span class="insp-page__kpi-value">{{ projectInspections().length }}</span>
+        <span class="insp-page__kpi-label">Inspections</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="insp-page__kpi">
+        <span class="insp-page__kpi-value">{{ pendingInspectionCount() }}</span>
+        <span class="insp-page__kpi-label">Awaiting / in inspection</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="insp-page__kpi">
+        <span class="insp-page__kpi-value">{{ reworkCount() }}</span>
+        <span class="insp-page__kpi-label">Rework open</span>
+      </div>
+    </p-card>
+    <p-card>
+      <div class="insp-page__kpi">
+        <span class="insp-page__kpi-value">{{ approvedCount() }}</span>
+        <span class="insp-page__kpi-label">Approved</span>
+      </div>
+    </p-card>
+  </div>
+
+  <div class="insp-page__layout">
+    <aside class="insp-page__list" aria-label="Inspection requests">
+      <div class="insp-page__panel-head">
+        <h2>Inspection register</h2>
+      </div>
+      <ul class="insp-page__rev-list">
+        @for (insp of projectInspections(); track insp.id) {
+          <li>
+            <button
+              type="button"
+              class="insp-page__rev-btn"
+              [class.insp-page__rev-btn--active]="selectedId() === insp.id"
+              (click)="selectInspection(insp.id)"
+            >
+              <span class="insp-page__rev-head">
+                <strong>{{ insp.refNo }}</strong>
+                <p-tag [value]="statusLabels[insp.status]" [severity]="statusSeverity(insp.status)" />
+              </span>
+              <span class="insp-page__rev-title">{{ insp.workPackage }}</span>
+              <span class="insp-page__rev-meta">{{ insp.siteName }} · {{ insp.wbsTask }}</span>
+            </button>
+          </li>
+        } @empty {
+          <li class="insp-page__empty">No inspections for this project.</li>
+        }
+      </ul>
+    </aside>
+
+    <section class="insp-page__detail">
+      @if (selectedInspection(); as insp) {
+        <div class="insp-page__panel-head">
+          <div>
+            <h2>{{ insp.refNo }} — {{ insp.workPackage }}</h2>
+            <p class="insp-page__panel-hint">{{ insp.description }}</p>
+          </div>
+          <div class="insp-page__actions">
+            @for (act of actions(); track act.id) {
+              <p-button
+                [label]="act.label"
+                [icon]="act.icon"
+                [severity]="act.severity"
+                [outlined]="act.severity !== 'success'"
+                (onClick)="runAction(act.id)"
+              />
+            }
+          </div>
+        </div>
+
+        <dl class="insp-page__meta-grid">
+          <div>
+            <dt>Status</dt>
+            <dd><p-tag [value]="statusLabels[insp.status]" [severity]="statusSeverity(insp.status)" /></dd>
+          </div>
+          <div>
+            <dt>Site</dt>
+            <dd>{{ insp.siteName }}</dd>
+          </div>
+          <div>
+            <dt>WBS task</dt>
+            <dd>{{ insp.wbsTask }}</dd>
+          </div>
+          <div>
+            <dt>Site team</dt>
+            <dd>{{ insp.siteTeamAssignee ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>QA/QC engineer</dt>
+            <dd>{{ insp.qaEngineer ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Rework cycles</dt>
+            <dd>{{ insp.reworkCount }}</dd>
+          </div>
+          <div>
+            <dt>Requested</dt>
+            <dd>{{ formatDateTime(insp.requestedAt) }}</dd>
+          </div>
+          <div>
+            <dt>Last inspection</dt>
+            <dd>{{ formatDateTime(insp.inspectedAt) }}</dd>
+          </div>
+          <div>
+            <dt>Approved</dt>
+            <dd>{{ formatDateTime(insp.approvedAt) }}</dd>
+          </div>
+        </dl>
+
+        @if (insp.correctiveActionNote) {
+          <div class="insp-page__corrective">
+            <strong>Corrective action</strong>
+            <p>{{ insp.correctiveActionNote }}</p>
+          </div>
+        }
+
+        <div class="insp-page__history">
+          <h3>Audit trail</h3>
+          <ul>
+            @for (entry of insp.history; track entry.id) {
+              <li>
+                <time>{{ formatDateTime(entry.at) }}</time>
+                <span>{{ entry.action }}</span>
+                <span class="insp-page__history-by">{{ entry.by }}</span>
+                @if (entry.note) {
+                  <p class="insp-page__history-note">{{ entry.note }}</p>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  </div>
+</div>
+
+<p-dialog
+  header="New inspection request"
+  [visible]="createDialogVisible()"
+  (visibleChange)="createDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 92vw)' }"
+>
+  <div class="insp-form">
+    <div class="insp-form__row">
+      <label for="newSite">Site / zone</label>
+      <input
+        id="newSite"
+        type="text"
+        pInputText
+        placeholder="e.g. Tower Block A — Zone 2"
+        [ngModel]="createDraft().siteName"
+        (ngModelChange)="updateCreateDraft({ siteName: $event })"
+      />
+    </div>
+    <div class="insp-form__row">
+      <label for="newWbs">WBS task</label>
+      <p-select
+        inputId="newWbs"
+        [options]="wbsTaskOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search task…"
+        [showClear]="true"
+        [ngModel]="createDraft().wbsTask"
+        (ngModelChange)="updateCreateDraft({ wbsTask: $event ?? '' })"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+      />
+    </div>
+    <div class="insp-form__row">
+      <label for="newWp">Work package / hold point</label>
+      <input
+        id="newWp"
+        type="text"
+        pInputText
+        [ngModel]="createDraft().workPackage"
+        (ngModelChange)="updateCreateDraft({ workPackage: $event })"
+      />
+    </div>
+    <div class="insp-form__row">
+      <label for="newDesc">Scope / checklist</label>
+      <textarea
+        id="newDesc"
+        pTextarea
+        rows="3"
+        [ngModel]="createDraft().description"
+        (ngModelChange)="updateCreateDraft({ description: $event })"
+      ></textarea>
+    </div>
+    <div class="insp-form__row">
+      <label for="newTeam">Assign site team (optional)</label>
+      <p-select
+        inputId="newTeam"
+        [options]="siteTeamOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        [showClear]="true"
+        [ngModel]="createDraft().siteTeamAssignee"
+        (ngModelChange)="updateCreateDraft({ siteTeamAssignee: $event })"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+      />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="insp-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="createDialogVisible.set(false)" />
+      <p-button label="Create" icon="pi pi-check" (onClick)="saveCreate()" />
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Assign site team"
+  [visible]="assignTeamDialogVisible()"
+  (visibleChange)="assignTeamDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 92vw)' }"
+>
+  <div class="insp-form__row">
+    <label for="siteTeam">Site team / contractor</label>
+    <p-select
+      inputId="siteTeam"
+      [options]="siteTeamOptions"
+      optionLabel="label"
+      optionValue="value"
+      [filter]="true"
+      [ngModel]="assignTeamPick()"
+      (ngModelChange)="assignTeamPick.set($event)"
+      appendTo="body"
+      [style]="{ width: '100%' }"
+    />
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="insp-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="assignTeamDialogVisible.set(false)" />
+      <p-button label="Assign" icon="pi pi-check" (onClick)="confirmAssignTeam()" />
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Assign QA/QC engineer"
+  [visible]="assignQaDialogVisible()"
+  (visibleChange)="assignQaDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 92vw)' }"
+>
+  <p class="insp-page__dialog-lead">Assign an engineer before starting the site inspection.</p>
+  <div class="insp-form__row">
+    <label for="qaEng">QA/QC engineer</label>
+    <p-select
+      inputId="qaEng"
+      [options]="qaEngineerOptions"
+      optionLabel="label"
+      optionValue="value"
+      [filter]="true"
+      filterPlaceholder="Search engineer…"
+      [ngModel]="assignQaEngineer()"
+      (ngModelChange)="assignQaEngineer.set($event)"
+      appendTo="body"
+      [style]="{ width: '100%' }"
+    />
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="insp-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="assignQaDialogVisible.set(false)" />
+      <p-button label="Assign & start" icon="pi pi-check" (onClick)="confirmAssignQa()" />
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Notes"
+  [visible]="actionDialogVisible()"
+  (visibleChange)="actionDialogVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 92vw)' }"
+>
+  <div class="insp-form__row">
+    <label for="actionNote">Comment / corrective action detail</label>
+    <textarea
+      id="actionNote"
+      pTextarea
+      rows="4"
+      placeholder="Describe failure reason or corrective work completed…"
+      [ngModel]="actionNote()"
+      (ngModelChange)="actionNote.set($event)"
+    ></textarea>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="insp-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="actionDialogVisible.set(false)" />
+      <p-button label="Confirm" icon="pi pi-check" (onClick)="confirmActionNote()" />
+    </div>
+  </ng-template>
+</p-dialog>

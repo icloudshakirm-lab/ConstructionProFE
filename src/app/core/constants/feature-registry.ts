@@ -82,6 +82,15 @@ export const FEATURE_MODULES: FeatureModule[] = [
         description: 'Delay events, RFIs, NCRs, and corrective actions with accountability.',
         icon: 'pi pi-exclamation-triangle',
         highlights: ['Delay register', 'Root cause', 'Recovery plan']
+      },
+      {
+        id: 'qa-qc-inspections',
+        title: 'QA/QC Inspections',
+        description:
+          'Site inspection workflow from task assignment through pass, rework, re-inspection, and approval.',
+        icon: 'pi pi-verified',
+        highlights: ['Hold points', 'QA assignment', 'Pass / rework loop'],
+        component: 'qa-qc-inspections'
       }
     ]
   },
