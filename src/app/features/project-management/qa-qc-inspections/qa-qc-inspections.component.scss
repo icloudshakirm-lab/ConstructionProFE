@@ -39,9 +39,10 @@
 }
 
 .insp-page__flow-card {
-  :host ::ng-deep .p-card-body {
-    padding-top: 0;
-  }
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  padding: 0 0 0.75rem;
 }
 
 .insp-page__flow-head {

@@ -27,23 +27,21 @@
     </div>
   </header>
 
-  <p-card class="insp-page__flow-card">
-    <ng-template pTemplate="header">
-      <div class="insp-page__flow-head">
-        <div>
-          <h2>Inspection workflow</h2>
-          <p class="insp-page__flow-hint">
-            Process map — highlighted step reflects the selected inspection’s current status.
-          </p>
-        </div>
-        <p-button
-          [icon]="flowchartExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-          [label]="flowchartExpanded() ? 'Collapse' : 'Expand'"
-          [text]="true"
-          (onClick)="flowchartExpanded.set(!flowchartExpanded())"
-        />
+  <section class="insp-page__flow-card">
+    <div class="insp-page__flow-head">
+      <div>
+        <h2>Inspection workflow</h2>
+        <p class="insp-page__flow-hint">
+          Process map — highlighted step reflects the selected inspection’s current status.
+        </p>
       </div>
-    </ng-template>
+      <p-button
+        [icon]="flowchartExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+        [label]="flowchartExpanded() ? 'Collapse' : 'Expand'"
+        [text]="true"
+        (onClick)="flowchartExpanded.set(!flowchartExpanded())"
+      />
+    </div>
 
     @if (flowchartExpanded()) {
       <div class="insp-flow" role="img" aria-label="QA/QC inspection process flowchart">
@@ -146,7 +144,7 @@
         </p>
       }
     }
-  </p-card>
+  </section>
 
   <div class="insp-page__kpis">
     <p-card>
