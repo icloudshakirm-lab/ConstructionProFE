@@ -17,7 +17,12 @@ const replacements = [
   ['"three/examples/jsm/controls/OrbitControls"', '"three/examples/jsm/controls/OrbitControls.js"'],
   ["'three/examples/jsm/controls/OrbitControls'", "'three/examples/jsm/controls/OrbitControls.js'"],
   ['"three/examples/jsm/libs/stats.module"', '"three/examples/jsm/libs/stats.module.js"'],
-  ["'three/examples/jsm/libs/stats.module'", "'three/examples/jsm/libs/stats.module.js'"]
+  ["'three/examples/jsm/libs/stats.module'", "'three/examples/jsm/libs/stats.module.js'"],
+  // Suppress Vite "cannot analyze dynamic import" when pre-bundling (plugin folder loading).
+  [
+    'await import(`${l}/${c.replace(/^\\//, "")}`)',
+    'await import(/* @vite-ignore */ `${l}/${c.replace(/^\\//, "")}`)'
+  ]
 ];
 
 let changed = 0;

@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
+import type { AcApDocManager } from '@mlightcad/cad-simple-viewer';
 
 const WORKER_BASE = '/cad-workers';
 
 type CadModule = typeof import('@mlightcad/cad-simple-viewer');
-type DocManager = CadModule['AcApDocManager'];
 
 @Injectable({ providedIn: 'root' })
 export class CadViewerService {
   private cad?: CadModule;
-  private manager?: DocManager;
+  private manager?: AcApDocManager;
   private host?: HTMLElement;
 
   async mount(host: HTMLElement): Promise<void> {
@@ -77,7 +77,7 @@ export class CadViewerService {
     return this.cad;
   }
 
-  private requireManager(): DocManager {
+  private requireManager(): AcApDocManager {
     if (!this.manager) {
       throw new Error('CAD viewer is not ready.');
     }
