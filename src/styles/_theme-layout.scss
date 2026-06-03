@@ -1,5 +1,19 @@
 /* Global dark-mode fixes for PrimeNG Aura + custom layout */
 
+/* Aura tooltips use surface.700 in light and dark — use theme-aligned colors */
+html:not(.app-dark) {
+  .p-tooltip .p-tooltip-text {
+    background: var(--cp-panel-bg);
+    color: var(--p-text-color);
+    border: 1px solid var(--p-content-border-color);
+    box-shadow: var(--p-overlay-popover-shadow, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+  }
+
+  .p-tooltip .p-tooltip-arrow {
+    border-color: var(--p-content-border-color);
+  }
+}
+
 html.app-dark {
   color-scheme: dark;
 

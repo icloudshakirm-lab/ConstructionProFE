@@ -10,39 +10,6 @@
       </p>
     </div>
 
-    <div class="org-page__actions">
-      <div class="org-page__toggle">
-        <span class="org-page__label">Scope</span>
-        <button
-          type="button"
-          class="org-page__pill"
-          [class.org-page__pill--active]="scope() === 'all'"
-          (click)="scope.set('all')"
-        >
-          All projects
-        </button>
-        <button
-          type="button"
-          class="org-page__pill"
-          [class.org-page__pill--active]="scope() === 'single'"
-          (click)="scope.set('single')"
-        >
-          Single project
-        </button>
-      </div>
-
-      @if (scope() === 'single') {
-        <p-select
-          [options]="projects()"
-          optionLabel="name"
-          optionValue="id"
-          [ngModel]="selectedProjectId()"
-          (ngModelChange)="selectedProjectId.set($event)"
-          [style]="{ width: 'min(360px, 92vw)' }"
-          placeholder="Select a project"
-        />
-      }
-    </div>
   </header>
 
   <section class="org-page__kpis">
@@ -73,7 +40,60 @@
   </section>
 
   <p-card styleClass="org-page__card">
-    <div class="org-page__chart-scroll" role="region" aria-label="Projects and sites organization chart">
+    <div #chartFullscreenHost class="org-page__chart-panel">
+      <div class="org-page__chart-toolbar" role="toolbar" aria-label="Chart controls">
+        <div class="org-page__chart-toolbar-scope">
+          <div class="org-page__toggle">
+            <span class="org-page__label">Scope</span>
+            <button
+              type="button"
+              class="org-page__pill"
+              [class.org-page__pill--active]="scope() === 'all'"
+              (click)="scope.set('all')"
+            >
+              All projects
+            </button>
+            <button
+              type="button"
+              class="org-page__pill"
+              [class.org-page__pill--active]="scope() === 'single'"
+              (click)="scope.set('single')"
+            >
+              Single project
+            </button>
+          </div>
+
+          @if (scope() === 'single') {
+            <p-select
+              class="org-page__project-select"
+              [options]="projects()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="selectedProjectId()"
+              (ngModelChange)="selectedProjectId.set($event)"
+              placeholder="Select a project"
+              [appendTo]="overlayAppendTarget()"
+            />
+          }
+        </div>
+
+        <div class="org-page__chart-toolbar-actions">
+          <span class="org-page__chart-toolbar-kpi" aria-live="polite">
+            {{ kpi().projects }} projects · {{ kpi().sites }} sites · {{ kpi().milestones }} milestones
+          </span>
+          <p-button
+            [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+            [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+            [outlined]="true"
+            (onClick)="toggleFullscreen()"
+            [pTooltip]="isFullscreen() ? 'Exit full screen' : 'Open chart in full screen'"
+            [appendTo]="overlayAppendTarget()"
+            [attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+          />
+        </div>
+      </div>
+
+      <div class="org-page__chart-scroll" role="region" aria-label="Projects and sites organization chart">
       <p-organizationChart [value]="nodes()" selectionMode="single" [collapsible]="true" [preserveSpace]="false">
         <ng-template let-node pTemplate="root">
           <div class="node node--root">
@@ -141,7 +161,7 @@
                     (ngModelChange)="
                       updateMilestoneStatus(node.data.projectId, node.data.siteId, m.id, $event)
                     "
-                    appendTo="body"
+                    [appendTo]="overlayAppendTarget()"
                     placeholder="Status"
                   />
                 </div>
@@ -150,6 +170,7 @@
           </div>
         </ng-template>
       </p-organizationChart>
+      </div>
     </div>
   </p-card>
 

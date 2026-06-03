@@ -1,9 +1,18 @@
-import { Component, computed, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  computed,
+  signal
+} from '@angular/core';
 import { NgClass } from '@angular/common';
 import { PrimeTemplate, TreeNode } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import { Breadcrumb } from 'primeng/breadcrumb';
+import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { Tooltip } from 'primeng/tooltip';
 import { OrganizationChart } from 'primeng/organizationchart';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
@@ -25,15 +34,21 @@ type ScopeMode = 'all' | 'single';
     FormsModule,
     PrimeTemplate,
     Breadcrumb,
+    Button,
     Card,
     OrganizationChart,
     Select,
-    Tag
+    Tag,
+    Tooltip
   ],
   templateUrl: './projects-sites-org-chart.component.html',
   styleUrl: './projects-sites-org-chart.component.scss'
 })
-export class ProjectsSitesOrgChartComponent {
+export class ProjectsSitesOrgChartComponent implements OnDestroy {
+  @ViewChild('chartFullscreenHost', { static: true })
+  chartFullscreenHost!: ElementRef<HTMLDivElement>;
+
+  readonly isFullscreen = signal(false);
   readonly breadcrumbs = [
     { label: 'Home', routerLink: '/dashboard' },
     { label: 'Project Management', routerLink: '/projects' },
@@ -70,6 +85,39 @@ export class ProjectsSitesOrgChartComponent {
       2
     )
   );
+
+  constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('fullscreenchange', this.onFullscreenChange, { passive: true });
+      this.onFullscreenChange();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    }
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    const host = this.chartFullscreenHost?.nativeElement;
+    if (!host || typeof document === 'undefined') return;
+
+    if (!document.fullscreenElement) {
+      await host.requestFullscreen();
+      return;
+    }
+
+    await document.exitFullscreen();
+  }
+
+  /** Prime overlays must mount inside the fullscreen element, not `body`. */
+  overlayAppendTarget(): HTMLElement | 'body' {
+    if (this.isFullscreen() && this.chartFullscreenHost?.nativeElement) {
+      return this.chartFullscreenHost.nativeElement;
+    }
+    return 'body';
+  }
 
   readonly kpi = computed(() => {
     const projects = this.visibleProjects();
@@ -136,4 +184,10 @@ export class ProjectsSitesOrgChartComponent {
   stopEvent(event: Event): void {
     event.stopPropagation();
   }
+
+  private readonly onFullscreenChange = (): void => {
+    if (typeof document === 'undefined') return;
+    const host = this.chartFullscreenHost?.nativeElement;
+    this.isFullscreen.set(!!host && document.fullscreenElement === host);
+  };
 }
