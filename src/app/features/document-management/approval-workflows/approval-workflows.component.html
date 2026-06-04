@@ -1,0 +1,672 @@
+<p-toast />
+
+<div class="wf-page">
+
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+
+
+  <header class="wf-page__header">
+
+    <div>
+
+      <p-tag value="Document Management" severity="info" />
+
+      <h1>Approval Workflows</h1>
+
+      <p class="wf-page__subtitle">
+
+        Select a connector and drag any section or handle — Shift+click or double-click to add bends (any angle).
+
+      </p>
+
+    </div>
+
+    <div class="wf-page__header-actions">
+
+      <p-button label="Add swim lane" icon="pi pi-plus" [outlined]="true" (onClick)="addSwimLane()" />
+
+      <p-button
+        label="Reset path"
+        icon="pi pi-replay"
+        [outlined]="true"
+        [disabled]="!selectedEdgeId() || activeTool() !== 'select'"
+        (onClick)="clearSelectedEdgePath()"
+        pTooltip="Clear all bends (draw.io Clear Waypoints)"
+        tooltipPosition="bottom"
+      />
+
+      <p-button
+
+        label="Delete"
+
+        icon="pi pi-trash"
+
+        severity="danger"
+
+        [outlined]="true"
+
+        [disabled]="!selectedNodeId() && !selectedEdgeId()"
+
+        (onClick)="deleteSelected()"
+
+      />
+
+      <p-button label="Export JSON" icon="pi pi-download" [outlined]="true" (onClick)="exportJson()" />
+
+    </div>
+
+  </header>
+
+
+
+  <div class="wf-page__workspace">
+
+    <aside class="wf-page__toolbox" aria-label="Diagram toolbox">
+
+      <h2>Toolbox</h2>
+
+      <div class="wf-page__tools">
+
+        @for (item of toolbox; track item.tool) {
+
+          <button
+
+            type="button"
+
+            class="wf-page__tool"
+
+            [class.wf-page__tool--active]="activeTool() === item.tool"
+
+            (click)="setTool(item.tool)"
+
+            [pTooltip]="item.hint"
+
+            tooltipPosition="right"
+
+          >
+
+            <i [class]="item.icon"></i>
+
+            <span>{{ item.label }}</span>
+
+          </button>
+
+        }
+
+      </div>
+
+      <p class="wf-page__toolbox-hint">
+
+        <strong>Connect:</strong> pick source, then any number of targets from the same source.<br />
+
+        <strong>Select:</strong> drag shapes · connector: drag sections or handles · Shift+click / double-click to add bend · Alt+click blue handle to remove.
+
+      </p>
+
+      @if (showLineStylePanel()) {
+        <div class="wf-page__line-style" aria-label="Connector line style">
+          <button
+            type="button"
+            class="wf-page__line-style-toggle"
+            (click)="toggleLineStylePanel()"
+            [attr.aria-expanded]="lineStylePanelExpanded()"
+          >
+            <span>Line style</span>
+            <i
+              class="pi"
+              [class.pi-chevron-up]="lineStylePanelExpanded()"
+              [class.pi-chevron-down]="!lineStylePanelExpanded()"
+              aria-hidden="true"
+            ></i>
+          </button>
+          @if (lineStylePanelExpanded()) {
+            <div class="wf-page__line-style-body">
+              @if (!selectedEdgeId()) {
+                <p class="wf-page__line-style-hint">Select a connector line to edit style and bends.</p>
+              } @else {
+              <label class="wf-page__line-style-row">
+                <span>Color</span>
+                <input
+                  type="color"
+                  class="wf-page__line-color"
+                  [value]="selectedEdgeStyle().color"
+                  (input)="onEdgeColorChange($any($event.target).value)"
+                />
+              </label>
+              <label class="wf-page__line-style-row">
+                <span>Thickness</span>
+                <select
+                  class="wf-page__line-select"
+                  [value]="selectedEdgeStyle().strokeWidth"
+                  (change)="onEdgeStrokeWidthChange(+$any($event.target).value)"
+                >
+                  @for (w of edgeStrokeWidthOptions; track w) {
+                    <option [value]="w">{{ w }}px</option>
+                  }
+                </select>
+              </label>
+              <div class="wf-page__line-style-row">
+                <span>Line</span>
+                <p-selectButton
+                  [options]="lineStyleOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [ngModel]="selectedEdgeStyle().lineStyle"
+                  (ngModelChange)="onEdgeLineStyleChange($event)"
+                  [allowEmpty]="false"
+                />
+              </div>
+              <div class="wf-page__line-style-row">
+                <span>Corners</span>
+                <p-selectButton
+                  [options]="cornerStyleOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [ngModel]="selectedEdgeStyle().cornerStyle"
+                  (ngModelChange)="onEdgeCornerStyleChange($event)"
+                  [allowEmpty]="false"
+                />
+              </div>
+              <div class="wf-page__line-style-actions">
+                <p-button
+                  label="Add bend"
+                  icon="pi pi-plus-circle"
+                  [outlined]="true"
+                  severity="warn"
+                  size="small"
+                  [disabled]="activeTool() !== 'select'"
+                  (onClick)="addBendOnSelectedEdge()"
+                  [style]="{ width: '100%' }"
+                />
+              </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+    </aside>
+
+
+
+    <section class="wf-page__canvas-panel">
+
+      <div class="wf-page__status">
+
+        <span class="wf-page__status-label">Tool:</span>
+
+        <p-tag [value]="activeTool()" />
+
+        @if (connectorFromId(); as src) {
+
+          <p-tag value="Source set" severity="warn" />
+
+        }
+
+        <span class="wf-page__status-text">{{ statusHint() }}</span>
+
+      </div>
+
+
+
+      <div class="wf-page__canvas-scroll">
+
+        <svg
+
+          #canvasSvg
+
+          class="wf-page__canvas"
+
+          [class.wf-page__canvas--select]="activeTool() === 'select'"
+
+          [attr.width]="canvasWidth()"
+
+          [attr.height]="canvasHeight"
+
+          [attr.viewBox]="'0 0 ' + canvasWidth() + ' ' + canvasHeight"
+
+          (click)="onCanvasClick($event)"
+
+        >
+
+          <defs>
+
+            <pattern
+
+              id="wf-grid"
+
+              [attr.width]="gridStep"
+
+              [attr.height]="gridStep"
+
+              patternUnits="userSpaceOnUse"
+
+            >
+
+              <path
+
+                [attr.d]="'M ' + gridStep + ' 0 L 0 0 0 ' + gridStep"
+
+                class="wf-page__grid-line"
+
+                fill="none"
+
+              />
+
+            </pattern>
+
+            @for (path of edgePaths(); track path.id) {
+              <marker
+                [attr.id]="'wf-arrow-' + path.id"
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="5"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path d="M0,0 L10,5 L0,10 Z" [attr.fill]="path.stroke" />
+              </marker>
+            }
+
+          </defs>
+
+
+
+          @for (lane of diagram().lanes; track lane.id; let i = $index) {
+
+            <g class="wf-page__lane" [attr.transform]="'translate(' + laneX(lane.id) + ',0)'">
+
+              <rect
+
+                class="wf-page__lane-bg"
+
+                [class.wf-page__lane-bg--alt]="i % 2 === 1"
+
+                x="0"
+
+                y="0"
+
+                [attr.width]="lane.width"
+
+                [attr.height]="canvasHeight"
+
+              />
+
+              <rect
+
+                class="wf-page__lane-header"
+
+                x="0"
+
+                y="0"
+
+                [attr.width]="lane.width"
+
+                [attr.height]="diagram().laneHeaderHeight"
+
+              />
+
+              <text
+
+                class="wf-page__lane-title"
+
+                [attr.x]="lane.width / 2"
+
+                [attr.y]="diagram().laneHeaderHeight / 2"
+
+                text-anchor="middle"
+
+                dominant-baseline="middle"
+
+              >
+
+                {{ lane.title }}
+
+              </text>
+
+              <line
+
+                class="wf-page__lane-divider-h"
+
+                x1="0"
+
+                [attr.y1]="diagram().laneHeaderHeight"
+
+                [attr.x2]="lane.width"
+
+                [attr.y2]="diagram().laneHeaderHeight"
+
+              />
+
+              <rect
+
+                class="wf-page__lane-grid"
+
+                x="0"
+
+                [attr.y]="diagram().laneHeaderHeight"
+
+                [attr.width]="lane.width"
+
+                [attr.height]="laneContentHeight()"
+
+                fill="url(#wf-grid)"
+
+              />
+
+              <line
+
+                class="wf-page__lane-divider-v"
+
+                [attr.x1]="lane.width"
+
+                y1="0"
+
+                [attr.x2]="lane.width"
+
+                [attr.y2]="canvasHeight"
+
+              />
+
+            </g>
+
+          }
+
+
+
+          <g class="wf-page__edges">
+            @for (path of edgePaths(); track path.id) {
+              <g
+                class="wf-page__edge"
+                [class.wf-page__edge--selected]="selectedEdgeId() === path.id"
+              >
+                <path
+                  class="wf-page__edge-path"
+                  [class.wf-page__edge-path--selected]="selectedEdgeId() === path.id"
+                  [attr.d]="path.d"
+                  [attr.marker-end]="'url(#wf-arrow-' + path.id + ')'"
+                  [attr.stroke]="path.stroke"
+                  [attr.stroke-width]="
+                    selectedEdgeId() === path.id ? path.strokeWidth + 0.5 : path.strokeWidth
+                  "
+                  [attr.stroke-dasharray]="path.strokeDasharray || null"
+                  [attr.stroke-linejoin]="path.lineJoin"
+                  [attr.stroke-linecap]="path.lineCap"
+                  fill="none"
+                  pointer-events="stroke"
+                  (click)="onEdgeSelect($event, path.id)"
+                  (dblclick)="onEdgeDoubleClick($event, path.id)"
+                />
+                @if (activeTool() === 'select') {
+                  @for (seg of path.segments; track seg.index) {
+                    <path
+                      class="wf-page__edge-segment"
+                      [class.wf-page__edge-segment--horizontal]="seg.horizontal"
+                      [class.wf-page__edge-segment--vertical]="!seg.horizontal"
+                      [attr.d]="seg.d"
+                      fill="none"
+                      pointer-events="stroke"
+                      (mousedown)="onEdgeSegmentMouseDown($event, path.id, seg.index)"
+                    />
+                  }
+                }
+                @if (path.label) {
+                  <text
+                    class="wf-page__edge-label"
+                    [attr.x]="path.labelX"
+                    [attr.y]="path.labelY"
+                    text-anchor="middle"
+                    pointer-events="none"
+                  >
+                    {{ path.label }}
+                  </text>
+                }
+                @if (selectedEdgeId() === path.id && activeTool() === 'select') {
+                  @for (vb of path.virtualBends; track vb.segmentIndex) {
+                    <circle
+                      class="wf-page__virtual-bend"
+                      [attr.cx]="vb.x"
+                      [attr.cy]="vb.y"
+                      r="5"
+                      (mousedown)="onEdgeSegmentMouseDown($event, path.id, vb.segmentIndex)"
+                    />
+                  }
+                  @for (wp of path.waypoints; track $index) {
+                    <circle
+                      class="wf-page__waypoint"
+                      [attr.cx]="wp.x"
+                      [attr.cy]="wp.y"
+                      r="5"
+                      (mousedown)="onWaypointMouseDown($event, path.id, $index)"
+                    />
+                  }
+                }
+              </g>
+            }
+          </g>
+
+
+
+          @for (node of diagram().nodes; track node.id) {
+
+            @let style = alertStyle(node);
+
+            <g
+
+              class="wf-page__node"
+
+              [class.wf-page__node--selected]="selectedNodeId() === node.id"
+
+              [class.wf-page__node--source]="connectorFromId() === node.id"
+
+              [attr.transform]="
+
+                'translate(' +
+
+                (laneX(node.laneId) + node.x) +
+
+                ',' +
+
+                (diagram().laneHeaderHeight + node.y) +
+
+                ')'
+
+              "
+
+              (mousedown)="onNodeMouseDown($event, node.id)"
+
+              (click)="$event.stopPropagation()"
+
+              (dblclick)="onNodeDoubleClick($event, node.id)"
+
+            >
+
+              @switch (node.shape) {
+
+                @case ('circle') {
+
+                  <ellipse
+
+                    class="wf-page__alert-body"
+
+                    [attr.cx]="node.w / 2"
+
+                    [attr.cy]="node.h / 2"
+
+                    [attr.rx]="node.w / 2 - 1"
+
+                    [attr.ry]="node.h / 2 - 1"
+
+                    [attr.fill]="style.bg"
+
+                    [attr.stroke]="style.border"
+
+                  />
+
+                }
+
+                @case ('diamond') {
+
+                  <polygon
+
+                    class="wf-page__alert-body"
+
+                    [attr.points]="
+
+                      node.w / 2 +
+
+                      ',2 ' +
+
+                      (node.w - 2) +
+
+                      ',' +
+
+                      node.h / 2 +
+
+                      ' ' +
+
+                      node.w / 2 +
+
+                      ',' +
+
+                      (node.h - 2) +
+
+                      ' 2,' +
+
+                      node.h / 2
+
+                    "
+
+                    [attr.fill]="style.bg"
+
+                    [attr.stroke]="style.border"
+
+                  />
+
+                }
+
+                @case ('text') {
+
+                  <rect
+
+                    class="wf-page__alert-body wf-page__alert-body--text"
+
+                    [attr.width]="node.w"
+
+                    [attr.height]="node.h"
+
+                    rx="4"
+
+                    [attr.fill]="style.bg"
+
+                    [attr.stroke]="style.border"
+
+                  />
+
+                }
+
+                @default {
+
+                  <rect
+
+                    class="wf-page__alert-body"
+
+                    [attr.width]="node.w"
+
+                    [attr.height]="node.h"
+
+                    rx="6"
+
+                    [attr.fill]="style.bg"
+
+                    [attr.stroke]="style.border"
+
+                  />
+
+                  <rect
+
+                    class="wf-page__alert-accent"
+
+                    x="0"
+
+                    y="0"
+
+                    width="4"
+
+                    [attr.height]="node.h"
+
+                    rx="2"
+
+                    [attr.fill]="style.accent"
+
+                  />
+
+                }
+
+              }
+
+              <text
+
+                class="wf-page__node-label"
+
+                [attr.x]="node.w / 2"
+
+                [attr.y]="node.h / 2"
+
+                text-anchor="middle"
+
+                dominant-baseline="middle"
+
+                [attr.fill]="style.text"
+
+              >
+
+                {{ node.label }}
+
+              </text>
+
+            </g>
+
+          }
+
+        </svg>
+
+      </div>
+
+    </section>
+
+  </div>
+
+</div>
+
+
+
+<p-dialog
+
+  header="Edit label"
+
+  [visible]="labelDialogVisible()"
+
+  (visibleChange)="labelDialogVisible.set($event)"
+
+  [modal]="true"
+
+  [style]="{ width: 'min(360px, 92vw)' }"
+
+>
+
+  <input pInputText class="wf-page__label-input" [ngModel]="labelDraft()" (ngModelChange)="labelDraft.set($event)" />
+
+  <div class="wf-page__dialog-footer">
+
+    <p-button label="Cancel" [text]="true" (onClick)="labelDialogVisible.set(false)" />
+
+    <p-button label="Save" icon="pi pi-check" (onClick)="saveLabel()" />
+
+  </div>
+
+</p-dialog>
+
+

@@ -75,5 +75,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'sites-management': () =>
     import('../../features/project-management/sites-management/sites-management.component').then(
       (m) => m.SitesManagementComponent
+    ),
+  'approval-workflows': () =>
+    import('../../features/document-management/approval-workflows/approval-workflows.component').then(
+      (m) => m.ApprovalWorkflowsComponent
     )
 };

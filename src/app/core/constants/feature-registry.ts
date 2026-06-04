@@ -457,7 +457,8 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Approval Workflows',
         description: 'Configurable multi-level approvals for documents and transactions.',
         icon: 'pi pi-check-circle',
-        highlights: ['Multi-level', 'Delegation', 'Audit trail']
+        highlights: ['Swim lanes', 'Draw.io shapes', 'Multi-connect'],
+        component: 'approval-workflows'
       }
     ]
   },
