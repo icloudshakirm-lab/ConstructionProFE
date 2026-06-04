@@ -18,7 +18,16 @@
   max-width: 52rem;
 }
 
+.gis-planner-page__body {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .gis-planner-page__workspace {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -26,24 +35,113 @@
   border-radius: 0.75rem;
   padding: 0.65rem;
   background: var(--cp-panel-bg);
-  min-width: 0;
 }
 
-.gis-planner-page__workspace:fullscreen {
+.gis-planner-page__details-panel {
+  flex: 0 0 min(280px, 30vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  max-height: min(85vh, 820px);
+  overflow: auto;
+}
+
+.gis-planner-page__details-header {
+  h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+  }
+}
+
+.gis-planner-page__details-hint,
+.gis-planner-page__details-field-hint,
+.gis-planner-page__details-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  line-height: 1.4;
+}
+
+.gis-planner-page__coord-readout {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+
+  div {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  dt {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+  }
+}
+
+.gis-planner-page__details-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+}
+
+.gis-planner-page__details-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.gis-planner-page__body:fullscreen {
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
   border-radius: 0;
-  border: none;
   box-sizing: border-box;
+  padding: 0.65rem;
+  background: var(--cp-panel-bg);
 }
 
-.gis-planner-page__workspace:fullscreen .gis-planner-page__map-wrap {
+.gis-planner-page__body:fullscreen .gis-planner-page__workspace {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  padding: 0;
+}
+
+.gis-planner-page__body:fullscreen .gis-planner-page__details-panel {
+  flex: 0 0 min(300px, 28vw);
+  max-height: none;
+  overflow: auto;
+}
+
+.gis-planner-page__body:fullscreen .gis-planner-page__map-wrap {
   flex: 1;
   min-height: 0;
 }
 
-.gis-planner-page__workspace:fullscreen .gis-planner-page__map {
+.gis-planner-page__body:fullscreen .gis-planner-page__map {
   min-height: 0;
   height: 100%;
 }
@@ -121,6 +219,7 @@
 
 .gis-planner-page__map-wrap {
   position: relative;
+  flex: 1;
   min-height: min(68vh, 620px);
   border-radius: 0.5rem;
   overflow: hidden;

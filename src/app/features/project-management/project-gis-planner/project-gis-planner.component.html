@@ -12,7 +12,8 @@
     </div>
   </header>
 
-  <div #gisFullscreenHost class="gis-planner-page__workspace">
+  <div #gisFullscreenHost class="gis-planner-page__body">
+  <div class="gis-planner-page__workspace">
     <div class="gis-planner-page__toolbar" role="toolbar" aria-label="GIS drawing tools">
       <div class="gis-planner-page__toolbar-group">
         <span class="gis-planner-page__toolbar-label">Draw</span>
@@ -181,6 +182,92 @@
     }
   </div>
 
+  <aside class="gis-planner-page__details-panel" aria-label="Selected point or vertex coordinates">
+    <header class="gis-planner-page__details-header">
+      <h2>Selection details</h2>
+      <p class="gis-planner-page__details-hint">
+        Click a point marker or any vertex on a line or polygon to inspect and refine coordinates.
+      </p>
+    </header>
+
+    @if (selection(); as sel) {
+      <p-tag [value]="sel.featureLabel" severity="info" />
+      <dl class="gis-planner-page__coord-readout">
+        <div>
+          <dt>Latitude</dt>
+          <dd>{{ formattedLat(sel) }}°</dd>
+        </div>
+        <div>
+          <dt>Longitude</dt>
+          <dd>{{ formattedLng(sel) }}°</dd>
+        </div>
+      </dl>
+
+      <div class="gis-planner-page__details-field">
+        <label for="gisCoordPrecision">Coordinate accuracy</label>
+        <p-select
+          inputId="gisCoordPrecision"
+          [options]="coordPrecisionOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="coordinateDecimals()"
+          (ngModelChange)="onCoordPrecisionChange($event)"
+          [style]="{ width: '100%' }"
+        />
+        <span class="gis-planner-page__details-field-hint">
+          More decimal places = finer positioning when editing below.
+        </span>
+      </div>
+
+      <div class="gis-planner-page__details-field">
+        <label for="gisEditLat">Edit latitude</label>
+        <p-inputNumber
+          inputId="gisEditLat"
+          [ngModel]="editLat()"
+          (ngModelChange)="onEditLatChange($event)"
+          mode="decimal"
+          [minFractionDigits]="coordinateDecimals()"
+          [maxFractionDigits]="coordinateDecimals()"
+          [min]="-90"
+          [max]="90"
+          [useGrouping]="false"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+
+      <div class="gis-planner-page__details-field">
+        <label for="gisEditLng">Edit longitude</label>
+        <p-inputNumber
+          inputId="gisEditLng"
+          [ngModel]="editLng()"
+          (ngModelChange)="onEditLngChange($event)"
+          mode="decimal"
+          [minFractionDigits]="coordinateDecimals()"
+          [maxFractionDigits]="coordinateDecimals()"
+          [min]="-180"
+          [max]="180"
+          [useGrouping]="false"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+
+      <div class="gis-planner-page__details-actions">
+        <p-button
+          label="Apply coordinates"
+          icon="pi pi-check"
+          [disabled]="!selectionDirty()"
+          (onClick)="applyCoordinateEdit()"
+        />
+        <p-button label="Clear selection" icon="pi pi-times" [outlined]="true" (onClick)="clearSelection()" />
+      </div>
+    } @else {
+      <p class="gis-planner-page__details-empty">
+        No selection — click a point, a vertex, or anywhere on a line or polygon edge.
+      </p>
+    }
+  </aside>
+  </div>
+
   <aside class="gis-planner-page__help">
     <h2>How to use</h2>
     <ol>
@@ -190,6 +277,7 @@
       <li><strong>Line</strong> — click vertices, double-click to finish. Segment lengths (m) appear on each segment.</li>
       <li><strong>Labels</strong> — enter text, click <em>Place on line</em>, then click the target line. Use <em>Hide</em> / <em>Show</em> on each label on the map, or turn off <em>Show line labels</em> in the toolbar.</li>
       <li><strong>Polygon</strong> — same style, lengths on edges, and labels as lines.</li>
+      <li><strong>Selection details</strong> — click a point or line/polygon vertex; edit lat/lng on the right panel and apply for higher accuracy.</li>
       <li><strong>Edit shapes</strong> — enable edit mode, then drag vertices.</li>
       <li><strong>Delete</strong> — edit a shape, then use Delete.</li>
       <li><strong>Import GeoJSON</strong> — upload a <code>.geojson</code> or <code>.json</code> file (FeatureCollection, single Feature, or geometry). Layers are added to the map and the view zooms to the data.</li>

@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import type { GisGeometryKind } from './gis-selection.model';
 import type { GisLineLabel, GisSketchMeta } from './gis-sketch.model';
 
 type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string; gisLabelId?: string };
@@ -166,6 +167,112 @@ export function buildUserLabelMarkers(layer: L.Layer, meta: GisSketchMeta): L.Ma
   return meta.labels.map((label) =>
     createLabelMarker(L.latLng(label.lat, label.lng), label, stamp, meta.strokeColor)
   );
+}
+
+/** Vertices used for editing (no duplicate closing point on polygons). */
+export function sketchVertices(layer: L.Layer): L.LatLng[] {
+  if (layer instanceof L.Marker) {
+    return [layer.getLatLng()];
+  }
+  if (!(layer instanceof L.Polyline)) return [];
+  const latlngs = layer.getLatLngs();
+  if (!latlngs.length) return [];
+  const first = latlngs[0];
+  if (first instanceof L.LatLng) {
+    return latlngs as L.LatLng[];
+  }
+  return (latlngs as L.LatLng[][])[0] ?? [];
+}
+
+export function sketchGeometryKind(layer: L.Layer): GisGeometryKind | null {
+  if (layer instanceof L.Marker) return 'point';
+  if (layer instanceof L.Polygon) return 'polygon';
+  if (layer instanceof L.Polyline) return 'polyline';
+  return null;
+}
+
+export type VertexHit = {
+  layer: L.Layer;
+  vertexIndex: number;
+  latlng: L.LatLng;
+  kind: GisGeometryKind;
+  distPx: number;
+};
+
+/** Closest point on segment ab to p (planar lat/lng). */
+export function closestLatLngOnSegment(p: L.LatLng, a: L.LatLng, b: L.LatLng): L.LatLng {
+  const ax = a.lng;
+  const ay = a.lat;
+  const bx = b.lng;
+  const by = b.lat;
+  const px = p.lng;
+  const py = p.lat;
+  const abx = bx - ax;
+  const aby = by - ay;
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 === 0) return a;
+  let t = ((px - ax) * abx + (py - ay) * aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  return L.latLng(ay + t * aby, ax + t * abx);
+}
+
+function nearestVertexIndexToClick(verts: L.LatLng[], clickPt: L.Point, map: L.Map): number {
+  let idx = 0;
+  let min = Infinity;
+  verts.forEach((v, i) => {
+    const d = map.latLngToLayerPoint(v).distanceTo(clickPt);
+    if (d < min) {
+      min = d;
+      idx = i;
+    }
+  });
+  return idx;
+}
+
+/** Nearest marker or vertex; clicks on a line body snap to the closest vertex. */
+export function findNearestVertex(
+  latlng: L.LatLng,
+  map: L.Map,
+  layers: L.Layer[],
+  options?: { maxVertexPx?: number; maxLinePx?: number }
+): VertexHit | null {
+  const maxVertexPx = options?.maxVertexPx ?? 44;
+  const maxLinePx = options?.maxLinePx ?? 56;
+  const clickPt = map.latLngToLayerPoint(latlng);
+  let best: VertexHit | undefined;
+
+  const consider = (hit: VertexHit): void => {
+    if (best === undefined || hit.distPx < best.distPx) {
+      best = hit;
+    }
+  };
+
+  for (const layer of layers) {
+    const kind = sketchGeometryKind(layer);
+    if (!kind) continue;
+    const verts = sketchVertices(layer);
+    if (!verts.length) continue;
+
+    verts.forEach((v, vertexIndex) => {
+      const d = map.latLngToLayerPoint(v).distanceTo(clickPt);
+      if (d <= maxVertexPx) {
+        consider({ layer, vertexIndex, latlng: v, kind, distPx: d });
+      }
+    });
+
+    if (kind !== 'point' && verts.length >= 2) {
+      for (const [a, b] of segmentPairs(verts)) {
+        const onLine = closestLatLngOnSegment(latlng, a, b);
+        const d = map.latLngToLayerPoint(onLine).distanceTo(clickPt);
+        if (d > maxLinePx) continue;
+        const vertexIndex = nearestVertexIndexToClick(verts, clickPt, map);
+        const v = verts[vertexIndex];
+        consider({ layer, vertexIndex, latlng: v, kind, distPx: d });
+      }
+    }
+  }
+
+  return best ?? null;
 }
 
 /** Nearest segment across polyline/polygon layers for label placement. */

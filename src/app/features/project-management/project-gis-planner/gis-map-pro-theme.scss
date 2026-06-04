@@ -36,6 +36,20 @@ $gis-cursor-edit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
     stroke-linejoin: round !important;
   }
 
+  .gis-selection-highlight {
+    animation: gis-selection-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes gis-selection-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+
   /* Sci-fi vertex handles (draw + edit) */
   .leaflet-marker-icon.leaflet-editing-icon,
   .leaflet-marker-icon.leaflet-draw-guide-dash {

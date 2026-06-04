@@ -15,8 +15,14 @@ import { MenuItem } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
+import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import {
+  GIS_COORD_PRECISION_OPTIONS,
+  formatGisCoordinate,
+  type GisVertexSelection
+} from './gis-selection.model';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -35,7 +41,7 @@ import {
 
 @Component({
   selector: 'app-project-gis-planner',
-  imports: [FormsModule, Breadcrumb, Button, Select, Tag, InputText, Checkbox],
+  imports: [FormsModule, Breadcrumb, Button, Select, Tag, InputText, InputNumber, Checkbox],
   templateUrl: './project-gis-planner.component.html',
   styleUrl: './project-gis-planner.component.scss'
 })
@@ -46,6 +52,7 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
 
   readonly colorPresets = [...GIS_LINE_COLOR_PRESETS];
   readonly weightOptions = [...GIS_LINE_WEIGHT_OPTIONS];
+  readonly coordPrecisionOptions = [...GIS_COORD_PRECISION_OPTIONS];
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('gisFullscreenHost', { static: true }) gisFullscreenHost!: ElementRef<HTMLDivElement>;
@@ -59,6 +66,8 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
   readonly isFullscreen = signal(false);
   readonly exportPreview = signal<string | null>(null);
   readonly labelText = signal('');
+  readonly editLat = signal<number | null>(null);
+  readonly editLng = signal<number | null>(null);
 
   private readonly mapReady = signal(false);
   private readonly onFullscreenChange = (): void => {
@@ -87,6 +96,68 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
       if (!this.mapReady()) return;
       this.mapGis.setBasemap(this.themeService.theme() === 'dark');
     });
+
+    effect(() => {
+      const sel = this.mapGis.selection();
+      if (sel) {
+        this.editLat.set(sel.lat);
+        this.editLng.set(sel.lng);
+      } else {
+        this.editLat.set(null);
+        this.editLng.set(null);
+      }
+    });
+  }
+
+  readonly selection = this.mapGis.selection;
+  readonly coordinateDecimals = this.mapGis.coordinateDecimals;
+
+  formattedLat(sel: GisVertexSelection): string {
+    return formatGisCoordinate(sel.lat, this.coordinateDecimals());
+  }
+
+  formattedLng(sel: GisVertexSelection): string {
+    return formatGisCoordinate(sel.lng, this.coordinateDecimals());
+  }
+
+  onCoordPrecisionChange(decimals: number): void {
+    this.mapGis.setCoordinateDecimals(decimals);
+  }
+
+  clearSelection(): void {
+    this.mapGis.clearSelection();
+    this.lastAction.set('Selection cleared.');
+  }
+
+  applyCoordinateEdit(): void {
+    const lat = this.editLat();
+    const lng = this.editLng();
+    if (lat == null || lng == null) return;
+    if (this.mapGis.updateSelectionCoordinates(lat, lng)) {
+      this.lastAction.set('Coordinates updated on the map.');
+    } else {
+      this.lastAction.set('Could not update coordinates — check latitude (−90…90) and longitude (−180…180).');
+    }
+  }
+
+  onEditLatChange(value: number | null): void {
+    this.editLat.set(value);
+  }
+
+  onEditLngChange(value: number | null): void {
+    this.editLng.set(value);
+  }
+
+  selectionDirty(): boolean {
+    const sel = this.mapGis.selection();
+    const lat = this.editLat();
+    const lng = this.editLng();
+    if (!sel || lat == null || lng == null) return false;
+    const d = this.coordinateDecimals();
+    return (
+      formatGisCoordinate(sel.lat, d) !== formatGisCoordinate(lat, d) ||
+      formatGisCoordinate(sel.lng, d) !== formatGisCoordinate(lng, d)
+    );
   }
 
   ngAfterViewInit(): void {
@@ -191,7 +262,7 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     this.mapGis.stopEditMode();
     this.mapGis.enableEditMode();
     this.activeTool.set(null);
-    this.lastAction.set('Edit mode — drag vertices; segment lengths update automatically.');
+    this.lastAction.set('Edit mode — drag vertices; segment lengths update live while dragging.');
   }
 
   clearAll(): void {

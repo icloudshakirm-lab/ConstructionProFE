@@ -7,11 +7,17 @@ import {
   buildSegmentLengthMarkers,
   buildUserLabelMarkers,
   findNearestSegment,
+  findNearestVertex,
   getSketchMeta,
   layerStamp,
   newLabelId,
-  setSketchMeta
+  setSketchMeta,
+  sketchVertices
 } from './gis-line-decorations';
+import {
+  type GisVertexSelection,
+  gisVertexFeatureLabel
+} from './gis-selection.model';
 import { gisDrawAngleSettings } from './gis-draw-settings';
 import {
   DEFAULT_GIS_LINE_STYLE,
@@ -37,8 +43,32 @@ export class LeafletGisService {
   private activeEditHandler: { disable: () => void } | null = null;
   private onGeometryChange?: (action: SketchEventAction) => void;
   private labelClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+  private pickClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
+  private selectionHighlight: L.CircleMarker | null = null;
+  private editLiveRefreshBound = false;
+
+  private readonly onSketchLayerClick = (e: L.LeafletMouseEvent): void => {
+    if (this.labelPlacementActive() || this.activeHandler) return;
+    this.pickVertexAt(e.latlng);
+    L.DomEvent.stopPropagation(e);
+  };
+
+  private readonly onPolyEditDrag = (e: L.LeafletEvent): void => {
+    const layer = e.target;
+    if (!(layer instanceof L.Polyline)) return;
+    this.refreshLayerDecorations(layer);
+    this.syncSelectionFromLayer(layer);
+  };
+
+  private readonly onMarkerDrag = (e: L.LeafletEvent): void => {
+    const layer = e.target;
+    if (!(layer instanceof L.Marker)) return;
+    this.syncSelectionFromLayer(layer);
+  };
 
   readonly lineStyle = signal<GisLineStyle>({ ...DEFAULT_GIS_LINE_STYLE });
+  readonly selection = signal<GisVertexSelection | null>(null);
+  readonly coordinateDecimals = signal(6);
   readonly lockAngles = signal(gisDrawAngleSettings.lockAngles);
   readonly showSegmentLengths = signal(true);
   readonly showLineLabels = signal(true);
@@ -84,7 +114,7 @@ export class LeafletGisService {
 
     this.map.on(L.Draw.Event.CREATED, (event: L.LeafletEvent) => {
       const e = event as L.DrawEvents.Created;
-      this.attachSketchMeta(e.layer);
+      this.registerSketchLayer(e.layer);
       this.drawnItems?.addLayer(e.layer);
       this.refreshLayerDecorations(e.layer);
       this.logLayer('create', e.layer);
@@ -95,6 +125,7 @@ export class LeafletGisService {
       const e = event as L.DrawEvents.Edited;
       e.layers.eachLayer((layer) => {
         this.refreshLayerDecorations(layer);
+        this.syncSelectionFromLayer(layer);
         this.logLayer('update', layer);
       });
       this.onGeometryChange?.('update');
@@ -103,14 +134,144 @@ export class LeafletGisService {
     this.map.on(L.Draw.Event.DELETED, (event: L.LeafletEvent) => {
       const e = event as L.DrawEvents.Deleted;
       e.layers.eachLayer((layer) => {
+        if (this.selection()?.layerStamp === layerStamp(layer)) {
+          this.clearSelection();
+        }
         this.removeLayerDecorations(layer);
         this.logLayer('delete', layer);
       });
       this.onGeometryChange?.('delete');
     });
 
-    this.map.on(L.Draw.Event.EDITSTART, () => this.setEditCursorActive(true));
-    this.map.on(L.Draw.Event.EDITSTOP, () => this.setEditCursorActive(false));
+    this.map.on(L.Draw.Event.EDITSTART, () => {
+      this.setEditCursorActive(true);
+      this.bindEditLiveRefresh();
+    });
+    this.map.on(L.Draw.Event.EDITSTOP, () => {
+      this.setEditCursorActive(false);
+      this.unbindEditLiveRefresh();
+    });
+
+    this.map.on(L.Draw.Event.EDITVERTEX, (event: L.LeafletEvent) => {
+      const poly = (event as L.DrawEvents.EditVertex).poly;
+      if (poly instanceof L.Polyline) {
+        this.refreshLayerDecorations(poly);
+        this.syncSelectionFromLayer(poly);
+      }
+    });
+
+    this.map.on(L.Draw.Event.EDITMOVE, (event: L.LeafletEvent) => {
+      const layer = (event as L.DrawEvents.EditMove).layer;
+      if (layer) {
+        this.syncSelectionFromLayer(layer);
+      }
+    });
+
+    this.pickClickHandler = (e: L.LeafletMouseEvent) => {
+      if (this.labelPlacementActive() || this.activeHandler) return;
+      this.pickVertexAt(e.latlng);
+    };
+    this.map.on('click', this.pickClickHandler);
+  }
+
+  setCoordinateDecimals(decimals: number): void {
+    this.coordinateDecimals.set(Math.max(4, Math.min(12, decimals)));
+  }
+
+  clearSelection(): void {
+    this.selection.set(null);
+    this.removeSelectionHighlight();
+  }
+
+  pickVertexAt(latlng: L.LatLng): boolean {
+    if (!this.map || !this.drawnItems) return false;
+
+    const layers: L.Layer[] = [];
+    this.drawnItems.eachLayer((l) => layers.push(l));
+    const hit = findNearestVertex(latlng, this.map, layers);
+    if (!hit) {
+      this.clearSelection();
+      return false;
+    }
+
+    const stamp = layerStamp(hit.layer);
+    const sel: GisVertexSelection = {
+      layerStamp: stamp,
+      kind: hit.kind,
+      vertexIndex: hit.vertexIndex,
+      lat: hit.latlng.lat,
+      lng: hit.latlng.lng,
+      featureLabel: gisVertexFeatureLabel(hit.kind, hit.vertexIndex)
+    };
+    this.selection.set(sel);
+    this.showSelectionHighlight(hit.latlng);
+    return true;
+  }
+
+  updateSelectionCoordinates(lat: number, lng: number): boolean {
+    const sel = this.selection();
+    if (!sel || !this.drawnItems) return false;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+
+    const layer = this.findLayerByStamp(sel.layerStamp);
+    if (!layer) {
+      this.clearSelection();
+      return false;
+    }
+
+    const latlng = L.latLng(lat, lng);
+    if (layer instanceof L.Marker) {
+      layer.setLatLng(latlng);
+    } else if (layer instanceof L.Polyline) {
+      const verts = sketchVertices(layer).map((v, i) =>
+        i === sel.vertexIndex ? latlng : L.latLng(v.lat, v.lng)
+      );
+      if (layer instanceof L.Polygon) {
+        layer.setLatLngs([verts]);
+      } else {
+        layer.setLatLngs(verts);
+      }
+    } else {
+      return false;
+    }
+
+    this.selection.set({ ...sel, lat, lng });
+    this.showSelectionHighlight(latlng);
+    this.refreshLayerDecorations(layer);
+    this.onGeometryChange?.('update');
+    return true;
+  }
+
+  private findLayerByStamp(stamp: number): L.Layer | null {
+    if (!this.drawnItems) return null;
+    let found: L.Layer | null = null;
+    this.drawnItems.eachLayer((layer) => {
+      if (layerStamp(layer) === stamp) found = layer;
+    });
+    return found;
+  }
+
+  private showSelectionHighlight(latlng: L.LatLng): void {
+    if (!this.map || !this.annotations) return;
+    this.removeSelectionHighlight();
+    this.selectionHighlight = L.circleMarker(latlng, {
+      radius: 10,
+      color: '#22d3ee',
+      weight: 3,
+      fillColor: '#06b6d4',
+      fillOpacity: 0.35,
+      className: 'gis-selection-highlight',
+      interactive: false
+    }).addTo(this.annotations);
+    this.selectionHighlight.bringToFront();
+  }
+
+  private removeSelectionHighlight(): void {
+    if (this.selectionHighlight && this.annotations) {
+      this.annotations.removeLayer(this.selectionHighlight);
+    }
+    this.selectionHighlight = null;
   }
 
   private setEditCursorActive(active: boolean): void {
@@ -118,6 +279,7 @@ export class LeafletGisService {
   }
 
   stopEditMode(): void {
+    this.unbindEditLiveRefresh();
     this.activeEditHandler?.disable();
     this.activeEditHandler = null;
     this.setEditCursorActive(false);
@@ -267,6 +429,7 @@ export class LeafletGisService {
   }
 
   clearAll(): void {
+    this.clearSelection();
     this.drawnItems?.clearLayers();
     this.annotations?.clearLayers();
     this.onGeometryChange?.('delete');
@@ -278,6 +441,9 @@ export class LeafletGisService {
     this.drawnItems.eachLayer((layer) => layers.push(layer));
     const last = layers[layers.length - 1];
     if (last) {
+      if (this.selection()?.layerStamp === layerStamp(last)) {
+        this.clearSelection();
+      }
       this.removeLayerDecorations(last);
       this.drawnItems.removeLayer(last);
       this.onGeometryChange?.('delete');
@@ -296,6 +462,7 @@ export class LeafletGisService {
     handler.enable();
     this.activeEditHandler = handler;
     this.setEditCursorActive(true);
+    this.bindEditLiveRefresh();
   }
 
   getGraphicCount(): number {
@@ -355,6 +522,7 @@ export class LeafletGisService {
         if (layer instanceof L.Polyline || layer instanceof L.Marker) {
           setSketchMeta(layer, meta);
           applyStrokeStyle(layer, meta);
+          this.bindLayerPick(layer);
         }
       }
     });
@@ -404,8 +572,27 @@ export class LeafletGisService {
     this.map?.invalidateSize({ animate: false });
   }
 
+  private syncSelectionFromLayer(layer: L.Layer): void {
+    const sel = this.selection();
+    if (!sel || layerStamp(layer) !== sel.layerStamp) return;
+    const verts = sketchVertices(layer);
+    const v = verts[sel.vertexIndex];
+    if (!v) {
+      this.clearSelection();
+      return;
+    }
+    this.selection.set({ ...sel, lat: v.lat, lng: v.lng });
+    this.showSelectionHighlight(v);
+  }
+
   destroy(): void {
     this.stopLabelPlacement();
+    this.clearSelection();
+    this.unbindEditLiveRefresh();
+    if (this.map && this.pickClickHandler) {
+      this.map.off('click', this.pickClickHandler);
+      this.pickClickHandler = null;
+    }
     this.stopEditMode();
     this.cancelDraw();
     this.map?.remove();
@@ -426,12 +613,52 @@ export class LeafletGisService {
     };
   }
 
+  private registerSketchLayer(layer: L.Layer): void {
+    this.attachSketchMeta(layer);
+    this.bindLayerPick(layer);
+  }
+
   private attachSketchMeta(layer: L.Layer): void {
     if (layer instanceof L.Polyline || layer instanceof L.Marker) {
       const meta = this.createDefaultMeta();
       setSketchMeta(layer, meta);
       applyStrokeStyle(layer, meta);
     }
+  }
+
+  private bindLayerPick(layer: L.Layer): void {
+    if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+      layer.off('click', this.onSketchLayerClick);
+      layer.on('click', this.onSketchLayerClick);
+    }
+  }
+
+  private bindEditLiveRefresh(): void {
+    if (this.editLiveRefreshBound || !this.drawnItems) return;
+    this.editLiveRefreshBound = true;
+    this.drawnItems.eachLayer((layer) => {
+      if (layer instanceof L.Polyline) {
+        layer.off('editdrag', this.onPolyEditDrag);
+        layer.on('editdrag', this.onPolyEditDrag);
+      }
+      if (layer instanceof L.Marker) {
+        layer.off('drag', this.onMarkerDrag);
+        layer.on('drag', this.onMarkerDrag);
+      }
+    });
+  }
+
+  private unbindEditLiveRefresh(): void {
+    if (!this.editLiveRefreshBound || !this.drawnItems) return;
+    this.editLiveRefreshBound = false;
+    this.drawnItems.eachLayer((layer) => {
+      if (layer instanceof L.Polyline) {
+        layer.off('editdrag', this.onPolyEditDrag);
+      }
+      if (layer instanceof L.Marker) {
+        layer.off('drag', this.onMarkerDrag);
+      }
+    });
   }
 
   private refreshLayerDecorations(layer: L.Layer): void {
