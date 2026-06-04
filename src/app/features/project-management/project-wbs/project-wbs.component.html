@@ -1,0 +1,382 @@
+<div class="wbs-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="wbs-page__header">
+    <div>
+      <p-tag value="Project Management" severity="info" />
+      <h1>Work Breakdown Structure</h1>
+      <p class="wbs-page__subtitle">
+        Hierarchical breakdown: each <strong>site</strong> contains <strong>milestones</strong>, and each
+        milestone has a list of <strong>tasks</strong> with a responsible person.
+      </p>
+    </div>
+    <div class="wbs-page__header-actions">
+      <label class="wbs-page__field-label" for="wbsProject">Project</label>
+      <p-select
+        inputId="wbsProject"
+        [options]="projectOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search project…"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="onProjectChange($event)"
+        [style]="{ minWidth: 'min(320px, 92vw)' }"
+      />
+    </div>
+  </header>
+
+  @if (currentWbs(); as wbs) {
+    <div class="wbs-page__kpis">
+      <p-card>
+        <div class="wbs-page__kpi">
+          <span class="wbs-page__kpi-value">{{ stats().sites }}</span>
+          <span class="wbs-page__kpi-label">Sites</span>
+        </div>
+      </p-card>
+      <p-card>
+        <div class="wbs-page__kpi">
+          <span class="wbs-page__kpi-value">{{ stats().milestones }}</span>
+          <span class="wbs-page__kpi-label">Milestones</span>
+        </div>
+      </p-card>
+      <p-card>
+        <div class="wbs-page__kpi">
+          <span class="wbs-page__kpi-value">{{ stats().tasks }}</span>
+          <span class="wbs-page__kpi-label">Tasks</span>
+        </div>
+      </p-card>
+      <p-card>
+        <div class="wbs-page__kpi" [class.wbs-page__kpi--warn]="stats().unassigned > 0">
+          <span class="wbs-page__kpi-value">{{ stats().unassigned }}</span>
+          <span class="wbs-page__kpi-label">Unassigned</span>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="wbs-page__view-toggle" role="tablist" aria-label="WBS view mode">
+      <button
+        type="button"
+        role="tab"
+        class="wbs-page__view-pill"
+        [class.wbs-page__view-pill--active]="viewMode() === 'hierarchy'"
+        [attr.aria-selected]="viewMode() === 'hierarchy'"
+        (click)="setViewMode('hierarchy')"
+      >
+        <i class="pi pi-sitemap" aria-hidden="true"></i>
+        Hierarchy chart
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="wbs-page__view-pill"
+        [class.wbs-page__view-pill--active]="viewMode() === 'editor'"
+        [attr.aria-selected]="viewMode() === 'editor'"
+        (click)="setViewMode('editor')"
+      >
+        <i class="pi pi-list" aria-hidden="true"></i>
+        Task editor
+      </button>
+    </div>
+
+    @if (viewMode() === 'hierarchy') {
+      <p-card styleClass="wbs-page__hierarchy-card">
+        <ng-template pTemplate="title">WBS hierarchy</ng-template>
+        <ng-template pTemplate="subtitle">
+          Project → site → milestone → tasks. Collapse branches with the node toggles.
+        </ng-template>
+        <div class="wbs-page__hierarchy-scroll" role="region" aria-label="Work breakdown hierarchy chart">
+          <p-organizationChart
+            [value]="hierarchyNodes()"
+            [collapsible]="true"
+            [preserveSpace]="false"
+          >
+            <ng-template let-node pTemplate="project">
+              <div class="wbs-h-node wbs-h-node--project">
+                <i class="pi pi-briefcase" aria-hidden="true"></i>
+                <div>
+                  <strong>{{ node.data.title }}</strong>
+                  <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template let-node pTemplate="site">
+              <div class="wbs-h-node wbs-h-node--site">
+                <i class="pi pi-map-marker" aria-hidden="true"></i>
+                <div>
+                  <strong>{{ node.data.title }}</strong>
+                  <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
+                  <div class="wbs-h-node__meta">{{ node.data.milestoneCount }} milestones</div>
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template let-node pTemplate="milestone">
+              <div class="wbs-h-node wbs-h-node--milestone">
+                <span
+                  class="wbs-priority-bar wbs-h-node__priority-bar"
+                  [class]="priorityBarClass(node.data.priority)"
+                  aria-hidden="true"
+                ></span>
+                <i class="pi pi-flag" aria-hidden="true"></i>
+                <div>
+                  <strong>{{ node.data.title }}</strong>
+                  @if (node.data.targetDate) {
+                    <div class="wbs-h-node__sub wbs-h-node__date-line">
+                      Target {{ formatDisplayDate(node.data.targetDate) }}
+                    </div>
+                  }
+                  <div class="wbs-h-node__meta">{{ node.data.taskCount }} tasks</div>
+                </div>
+                <p-button
+                  icon="pi pi-pencil"
+                  [text]="true"
+                  size="small"
+                  (onClick)="scrollToEditor(node.data.siteId, node.data.id)"
+                  ariaLabel="Edit tasks in list view"
+                />
+              </div>
+            </ng-template>
+
+            <ng-template let-node pTemplate="tasks">
+              <div class="wbs-h-tasks-column">
+                @if (node.data.empty) {
+                  <div class="wbs-h-node wbs-h-node--task wbs-h-node--empty">No tasks</div>
+                }
+                @for (t of node.data.items; track t.id) {
+                  <div class="wbs-h-node wbs-h-node--task" [class.wbs-h-node--unassigned]="t.unassigned">
+                    <span
+                      class="wbs-priority-bar wbs-h-node__priority-bar"
+                      [class]="priorityBarClass(t.priority)"
+                      [attr.title]="'Priority: ' + t.priority"
+                      aria-hidden="true"
+                    ></span>
+                    <i class="pi pi-check-square" aria-hidden="true"></i>
+                    <div>
+                      <strong [title]="t.title">{{ t.title }}</strong>
+                      <div class="wbs-h-node__sub">{{ t.responsible }}</div>
+                      <div class="wbs-h-node__date-line">{{ formatDisplayDate(t.dueDate) }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </ng-template>
+          </p-organizationChart>
+        </div>
+        <p class="wbs-page__hierarchy-hint">
+          Switch to <strong>Task editor</strong> to change task names, assign responsible persons, or add
+          tasks.
+        </p>
+      </p-card>
+    }
+
+    @if (viewMode() === 'editor') {
+    <div class="wbs-page__tree" role="tree" aria-label="Project work breakdown structure editor">
+      @for (site of wbs.sites; track site.id) {
+        <section class="wbs-site" role="treeitem" [attr.aria-expanded]="isSiteExpanded(site.id)">
+          <button
+            type="button"
+            class="wbs-site__head"
+            (click)="toggleSite(site.id)"
+            [attr.aria-expanded]="isSiteExpanded(site.id)"
+          >
+            <i
+              class="pi"
+              [class.pi-chevron-down]="isSiteExpanded(site.id)"
+              [class.pi-chevron-right]="!isSiteExpanded(site.id)"
+            ></i>
+            <span class="wbs-site__icon pi pi-map-marker" aria-hidden="true"></span>
+            <span class="wbs-site__title">{{ site.name }}</span>
+            <span class="wbs-site__meta">{{ site.location }}</span>
+            <p-tag [value]="site.milestones.length + ' milestones'" severity="secondary" />
+          </button>
+
+          @if (isSiteExpanded(site.id)) {
+            <div class="wbs-site__body" role="group">
+              @for (milestone of site.milestones; track milestone.id) {
+                <article
+                  class="wbs-milestone"
+                  role="treeitem"
+                  [id]="'wbs-ms-' + milestone.id"
+                  [attr.aria-expanded]="isMilestoneExpanded(milestone.id)"
+                >
+                  <button
+                    type="button"
+                    class="wbs-milestone__head"
+                    (click)="toggleMilestone(milestone.id)"
+                    [attr.aria-expanded]="isMilestoneExpanded(milestone.id)"
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-chevron-down]="isMilestoneExpanded(milestone.id)"
+                      [class.pi-chevron-right]="!isMilestoneExpanded(milestone.id)"
+                    ></i>
+                    <span class="wbs-milestone__icon pi pi-flag" aria-hidden="true"></span>
+                    <span class="wbs-milestone__title">{{ milestone.name }}</span>
+                    @if (milestone.targetDate) {
+                      <span class="wbs-milestone__date">Target {{ milestone.targetDate }}</span>
+                    }
+                    <p-tag [value]="milestone.tasks.length + ' tasks'" />
+                  </button>
+
+                  @if (isMilestoneExpanded(milestone.id)) {
+                    <div class="wbs-milestone__tasks">
+                      <div class="wbs-priority-legend" aria-label="Priority legend">
+                        @for (opt of priorityOptions; track opt.value) {
+                          <span class="wbs-priority-legend__item">
+                            <span class="wbs-priority-bar" [class]="priorityBarClass(opt.value)"></span>
+                            {{ opt.label }}
+                          </span>
+                        }
+                      </div>
+                      <div class="wbs-tasks-table" role="table">
+                        <div class="wbs-tasks-table__head" role="row">
+                          <span role="columnheader" class="wbs-tasks-table__timeline-col">Date line</span>
+                          <span role="columnheader" class="wbs-tasks-table__bar-col" aria-label="Priority"></span>
+                          <span role="columnheader" class="wbs-tasks-table__date-col">Due date</span>
+                          <span role="columnheader" class="wbs-tasks-table__prio-col">Priority</span>
+                          <span role="columnheader">Task</span>
+                          <span role="columnheader">Responsible person</span>
+                          <span role="columnheader" class="wbs-tasks-table__actions-col">Actions</span>
+                        </div>
+                        <div class="wbs-tasks-table__row wbs-tasks-table__row--milestone" role="row">
+                          <span role="cell" class="wbs-tasks-table__timeline-col">
+                            <div class="wbs-timeline">
+                              <span class="wbs-timeline__dot wbs-timeline__dot--milestone"></span>
+                              <span class="wbs-timeline__label">Milestone</span>
+                              <span class="wbs-timeline__line" aria-hidden="true"></span>
+                            </div>
+                          </span>
+                          <span role="cell" class="wbs-tasks-table__bar-col">
+                            <span
+                              class="wbs-priority-bar wbs-priority-bar--tall"
+                              [class]="priorityBarClass(milestone.priority)"
+                              [attr.title]="'Milestone priority: ' + milestone.priority"
+                            ></span>
+                          </span>
+                          <span role="cell" class="wbs-tasks-table__date-col">
+                            <input
+                              type="date"
+                              class="wbs-tasks-table__date-input"
+                              [ngModel]="milestone.targetDate ?? ''"
+                              (ngModelChange)="updateMilestoneTargetDate(site.id, milestone.id, $event)"
+                              aria-label="Milestone target date"
+                            />
+                          </span>
+                          <span role="cell" class="wbs-tasks-table__prio-col">
+                            <p-select
+                              [options]="priorityOptions"
+                              optionLabel="label"
+                              optionValue="value"
+                              [ngModel]="milestone.priority"
+                              (ngModelChange)="updateMilestonePriority(site.id, milestone.id, $event)"
+                              [style]="{ width: '100%' }"
+                              aria-label="Milestone priority"
+                            />
+                          </span>
+                          <span role="cell" class="wbs-tasks-table__milestone-label">
+                            <strong>{{ milestone.name }}</strong>
+                            <span class="wbs-tasks-table__milestone-hint">Target date & priority</span>
+                          </span>
+                          <span role="cell" class="wbs-tasks-table__actions-col"></span>
+                        </div>
+                        @for (task of milestone.tasks; track task.id; let last = $last) {
+                          <div class="wbs-tasks-table__row" role="row">
+                            <span role="cell" class="wbs-tasks-table__timeline-col">
+                              <div class="wbs-timeline">
+                                <span class="wbs-timeline__dot"></span>
+                                <span class="wbs-timeline__label">{{ formatDisplayDate(task.dueDate) }}</span>
+                                @if (!last) {
+                                  <span class="wbs-timeline__line" aria-hidden="true"></span>
+                                }
+                              </div>
+                            </span>
+                            <span role="cell" class="wbs-tasks-table__bar-col">
+                              <span
+                                class="wbs-priority-bar wbs-priority-bar--tall"
+                                [class]="priorityBarClass(task.priority)"
+                                [attr.title]="'Priority: ' + task.priority"
+                              ></span>
+                            </span>
+                            <span role="cell" class="wbs-tasks-table__date-col">
+                              <input
+                                type="date"
+                                class="wbs-tasks-table__date-input"
+                                [ngModel]="task.dueDate"
+                                (ngModelChange)="updateTaskDueDate(site.id, milestone.id, task.id, $event)"
+                                [attr.aria-label]="'Due date for ' + task.name"
+                              />
+                            </span>
+                            <span role="cell" class="wbs-tasks-table__prio-col">
+                              <p-select
+                                [options]="priorityOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                [ngModel]="task.priority"
+                                (ngModelChange)="updateTaskPriority(site.id, milestone.id, task.id, $event)"
+                                [style]="{ width: '100%' }"
+                                [attr.aria-label]="'Priority for ' + task.name"
+                              />
+                            </span>
+                            <span role="cell">
+                              <input
+                                type="text"
+                                pInputText
+                                class="wbs-tasks-table__name-input"
+                                [ngModel]="task.name"
+                                (ngModelChange)="updateTaskName(site.id, milestone.id, task.id, $event)"
+                                aria-label="Task name"
+                              />
+                            </span>
+                            <span role="cell">
+                              <p-select
+                                [options]="responsibleOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                [filter]="true"
+                                filterPlaceholder="Search person…"
+                                [ngModel]="task.responsiblePersonId"
+                                (ngModelChange)="updateTaskResponsible(site.id, milestone.id, task.id, $event)"
+                                placeholder="Select responsible…"
+                                [style]="{ width: '100%', minWidth: '200px' }"
+                                [class.wbs-tasks-table__select--unassigned]="!task.responsiblePersonId"
+                              />
+                            </span>
+                            <span role="cell" class="wbs-tasks-table__actions-col">
+                              <p-button
+                                icon="pi pi-trash"
+                                severity="danger"
+                                [text]="true"
+                                (onClick)="removeTask(site.id, milestone.id, task.id)"
+                                [attr.aria-label]="'Remove task ' + task.name"
+                              />
+                            </span>
+                          </div>
+                        } @empty {
+                          <p class="wbs-milestone__empty">No tasks yet — add one below.</p>
+                        }
+                      </div>
+                      <p-button
+                        label="Add task"
+                        icon="pi pi-plus"
+                        [outlined]="true"
+                        size="small"
+                        (onClick)="addTask(site.id, milestone.id)"
+                      />
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+    }
+  } @else {
+    <p-card>
+      <p class="wbs-page__empty">Select a project to view its work breakdown structure.</p>
+    </p-card>
+  }
+</div>

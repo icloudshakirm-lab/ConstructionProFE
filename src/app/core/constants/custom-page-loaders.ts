@@ -51,5 +51,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'project-gis-planner': () =>
     import('../../features/project-management/project-gis-planner/project-gis-planner.component').then(
       (m) => m.ProjectGisPlannerComponent
+    ),
+  'project-wbs': () =>
+    import('../../features/project-management/project-wbs/project-wbs.component').then(
+      (m) => m.ProjectWbsComponent
     )
 };

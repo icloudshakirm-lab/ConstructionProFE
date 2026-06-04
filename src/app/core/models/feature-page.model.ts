@@ -11,7 +11,8 @@ export type FeaturePageComponent =
   | 'boq-revisions'
   | 'qa-qc-inspections'
   | 'sites-map'
-  | 'project-gis-planner';
+  | 'project-gis-planner'
+  | 'project-wbs';
 
 export interface FeaturePage {
   id: string;

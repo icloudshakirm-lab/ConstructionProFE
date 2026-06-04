@@ -41,10 +41,12 @@ export const FEATURE_MODULES: FeatureModule[] = [
       },
       {
         id: 'tasks',
-        title: 'Tasks',
-        description: 'Work breakdown tasks assigned to teams with dependencies and due dates.',
+        title: 'Work Breakdown Structure',
+        description:
+          'Site → milestone → task hierarchy with responsible person assignment per task.',
         icon: 'pi pi-list-check',
-        highlights: ['WBS tasks', 'Assignments', 'Dependencies']
+        highlights: ['Sites & milestones', 'Task list', 'Responsible person'],
+        component: 'project-wbs'
       },
       {
         id: 'milestones',
