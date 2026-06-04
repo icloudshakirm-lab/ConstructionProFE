@@ -14,9 +14,9 @@ import { MenuItem, MessageService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { Dialog } from 'primeng/dialog';
 import { Divider } from 'primeng/divider';
 import { InputText } from 'primeng/inputtext';
+import { SelectButton } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Toast } from 'primeng/toast';
@@ -27,6 +27,8 @@ import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
 import { MODEL3D_COMMANDS, MODEL3D_MOUSE_HINTS } from './model3d-commands.data';
 import { Model3dViewerService } from './model3d-viewer.service';
 
+export type DrawingViewerMode = '2d' | '3d';
+
 @Component({
   selector: 'app-drawing-viewer',
   imports: [
@@ -34,9 +36,9 @@ import { Model3dViewerService } from './model3d-viewer.service';
     Breadcrumb,
     Button,
     Card,
-    Dialog,
     Divider,
     InputText,
+    SelectButton,
     TableModule,
     Tag,
     Toast,
@@ -54,9 +56,9 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   private readonly themeService = inject(ThemeService);
 
   @ViewChild('cadHost', { static: true }) cadHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('model3dHost', { static: true }) model3dHost!: ElementRef<HTMLDivElement>;
   @ViewChild('viewerFullscreenHost', { static: true })
   viewerFullscreenHost!: ElementRef<HTMLDivElement>;
-  @ViewChild('model3dHost') model3dHost?: ElementRef<HTMLDivElement>;
 
   readonly breadcrumbs: MenuItem[] = [
     { label: 'Home', routerLink: '/dashboard' },
@@ -64,17 +66,21 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     { label: 'Drawings' }
   ];
 
+  readonly viewerModeOptions = [
+    { label: '2D', value: '2d' as DrawingViewerMode, icon: 'pi pi-file' },
+    { label: '3D', value: '3d' as DrawingViewerMode, icon: 'pi pi-box' }
+  ];
+
   readonly drawings = DEMO_DRAWINGS;
   readonly selected = signal<DrawingRecord | null>(DEMO_DRAWINGS[0] ?? null);
+  readonly viewerMode = signal<DrawingViewerMode>('2d');
   readonly loading = signal(false);
   readonly filterText = signal('');
   readonly filteredDrawings = signal(DEMO_DRAWINGS);
   readonly inAppExpanded = signal(false);
   readonly isBrowserFullscreen = signal(false);
-  /** Bumped after layout changes so toolbar buttons re-render reliably. */
   readonly toolbarKey = signal(0);
 
-  readonly model3dVisible = signal(false);
   readonly model3dLoading = signal(false);
   readonly model3dWireframe = signal(false);
   readonly model3dGrid = signal(true);
@@ -83,14 +89,17 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   readonly model3dCommands = MODEL3D_COMMANDS;
   readonly model3dMouseHints = MODEL3D_MOUSE_HINTS;
 
+  private model3dActive = false;
+
   constructor() {
     effect(() => {
       this.themeService.theme();
-      if (this.cadHost?.nativeElement) {
+      if (this.viewerMode() === '2d' && this.cadHost?.nativeElement) {
         this.scheduleLayoutRefresh();
       }
-      if (this.model3dVisible()) {
+      if (this.viewerMode() === '3d' && this.model3dActive) {
         this.model3dViewer.applyTheme(this.themeService.isDark());
+        this.scheduleModel3dLayoutRefresh();
       }
     });
   }
@@ -114,52 +123,20 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     void this.model3dViewer.dispose();
   }
 
-  openModel3d(drawing?: DrawingRecord): void {
-    const target = drawing ?? this.selected();
-    if (!target) {
-      this.messages.add({
-        severity: 'warn',
-        summary: 'No drawing selected',
-        detail: 'Select a sheet from the register or open a DWG/DXF file first.'
-      });
+  async onViewerModeChange(mode: DrawingViewerMode): Promise<void> {
+    if (mode === this.viewerMode()) {
       return;
     }
-    this.selected.set(target);
-    this.model3dVisible.set(true);
-  }
-
-  async onModel3dDialogShow(): Promise<void> {
-    const drawing = this.selected();
-    const host = this.model3dHost?.nativeElement;
-    if (!drawing || !host) {
+    if (mode === '3d') {
+      await this.activate3dMode();
       return;
     }
-
-    this.model3dLoading.set(true);
-    this.model3dLastCommand.set(`3DOPEN — Loading preview for ${drawing.sheet}…`);
-    try {
-      await this.model3dViewer.mount(host, this.themeService.isDark());
-      this.model3dViewer.loadDrawingModel(drawing);
-      this.model3dWireframe.set(this.model3dViewer.isWireframe());
-      this.model3dGrid.set(this.model3dViewer.isGridVisible());
-      this.model3dAxes.set(this.model3dViewer.isAxesVisible());
-      this.model3dLastCommand.set(`3DOPEN — ${drawing.sheet} · ${drawing.title}`);
-      this.scheduleModel3dLayoutRefresh();
-    } catch (err) {
-      this.messages.add({
-        severity: 'error',
-        summary: '3D viewer failed',
-        detail: err instanceof Error ? err.message : 'Could not initialize 3D preview.'
-      });
-      this.model3dVisible.set(false);
-    } finally {
-      this.model3dLoading.set(false);
-    }
+    await this.activate2dMode();
   }
 
-  onModel3dDialogHide(): void {
-    void this.model3dViewer.dispose();
-    this.model3dLastCommand.set('Ready — select a command or use the mouse.');
+  show3dForDrawing(drawing: DrawingRecord): void {
+    this.selected.set(drawing);
+    void this.onViewerModeChange('3d');
   }
 
   runModel3dCommand(commandId: string): void {
@@ -217,14 +194,6 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     this.scheduleModel3dLayoutRefresh();
   }
 
-  model3dDialogTitle(): string {
-    const d = this.selected();
-    if (!d) {
-      return '3D model preview';
-    }
-    return `3D preview — ${d.sheet} · ${d.title}`;
-  }
-
   onFilterChange(value: string): void {
     this.filterText.set(value);
     const q = value.trim().toLowerCase();
@@ -244,6 +213,10 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
 
   async selectDrawing(drawing: DrawingRecord): Promise<void> {
     this.selected.set(drawing);
+    if (this.viewerMode() === '3d') {
+      await this.loadModel3d(drawing);
+      return;
+    }
     await this.loadDrawing(drawing.fileUrl, `${drawing.sheet} — ${drawing.title}`);
   }
 
@@ -263,6 +236,12 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
         detail: 'Only AutoCAD DWG and DXF files can be opened.'
       });
       return;
+    }
+
+    if (this.viewerMode() === '3d') {
+      this.viewerMode.set('2d');
+      void this.model3dViewer.dispose();
+      this.model3dActive = false;
     }
 
     this.selected.set(null);
@@ -286,6 +265,10 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomExtents(): void {
+    if (this.viewerMode() === '3d') {
+      this.runModel3dCommand('fit');
+      return;
+    }
     this.cadViewer.zoomExtents();
   }
 
@@ -299,7 +282,7 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     if (wasExpanded) {
       void this.restoreViewerAfterCollapse();
     } else {
-      this.scheduleLayoutRefresh();
+      this.scheduleActiveViewerLayout();
     }
   }
 
@@ -327,10 +310,11 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
 
   viewerTitle(): string {
     const d = this.selected();
+    const mode = this.viewerMode() === '3d' ? '3D' : '2D';
     if (!d) {
-      return 'Drawing viewer';
+      return `${mode} viewer`;
     }
-    return `${d.sheet} — ${d.title} (Rev ${d.revision})`;
+    return `${mode} · ${d.sheet} — ${d.title} (Rev ${d.revision})`;
   }
 
   private async bootstrapViewer(): Promise<void> {
@@ -339,6 +323,66 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
       return;
     }
     await this.loadDrawing(first.fileUrl, `${first.sheet} — ${first.title}`);
+  }
+
+  private async activate3dMode(): Promise<void> {
+    const drawing = this.selected();
+    if (!drawing) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'No drawing selected',
+        detail: 'Select a sheet from the register first.'
+      });
+      return;
+    }
+
+    this.viewerMode.set('3d');
+    this.bumpToolbar();
+    await this.cadViewer.destroy();
+    await this.loadModel3d(drawing);
+  }
+
+  private async activate2dMode(): Promise<void> {
+    this.viewerMode.set('2d');
+    this.bumpToolbar();
+    void this.model3dViewer.dispose();
+    this.model3dActive = false;
+    this.model3dLastCommand.set('Ready — select a command or use the mouse.');
+
+    const drawing = this.selected();
+    if (drawing) {
+      await this.loadDrawing(drawing.fileUrl, `${drawing.sheet} — ${drawing.title}`);
+    } else {
+      this.scheduleLayoutRefresh();
+    }
+  }
+
+  private async loadModel3d(drawing: DrawingRecord): Promise<void> {
+    this.model3dLoading.set(true);
+    this.model3dLastCommand.set(`3DOPEN — Loading preview for ${drawing.sheet}…`);
+    try {
+      await this.model3dViewer.mount(this.model3dHost.nativeElement, this.themeService.isDark());
+      this.model3dViewer.loadDrawingModel(drawing);
+      this.model3dActive = true;
+      this.model3dWireframe.set(this.model3dViewer.isWireframe());
+      this.model3dGrid.set(this.model3dViewer.isGridVisible());
+      this.model3dAxes.set(this.model3dViewer.isAxesVisible());
+      this.model3dLastCommand.set(`3DOPEN — ${drawing.sheet} · ${drawing.title}`);
+      this.scheduleModel3dLayoutRefresh();
+    } catch (err) {
+      this.messages.add({
+        severity: 'error',
+        summary: '3D viewer failed',
+        detail: err instanceof Error ? err.message : 'Could not initialize 3D preview.'
+      });
+      this.viewerMode.set('2d');
+      const d = this.selected();
+      if (d) {
+        await this.loadDrawing(d.fileUrl, `${d.sheet} — ${d.title}`);
+      }
+    } finally {
+      this.model3dLoading.set(false);
+    }
   }
 
   private async loadDrawing(url: string, label: string): Promise<void> {
@@ -358,6 +402,9 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
       });
     } finally {
       this.loading.set(false);
+      if (this.viewerMode() === '2d') {
+        this.scheduleLayoutRefresh();
+      }
     }
   }
 
@@ -377,20 +424,40 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     this.isBrowserFullscreen.set(active);
     this.bumpToolbar();
     this.cdr.detectChanges();
-    this.scheduleLayoutRefresh();
+    this.scheduleActiveViewerLayout();
   };
 
   private bumpToolbar(): void {
     this.toolbarKey.update((k) => k + 1);
   }
 
-  /** Remount CAD after leaving expanded layout so canvas cannot cover the toolbar. */
+  private scheduleActiveViewerLayout(): void {
+    if (this.viewerMode() === '3d') {
+      this.scheduleModel3dLayoutRefresh();
+    } else {
+      this.scheduleLayoutRefresh();
+    }
+  }
+
   private async restoreViewerAfterCollapse(): Promise<void> {
-    this.scheduleLayoutRefresh();
+    this.scheduleActiveViewerLayout();
     if (typeof window === 'undefined') {
       return;
     }
     await new Promise<void>((resolve) => window.setTimeout(resolve, 150));
+
+    if (this.viewerMode() === '3d') {
+      const drawing = this.selected();
+      if (drawing) {
+        await this.loadModel3d(drawing);
+      } else {
+        this.model3dViewer.refreshLayout();
+      }
+      this.bumpToolbar();
+      this.cdr.detectChanges();
+      return;
+    }
+
     const drawing = this.selected();
     if (!drawing) {
       this.cadViewer.refreshLayout();
@@ -410,11 +477,13 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     if (typeof window === 'undefined') {
       return;
     }
-    window.requestAnimationFrame(() => {
+    const run = (): void => {
       this.model3dViewer.refreshLayout();
       this.cdr.detectChanges();
-    });
-    window.setTimeout(() => this.model3dViewer.refreshLayout(), 120);
+    };
+    window.requestAnimationFrame(run);
+    window.setTimeout(run, 120);
+    window.setTimeout(run, 320);
   }
 
   private scheduleLayoutRefresh(): void {

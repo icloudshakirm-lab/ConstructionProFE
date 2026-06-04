@@ -1,3 +1,7 @@
+/* Shared canvas height: maximum space below page chrome + toolbar */
+$viewer-canvas-h: calc(100dvh - 14rem);
+$viewer-canvas-h-expanded: calc(100dvh - 6.5rem);
+
 .drawings-page {
   display: flex;
   flex-direction: column;
@@ -104,12 +108,12 @@
 }
 
 :host ::ng-deep .drawings-page__viewer-card {
-  overflow: hidden;
+  overflow: visible;
   border-radius: 0 0 0.5rem 0.5rem;
 
   .p-card-body {
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 }
 
@@ -126,6 +130,14 @@
   position: relative;
   z-index: 30;
   border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.drawings-page__viewer-toolbar-start {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .drawings-page__viewer-title {
@@ -145,29 +157,137 @@
 }
 
 .drawings-page__viewer-panel {
-  min-height: min(68vh, 640px);
-  overflow: hidden;
   background: var(--cp-subtle-bg);
 }
 
+.drawings-page__viewer-panel--3d {
+  display: grid;
+  grid-template-columns: 1fr min(260px, 32vw);
+}
+
+.drawings-page__viewer-main {
+  min-width: 0;
+}
+
+/* Fixed tall viewport for both 2D and 3D (no absolute overlap on 2D) */
 .drawings-page__viewer-wrap {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  width: 100%;
+  height: $viewer-canvas-h;
   min-height: 420px;
-  overflow: hidden;
   z-index: 1;
 }
 
-.drawings-page__canvas {
-  position: relative;
-  display: block;
+.drawings-page__cad-host {
+  display: none;
   width: 100%;
-  height: min(62vh, 580px);
-  min-height: 420px;
-  overflow: hidden;
-  contain: layout paint;
+  height: 100%;
+  box-sizing: border-box;
+
+  &--active {
+    display: block;
+  }
+}
+
+.drawings-page__model3d-stack {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+
+  &--active {
+    display: flex;
+  }
+}
+
+.drawings-page__model3d-host {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.drawings-page__command-line {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.65rem;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  border-top: 1px solid var(--p-content-border-color);
+  background: var(--cp-panel-bg);
+  color: var(--p-text-muted-color);
+}
+
+.drawings-page__command-prompt {
+  color: var(--p-primary-color);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.drawings-page__viewer-3d-panel {
+  max-height: $viewer-canvas-h;
+  padding: 0.65rem 0.75rem;
+  overflow: auto;
+  border-left: 1px solid var(--p-content-border-color);
+  background: var(--cp-panel-bg);
+}
+
+.drawings-page__viewer-3d-section {
+  h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+  }
+}
+
+.drawings-page__viewer-3d-hints {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 0.3rem;
+    background: var(--cp-subtle-bg);
+  }
+
+  span {
+    color: var(--p-text-muted-color);
+  }
+}
+
+.drawings-page__viewer-3d-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.drawings-page__viewer-3d-state {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+  }
 }
 
 .drawings-page__loading {
@@ -194,6 +314,15 @@
   padding-top: 0.5rem;
 }
 
+/* CAD viewer injects canvases — ensure they fill the 2D host */
+:host ::ng-deep .drawings-page__cad-host--active {
+  canvas {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
 .drawings-page--in-app-expanded {
   gap: 0;
 
@@ -201,32 +330,38 @@
     grid-template-columns: 1fr;
   }
 
-  .drawings-page__viewer-panel {
-    min-height: calc(100dvh - 9rem);
+  .drawings-page__viewer-wrap {
+    height: $viewer-canvas-h-expanded;
+    min-height: 480px;
   }
 
-  .drawings-page__canvas {
-    height: calc(100dvh - 12rem);
-    min-height: 480px;
+  .drawings-page__viewer-3d-panel {
+    max-height: $viewer-canvas-h-expanded;
+  }
+
+  .drawings-page__viewer-panel--3d {
+    grid-template-columns: 1fr;
+  }
+
+  .drawings-page__viewer-3d-panel {
+    max-height: 36vh;
+    border-left: none;
+    border-top: 1px solid var(--p-content-border-color);
   }
 }
 
 .drawings-page__viewer-wrap:fullscreen {
-  display: flex;
-  flex-direction: column;
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
+  min-height: 0;
   border: none;
   border-radius: 0;
   background: var(--cp-subtle-bg);
 
-  .drawings-page__canvas {
-    flex: 1;
-    width: 100%;
+  .drawings-page__cad-host--active,
+  .drawings-page__model3d-stack--active {
     height: 100%;
-    min-height: 0;
-    contain: none;
   }
 }
 
@@ -235,168 +370,20 @@
     grid-template-columns: 1fr;
   }
 
-  .drawings-page__canvas {
-    height: 50vh;
+  .drawings-page__viewer-wrap {
+    height: min(58vh, calc(100dvh - 16rem));
     min-height: 320px;
   }
-
-  .drawings-page--in-app-expanded .drawings-page__canvas {
-    height: calc(100dvh - 11rem);
-  }
-}
-
-:host ::ng-deep .drawings-model3d-dialog {
-  .p-dialog-content {
-    padding: 0;
-    overflow: hidden;
-  }
-}
-
-.drawings-model3d {
-  display: grid;
-  grid-template-columns: 1fr min(280px, 34vw);
-  min-height: min(72vh, 720px);
-  max-height: min(82vh, 860px);
-}
-
-.drawings-model3d__viewport {
-  position: relative;
-  min-height: 320px;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--p-content-border-color);
-}
-
-.drawings-model3d__canvas {
-  flex: 1;
-  min-height: 280px;
-  background: var(--cp-subtle-bg);
-}
-
-.drawings-model3d__loading {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: color-mix(in srgb, var(--p-surface-0, #fff) 72%, transparent);
-  font-size: 0.875rem;
-}
-
-.drawings-model3d__command-line {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-  padding: 0.45rem 0.75rem;
-  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  border-top: 1px solid var(--p-content-border-color);
-  background: var(--cp-panel-bg);
-  color: var(--p-text-muted-color);
-}
-
-.drawings-model3d__prompt {
-  color: var(--p-primary-color);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.drawings-model3d__panel {
-  padding: 0.75rem;
-  overflow: auto;
-  background: var(--cp-panel-bg);
-}
-
-.drawings-model3d__section {
-  h3 {
-    margin: 0 0 0.45rem;
-    font-size: 0.8125rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--p-text-muted-color);
-  }
-}
-
-.drawings-model3d__section-note {
-  margin: 0 0 0.5rem;
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
-}
-
-.drawings-model3d__hints {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.8125rem;
-
-  li {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.3rem 0.4rem;
-    border-radius: 0.3rem;
-    background: var(--cp-subtle-bg);
-  }
-
-  strong {
-    font-weight: 600;
-  }
-
-  span {
-    color: var(--p-text-muted-color);
-    white-space: nowrap;
-  }
-}
-
-.drawings-model3d__commands {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.drawings-model3d__state {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.8125rem;
-
-  li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-}
-
-.drawings-model3d__footnote {
-  margin: 0.75rem 0 0;
-  font-size: 0.6875rem;
-  color: var(--p-text-muted-color);
-  line-height: 1.4;
 }
 
 @media (max-width: 900px) {
-  .drawings-model3d {
+  .drawings-page__viewer-panel--3d {
     grid-template-columns: 1fr;
-    max-height: none;
   }
 
-  .drawings-model3d__viewport {
-    border-right: none;
-    border-bottom: 1px solid var(--p-content-border-color);
-    min-height: 50vh;
-  }
-
-  .drawings-model3d__panel {
-    max-height: 40vh;
+  .drawings-page__viewer-3d-panel {
+    max-height: min(36vh, 320px);
+    border-left: none;
+    border-top: 1px solid var(--p-content-border-color);
   }
 }
