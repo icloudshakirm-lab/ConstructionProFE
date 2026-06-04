@@ -6,6 +6,7 @@ import {
   guideBearingsFromVertex,
   snapDrawLatLng
 } from './gis-draw-angle.util';
+import { gisDrawAngleSettings } from './gis-draw-settings';
 
 /** leaflet-draw handlers use private methods not in @types/leaflet-draw */
 type DrawHandlerInternal = {
@@ -51,6 +52,7 @@ function updateAngleGuides(handler: DrawHandlerInternal, cursor: L.LatLng): void
   if (!handler._map || !handler._angleGuides || handler._markers.length === 0) return;
 
   handler._angleGuides.clearLayers();
+  const lockAngles = gisDrawAngleSettings.lockAngles;
   const last = handler._markers[handler._markers.length - 1].getLatLng();
   const origin = handler._map.latLngToLayerPoint(last);
   const guideLenPx = 72;
@@ -59,9 +61,9 @@ function updateAngleGuides(handler: DrawHandlerInternal, cursor: L.LatLng): void
     handler._markers.length >= 2
       ? handler._markers[handler._markers.length - 2].getLatLng()
       : undefined;
-  const bearings = guideBearingsFromVertex(prev, last, handler._map);
-
-  for (const bearing of bearings) {
+  if (lockAngles) {
+    const bearings = guideBearingsFromVertex(prev, last, handler._map);
+    for (const bearing of bearings) {
     const rad = (bearing * Math.PI) / 180;
     const end = L.point(
       origin.x + Math.sin(rad) * guideLenPx,
@@ -75,9 +77,10 @@ function updateAngleGuides(handler: DrawHandlerInternal, cursor: L.LatLng): void
       dashArray: '3,5',
       interactive: false
     }).addTo(handler._angleGuides);
+    }
   }
 
-  const info = getDrawAngleInfo(markerLatLngs(handler), cursor, handler._map);
+  const info = getDrawAngleInfo(markerLatLngs(handler), cursor, handler._map, lockAngles);
   if (info && handler._angleLabel) {
     const label = info.deflectionLabel
       ? `${info.deflectionLabel} · ${info.bearingLabel}`
@@ -102,7 +105,12 @@ function appendAngleSubtext(
     return base;
   }
   const angleSub = buildAngleTooltipSubtext(
-    getDrawAngleInfo(markerLatLngs(handler), handler._currentLatLng, handler._map)
+    getDrawAngleInfo(
+      markerLatLngs(handler),
+      handler._currentLatLng,
+      handler._map,
+      gisDrawAngleSettings.lockAngles
+    )
   );
   if (!angleSub) return base;
   const parts = [base.subtext, angleSub].filter((p) => p && p.length > 0);
@@ -155,12 +163,15 @@ function angleDrawExtensions(Base: DrawHandlerClass): DrawHandlerClass {
         this._markers.length >= 2
           ? this._markers[this._markers.length - 2].getLatLng()
           : undefined;
-      latlng = snapDrawLatLng(
-        this._markers[this._markers.length - 1].getLatLng(),
-        latlng,
-        this._map,
-        prev
-      );
+      if (gisDrawAngleSettings.lockAngles) {
+        latlng = snapDrawLatLng(
+          this._markers[this._markers.length - 1].getLatLng(),
+          latlng,
+          this._map,
+          prev,
+          true
+        );
+      }
 
       this._currentLatLng = latlng;
       this._updateTooltip(latlng);

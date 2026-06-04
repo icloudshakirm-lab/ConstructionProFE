@@ -111,6 +111,15 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     this.mapGis.setLineStyle({ weight });
   }
 
+  onLockAnglesChange(lock: boolean): void {
+    this.mapGis.setLockAngles(lock);
+    this.lastAction.set(
+      lock
+        ? 'Lock angles on — lines snap to 45° / 90° while drawing.'
+        : 'Lock angles off — draw freehand; bearing still shown.'
+    );
+  }
+
   onShowSegmentLengthsChange(show: boolean): void {
     this.mapGis.setShowSegmentLengths(show);
     this.lastAction.set(show ? 'Segment lengths shown on lines.' : 'Segment lengths hidden.');
@@ -153,7 +162,9 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     this.mapGis.startDraw(tool);
     const angleHint =
       tool === 'polyline' || tool === 'polygon'
-        ? ' Angles snap at 45° / 90°. Segment lengths appear when the shape is finished.'
+        ? this.mapGis.lockAngles()
+          ? ' Lock angles on — snaps at 45° / 90°.'
+          : ' Lock angles off — freehand.'
         : '';
     this.lastAction.set(`Drawing ${tool} — click on the map.${angleHint}`);
   }

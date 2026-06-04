@@ -70,6 +70,15 @@
         />
         <div class="gis-planner-page__checkbox-wrap">
           <p-checkbox
+            [ngModel]="mapGis.lockAngles()"
+            (ngModelChange)="onLockAnglesChange($event)"
+            [binary]="true"
+            inputId="gisLockAngles"
+          />
+          <label for="gisLockAngles" title="Snap segments to 45° and 90° while drawing">Lock angles</label>
+        </div>
+        <div class="gis-planner-page__checkbox-wrap">
+          <p-checkbox
             [ngModel]="mapGis.showSegmentLengths()"
             (ngModelChange)="onShowSegmentLengthsChange($event)"
             [binary]="true"
@@ -153,6 +162,7 @@
     <ol>
       <li><strong>Point</strong> — single click on the map.</li>
       <li><strong>Line style</strong> — pick color and thickness before drawing; each line keeps its style.</li>
+      <li><strong>Lock angles</strong> — when checked, segments snap to 45° / 90° while drawing; uncheck for freehand.</li>
       <li><strong>Line</strong> — click vertices, double-click to finish. Segment lengths (m) appear on each segment.</li>
       <li><strong>Labels</strong> — enter text, click <em>Place on line</em>, then click the target line.</li>
       <li><strong>Polygon</strong> — same style, lengths on edges, and labels as lines.</li>

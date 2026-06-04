@@ -12,6 +12,7 @@ import {
   newLabelId,
   setSketchMeta
 } from './gis-line-decorations';
+import { gisDrawAngleSettings } from './gis-draw-settings';
 import {
   DEFAULT_GIS_LINE_STYLE,
   type GisLineStyle,
@@ -36,6 +37,7 @@ export class LeafletGisService {
   private labelClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
 
   readonly lineStyle = signal<GisLineStyle>({ ...DEFAULT_GIS_LINE_STYLE });
+  readonly lockAngles = signal(gisDrawAngleSettings.lockAngles);
   readonly showSegmentLengths = signal(true);
   readonly labelPlacementActive = signal(false);
   readonly pendingLabelText = signal('');
@@ -107,6 +109,11 @@ export class LeafletGisService {
 
   setLineStyle(style: Partial<GisLineStyle>): void {
     this.lineStyle.update((current) => ({ ...current, ...style }));
+  }
+
+  setLockAngles(lock: boolean): void {
+    gisDrawAngleSettings.lockAngles = lock;
+    this.lockAngles.set(lock);
   }
 
   setShowSegmentLengths(show: boolean): void {

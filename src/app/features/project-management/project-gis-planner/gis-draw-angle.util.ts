@@ -102,8 +102,11 @@ export function snapDrawLatLng(
   last: L.LatLng,
   cursor: L.LatLng,
   map: L.Map,
-  previous?: L.LatLng
+  previous?: L.LatLng,
+  lockAngles = true
 ): L.LatLng {
+  if (!lockAngles) return cursor;
+
   const lastPt = map.latLngToLayerPoint(last);
   const cursorPt = map.latLngToLayerPoint(cursor);
   const dist = lastPt.distanceTo(cursorPt);
@@ -158,18 +161,16 @@ export function formatDeflectionLabel(deg: number): string {
 export function getDrawAngleInfo(
   markers: L.LatLng[],
   cursor: L.LatLng,
-  map: L.Map
+  map: L.Map,
+  lockAngles = true
 ): DrawAngleInfo | null {
   if (!markers.length) return null;
 
   const last = markers[markers.length - 1];
-  const snappedCursor = snapDrawLatLng(
-    last,
-    cursor,
-    map,
-    markers.length >= 2 ? markers[markers.length - 2] : undefined
-  );
-  const bearingDeg = segmentBearingDeg(last, snappedCursor, map);
+  const previous = markers.length >= 2 ? markers[markers.length - 2] : undefined;
+  const displayCursor = snapDrawLatLng(last, cursor, map, previous, lockAngles);
+  const rawBearing = segmentBearingDeg(last, cursor, map);
+  const bearingDeg = segmentBearingDeg(last, displayCursor, map);
 
   let deflectionDeg: number | null = null;
   let deflectionLabel: string | null = null;
@@ -178,20 +179,24 @@ export function getDrawAngleInfo(
   if (markers.length >= 2) {
     const prev = markers[markers.length - 2];
     const inBearing = segmentBearingDeg(prev, last, map);
-    const rawSigned = signedDeflectionDeg(inBearing, segmentBearingDeg(last, cursor, map));
-    const defSnap = snapSignedDeflectionIfClose(rawSigned);
-    deflectionDeg = defSnap.deflection;
-    deflectionLabel = formatDeflectionLabel(defSnap.deflection);
-    snapped = defSnap.snapped;
-  } else {
-    const bearingSnap = snapBearingIfClose(bearingDeg, GIS_SNAP_ANGLES);
+    const rawSigned = signedDeflectionDeg(inBearing, rawBearing);
+    deflectionDeg = rawSigned;
+    deflectionLabel = formatDeflectionLabel(rawSigned);
+    if (lockAngles) {
+      const defSnap = snapSignedDeflectionIfClose(rawSigned);
+      deflectionDeg = defSnap.deflection;
+      deflectionLabel = formatDeflectionLabel(defSnap.deflection);
+      snapped = defSnap.snapped;
+    }
+  } else if (lockAngles) {
+    const bearingSnap = snapBearingIfClose(rawBearing, GIS_SNAP_ANGLES);
     snapped = bearingSnap.snapped;
   }
 
-  const bearingLabel = formatBearingLabel(bearingDeg);
+  const bearingLabel = formatBearingLabel(lockAngles && snapped ? bearingDeg : rawBearing);
 
   return {
-    bearingDeg,
+    bearingDeg: lockAngles && snapped ? bearingDeg : rawBearing,
     bearingLabel,
     deflectionDeg,
     deflectionLabel,
@@ -207,7 +212,7 @@ export function buildAngleTooltipSubtext(info: DrawAngleInfo | null): string {
   }
   parts.push(`Bearing: ${info.bearingLabel}`);
   if (info.snapped) {
-    parts.push('snapped');
+    parts.push('locked');
   }
   return parts.join(' · ');
 }
