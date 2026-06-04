@@ -14,6 +14,8 @@ import { MenuItem, MessageService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { Dialog } from 'primeng/dialog';
+import { Divider } from 'primeng/divider';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -22,6 +24,8 @@ import { Tooltip } from 'primeng/tooltip';
 import { ThemeService } from '../../../core/services/theme.service';
 import { CadViewerService } from './cad-viewer.service';
 import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
+import { MODEL3D_COMMANDS, MODEL3D_MOUSE_HINTS } from './model3d-commands.data';
+import { Model3dViewerService } from './model3d-viewer.service';
 
 @Component({
   selector: 'app-drawing-viewer',
@@ -30,6 +34,8 @@ import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
     Breadcrumb,
     Button,
     Card,
+    Dialog,
+    Divider,
     InputText,
     TableModule,
     Tag,
@@ -42,6 +48,7 @@ import { DEMO_DRAWINGS, DrawingRecord } from './drawings.data';
 })
 export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   private readonly cadViewer = inject(CadViewerService);
+  private readonly model3dViewer = inject(Model3dViewerService);
   private readonly messages = inject(MessageService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly themeService = inject(ThemeService);
@@ -49,6 +56,7 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   @ViewChild('cadHost', { static: true }) cadHost!: ElementRef<HTMLDivElement>;
   @ViewChild('viewerFullscreenHost', { static: true })
   viewerFullscreenHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('model3dHost') model3dHost?: ElementRef<HTMLDivElement>;
 
   readonly breadcrumbs: MenuItem[] = [
     { label: 'Home', routerLink: '/dashboard' },
@@ -66,11 +74,23 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   /** Bumped after layout changes so toolbar buttons re-render reliably. */
   readonly toolbarKey = signal(0);
 
+  readonly model3dVisible = signal(false);
+  readonly model3dLoading = signal(false);
+  readonly model3dWireframe = signal(false);
+  readonly model3dGrid = signal(true);
+  readonly model3dAxes = signal(true);
+  readonly model3dLastCommand = signal('Ready — select a command or use the mouse.');
+  readonly model3dCommands = MODEL3D_COMMANDS;
+  readonly model3dMouseHints = MODEL3D_MOUSE_HINTS;
+
   constructor() {
     effect(() => {
       this.themeService.theme();
       if (this.cadHost?.nativeElement) {
         this.scheduleLayoutRefresh();
+      }
+      if (this.model3dVisible()) {
+        this.model3dViewer.applyTheme(this.themeService.isDark());
       }
     });
   }
@@ -91,6 +111,118 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
       }
     }
     void this.cadViewer.destroy();
+    void this.model3dViewer.dispose();
+  }
+
+  openModel3d(drawing?: DrawingRecord): void {
+    const target = drawing ?? this.selected();
+    if (!target) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'No drawing selected',
+        detail: 'Select a sheet from the register or open a DWG/DXF file first.'
+      });
+      return;
+    }
+    this.selected.set(target);
+    this.model3dVisible.set(true);
+  }
+
+  async onModel3dDialogShow(): Promise<void> {
+    const drawing = this.selected();
+    const host = this.model3dHost?.nativeElement;
+    if (!drawing || !host) {
+      return;
+    }
+
+    this.model3dLoading.set(true);
+    this.model3dLastCommand.set(`3DOPEN — Loading preview for ${drawing.sheet}…`);
+    try {
+      await this.model3dViewer.mount(host, this.themeService.isDark());
+      this.model3dViewer.loadDrawingModel(drawing);
+      this.model3dWireframe.set(this.model3dViewer.isWireframe());
+      this.model3dGrid.set(this.model3dViewer.isGridVisible());
+      this.model3dAxes.set(this.model3dViewer.isAxesVisible());
+      this.model3dLastCommand.set(`3DOPEN — ${drawing.sheet} · ${drawing.title}`);
+      this.scheduleModel3dLayoutRefresh();
+    } catch (err) {
+      this.messages.add({
+        severity: 'error',
+        summary: '3D viewer failed',
+        detail: err instanceof Error ? err.message : 'Could not initialize 3D preview.'
+      });
+      this.model3dVisible.set(false);
+    } finally {
+      this.model3dLoading.set(false);
+    }
+  }
+
+  onModel3dDialogHide(): void {
+    void this.model3dViewer.dispose();
+    this.model3dLastCommand.set('Ready — select a command or use the mouse.');
+  }
+
+  runModel3dCommand(commandId: string): void {
+    const drawing = this.selected();
+    const label = this.model3dCommands.find((c) => c.id === commandId)?.label ?? commandId.toUpperCase();
+
+    switch (commandId) {
+      case 'fit':
+        this.model3dViewer.fitAll();
+        this.model3dLastCommand.set(`${label} — Zoom extents`);
+        break;
+      case 'top':
+        this.model3dViewer.setView('top');
+        this.model3dLastCommand.set(`${label} — Top view`);
+        break;
+      case 'front':
+        this.model3dViewer.setView('front');
+        this.model3dLastCommand.set(`${label} — Front view`);
+        break;
+      case 'right':
+        this.model3dViewer.setView('right');
+        this.model3dLastCommand.set(`${label} — Right view`);
+        break;
+      case 'iso':
+        this.model3dViewer.setView('iso');
+        this.model3dLastCommand.set(`${label} — Isometric view`);
+        break;
+      case 'wireframe': {
+        const on = this.model3dViewer.toggleWireframe();
+        this.model3dWireframe.set(on);
+        this.model3dLastCommand.set(`${label} — Wireframe ${on ? 'ON' : 'OFF'}`);
+        break;
+      }
+      case 'grid': {
+        const on = this.model3dViewer.toggleGrid();
+        this.model3dGrid.set(on);
+        this.model3dLastCommand.set(`${label} — Grid ${on ? 'ON' : 'OFF'}`);
+        break;
+      }
+      case 'axes': {
+        const on = this.model3dViewer.toggleAxes();
+        this.model3dAxes.set(on);
+        this.model3dLastCommand.set(`${label} — Axes ${on ? 'ON' : 'OFF'}`);
+        break;
+      }
+      case 'regen':
+        if (drawing) {
+          this.model3dViewer.loadDrawingModel(drawing);
+          this.model3dLastCommand.set(`${label} — Model regenerated`);
+        }
+        break;
+      default:
+        break;
+    }
+    this.scheduleModel3dLayoutRefresh();
+  }
+
+  model3dDialogTitle(): string {
+    const d = this.selected();
+    if (!d) {
+      return '3D model preview';
+    }
+    return `3D preview — ${d.sheet} · ${d.title}`;
   }
 
   onFilterChange(value: string): void {
@@ -272,6 +404,17 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
     }
     this.bumpToolbar();
     this.cdr.detectChanges();
+  }
+
+  private scheduleModel3dLayoutRefresh(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      this.model3dViewer.refreshLayout();
+      this.cdr.detectChanges();
+    });
+    window.setTimeout(() => this.model3dViewer.refreshLayout(), 120);
   }
 
   private scheduleLayoutRefresh(): void {
