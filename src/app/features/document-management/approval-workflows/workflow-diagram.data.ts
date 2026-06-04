@@ -88,6 +88,16 @@ export function lineCapFor(cornerStyle: EdgeStyle['cornerStyle']): 'butt' | 'rou
 
 
 
+/** Fillet radius at connector bends when corner style is rounded */
+
+export function cornerRadiusFor(strokeWidth: number): number {
+
+  return Math.max(10, 6 + strokeWidth * 3);
+
+}
+
+
+
 export const DIAGRAM_TOOLBOX: ToolboxItem[] = [
 
   { tool: 'select', label: 'Select', icon: 'pi pi-arrow-up-right', hint: 'Move shapes' },

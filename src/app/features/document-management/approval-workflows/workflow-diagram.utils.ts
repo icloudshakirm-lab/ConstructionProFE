@@ -2,6 +2,7 @@ import type {
   ConnectionPortHit,
   DiagramEdge,
   DiagramNode,
+  EdgeCornerStyle,
   EdgePath,
   EdgePort,
   EdgeSegmentHit,
@@ -13,6 +14,7 @@ import type {
   WorkflowDiagram
 } from './workflow-diagram.model';
 import {
+  cornerRadiusFor,
   defaultNodeVariant,
   lineCapFor,
   lineJoinFor,
@@ -164,8 +166,69 @@ export function polylinePoints(start: Point, end: Point, waypoints: Point[]): Po
   return [start, ...waypoints, end];
 }
 
-export function pathFromPoints(points: Point[]): string {
+export function pathFromPointsSharp(points: Point[]): string {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+}
+
+function distPoints(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function unitVector(from: Point, to: Point): Point {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: dx / len, y: dy / len };
+}
+
+/** Rounded fillets at each bend (quadratic curves through corner points) */
+export function pathFromPointsRounded(points: Point[], radius: number): string {
+  if (points.length < 2) {
+    return '';
+  }
+  if (points.length === 2) {
+    return pathFromPointsSharp(points);
+  }
+
+  const parts: string[] = [`M ${points[0].x} ${points[0].y}`];
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const corner = points[i];
+    const next = points[i + 1];
+
+    const inLen = distPoints(prev, corner);
+    const outLen = distPoints(corner, next);
+    const trim = Math.min(radius, inLen * 0.48, outLen * 0.48);
+
+    if (trim < 1.5) {
+      parts.push(`L ${corner.x} ${corner.y}`);
+      continue;
+    }
+
+    const inDir = unitVector(corner, prev);
+    const outDir = unitVector(corner, next);
+    const entry = { x: corner.x + inDir.x * trim, y: corner.y + inDir.y * trim };
+    const exit = { x: corner.x + outDir.x * trim, y: corner.y + outDir.y * trim };
+
+    parts.push(`L ${entry.x} ${entry.y}`);
+    parts.push(`Q ${corner.x} ${corner.y} ${exit.x} ${exit.y}`);
+  }
+
+  const last = points[points.length - 1];
+  parts.push(`L ${last.x} ${last.y}`);
+  return parts.join(' ');
+}
+
+export function pathFromPoints(
+  points: Point[],
+  cornerStyle: EdgeCornerStyle = 'sharp',
+  strokeWidth = 2
+): string {
+  if (cornerStyle === 'rounded') {
+    return pathFromPointsRounded(points, cornerRadiusFor(strokeWidth));
+  }
+  return pathFromPointsSharp(points);
 }
 
 export function labelAtPolyline(points: Point[]): { x: number; y: number } {
@@ -343,7 +406,7 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
     const style = resolveEdgeStyle(edge);
     const path: EdgePath = {
       id: edge.id,
-      d: pathFromPoints(poly),
+      d: pathFromPoints(poly, style.cornerStyle, style.strokeWidth),
       labelX: labelPos.x,
       labelY: labelPos.y,
       stroke: style.color,
