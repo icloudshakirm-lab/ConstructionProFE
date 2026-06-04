@@ -21,6 +21,7 @@
         filterPlaceholder="Search project…"
         [ngModel]="selectedProjectId()"
         (ngModelChange)="onProjectChange($event)"
+        appendTo="body"
         [style]="{ minWidth: 'min(320px, 92vw)' }"
       />
     </div>
@@ -80,95 +81,289 @@
     </div>
 
     @if (viewMode() === 'hierarchy') {
+      <div
+        class="wbs-page__hierarchy-panel"
+        [class.wbs-page__hierarchy-panel--expanded]="isChartExpanded()"
+      >
       <p-card styleClass="wbs-page__hierarchy-card">
         <ng-template pTemplate="title">WBS hierarchy</ng-template>
-        <ng-template pTemplate="subtitle">
-          Project → site → milestone → tasks. Collapse branches with the node toggles.
-        </ng-template>
-        <div class="wbs-page__hierarchy-scroll" role="region" aria-label="Work breakdown hierarchy chart">
-          <p-organizationChart
-            [value]="hierarchyNodes()"
-            [collapsible]="true"
-            [preserveSpace]="false"
-          >
-            <ng-template let-node pTemplate="project">
+        <ng-template pTemplate="subtitle">{{ hierarchySubtitle() }}</ng-template>
+
+          <div class="wbs-page__hierarchy-toolbar" role="toolbar" aria-label="Hierarchy chart controls">
+            <div class="wbs-page__hierarchy-toolbar-group">
+              <div class="wbs-page__view-toggle" role="group" aria-label="Chart orientation">
+                <span class="wbs-page__field-label">Layout</span>
+                <button
+                  type="button"
+                  class="wbs-page__view-pill"
+                  [class.wbs-page__view-pill--active]="hierarchyOrientation() === 'horizontal'"
+                  (click)="setHierarchyOrientation('horizontal')"
+                  [attr.aria-pressed]="hierarchyOrientation() === 'horizontal'"
+                >
+                  <i class="pi pi-arrow-right-arrow-left" aria-hidden="true"></i>
+                  Left to right
+                </button>
+                <button
+                  type="button"
+                  class="wbs-page__view-pill"
+                  [class.wbs-page__view-pill--active]="hierarchyOrientation() === 'vertical'"
+                  (click)="setHierarchyOrientation('vertical')"
+                  [attr.aria-pressed]="hierarchyOrientation() === 'vertical'"
+                >
+                  <i class="pi pi-arrow-down" aria-hidden="true"></i>
+                  Top to bottom
+                </button>
+              </div>
+            </div>
+            <div class="wbs-page__hierarchy-toolbar-actions">
+              <span class="wbs-page__field-label wbs-page__hierarchy-toolbar-kpi" aria-live="polite">
+                {{ stats().sites }} sites · {{ stats().milestones }} milestones · {{ stats().tasks }} tasks
+              </span>
+              <p-button
+                [label]="isChartExpanded() ? 'Exit full screen' : 'Full screen'"
+                [icon]="isChartExpanded() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+                [outlined]="true"
+                (onClick)="toggleChartExpanded()"
+                [attr.aria-label]="
+                  isChartExpanded() ? 'Exit full screen' : 'Expand hierarchy chart to full screen'
+                "
+                [attr.aria-pressed]="isChartExpanded()"
+              />
+            </div>
+          </div>
+
+          <div class="wbs-page__hierarchy-scroll" role="region" aria-label="Work breakdown hierarchy chart">
+            @if (hierarchyOrientation() === 'horizontal') {
+          <div class="wbs-h-lr">
+            <article class="wbs-h-lr__cell">
               <div class="wbs-h-node wbs-h-node--project">
                 <i class="pi pi-briefcase" aria-hidden="true"></i>
                 <div>
-                  <strong>{{ node.data.title }}</strong>
-                  <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
+                  <strong>{{ wbs.projectName }}</strong>
+                  <div class="wbs-h-node__sub">
+                    {{ wbs.sites.length }} sites · {{ stats().tasks }} tasks
+                  </div>
                 </div>
               </div>
-            </ng-template>
+            </article>
 
-            <ng-template let-node pTemplate="site">
-              <div class="wbs-h-node wbs-h-node--site">
-                <i class="pi pi-map-marker" aria-hidden="true"></i>
-                <div>
-                  <strong>{{ node.data.title }}</strong>
-                  <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
-                  <div class="wbs-h-node__meta">{{ node.data.milestoneCount }} milestones</div>
-                </div>
-              </div>
-            </ng-template>
+            @if (wbs.sites.length) {
+              <span class="wbs-h-lr__hline" aria-hidden="true"></span>
+              <div class="wbs-h-lr__group">
+                @for (site of wbs.sites; track site.id) {
+                  <div class="wbs-h-lr__row">
+                    <article class="wbs-h-lr__cell">
+                      <div class="wbs-h-node wbs-h-node--site">
+                        <button
+                          type="button"
+                          class="wbs-h-lr__toggle"
+                          (click)="toggleSite(site.id)"
+                          [attr.aria-expanded]="isSiteExpanded(site.id)"
+                          [attr.aria-label]="
+                            (isSiteExpanded(site.id) ? 'Collapse' : 'Expand') + ' site ' + site.name
+                          "
+                        >
+                          <i
+                            class="pi"
+                            [class.pi-chevron-right]="!isSiteExpanded(site.id)"
+                            [class.pi-chevron-down]="isSiteExpanded(site.id)"
+                          ></i>
+                        </button>
+                        <i class="pi pi-map-marker" aria-hidden="true"></i>
+                        <div>
+                          <strong>{{ site.name }}</strong>
+                          <div class="wbs-h-node__sub">{{ site.location }}</div>
+                          <div class="wbs-h-node__meta">{{ site.milestones.length }} milestones</div>
+                        </div>
+                      </div>
+                    </article>
 
-            <ng-template let-node pTemplate="milestone">
-              <div class="wbs-h-node wbs-h-node--milestone">
-                <span
-                  class="wbs-priority-bar wbs-h-node__priority-bar"
-                  [class]="priorityBarClass(node.data.priority)"
-                  aria-hidden="true"
-                ></span>
-                <i class="pi pi-flag" aria-hidden="true"></i>
-                <div>
-                  <strong>{{ node.data.title }}</strong>
-                  @if (node.data.targetDate) {
-                    <div class="wbs-h-node__sub wbs-h-node__date-line">
-                      Target {{ formatDisplayDate(node.data.targetDate) }}
-                    </div>
-                  }
-                  <div class="wbs-h-node__meta">{{ node.data.taskCount }} tasks</div>
-                </div>
-                <p-button
-                  icon="pi pi-pencil"
-                  [text]="true"
-                  size="small"
-                  (onClick)="scrollToEditor(node.data.siteId, node.data.id)"
-                  ariaLabel="Edit tasks in list view"
-                />
-              </div>
-            </ng-template>
+                    @if (isSiteExpanded(site.id) && site.milestones.length) {
+                      <span class="wbs-h-lr__hline" aria-hidden="true"></span>
+                      <div class="wbs-h-lr__group">
+                        @for (milestone of site.milestones; track milestone.id) {
+                          <div class="wbs-h-lr__row">
+                            <article class="wbs-h-lr__cell">
+                              <div class="wbs-h-node wbs-h-node--milestone">
+                                <span
+                                  class="wbs-priority-bar wbs-priority-bar--horizontal wbs-h-node__priority-bar"
+                                  [class]="priorityBarClass(milestone.priority)"
+                                  aria-hidden="true"
+                                ></span>
+                                <div class="wbs-h-node__body">
+                                  <button
+                                    type="button"
+                                    class="wbs-h-lr__toggle"
+                                    (click)="toggleMilestone(milestone.id)"
+                                    [attr.aria-expanded]="isMilestoneExpanded(milestone.id)"
+                                    [attr.aria-label]="
+                                      (isMilestoneExpanded(milestone.id) ? 'Collapse' : 'Expand') +
+                                      ' milestone ' +
+                                      milestone.name
+                                    "
+                                  >
+                                    <i
+                                      class="pi"
+                                      [class.pi-chevron-right]="!isMilestoneExpanded(milestone.id)"
+                                      [class.pi-chevron-down]="isMilestoneExpanded(milestone.id)"
+                                    ></i>
+                                  </button>
+                                  <i class="pi pi-flag" aria-hidden="true"></i>
+                                  <div>
+                                    <strong>{{ milestone.name }}</strong>
+                                    @if (milestone.targetDate) {
+                                      <div class="wbs-h-node__sub wbs-h-node__date-line">
+                                        Target {{ formatDisplayDate(milestone.targetDate) }}
+                                      </div>
+                                    }
+                                    <div class="wbs-h-node__meta">{{ milestone.tasks.length }} tasks</div>
+                                  </div>
+                                  <p-button
+                                    icon="pi pi-pencil"
+                                    [text]="true"
+                                    size="small"
+                                    (onClick)="scrollToEditor(site.id, milestone.id)"
+                                    ariaLabel="Edit tasks in list view"
+                                  />
+                                </div>
+                              </div>
+                            </article>
 
-            <ng-template let-node pTemplate="tasks">
-              <div class="wbs-h-tasks-column">
-                @if (node.data.empty) {
-                  <div class="wbs-h-node wbs-h-node--task wbs-h-node--empty">No tasks</div>
-                }
-                @for (t of node.data.items; track t.id) {
-                  <div class="wbs-h-node wbs-h-node--task" [class.wbs-h-node--unassigned]="t.unassigned">
-                    <span
-                      class="wbs-priority-bar wbs-h-node__priority-bar"
-                      [class]="priorityBarClass(t.priority)"
-                      [attr.title]="'Priority: ' + t.priority"
-                      aria-hidden="true"
-                    ></span>
-                    <i class="pi pi-check-square" aria-hidden="true"></i>
-                    <div>
-                      <strong [title]="t.title">{{ t.title }}</strong>
-                      <div class="wbs-h-node__sub">{{ t.responsible }}</div>
-                      <div class="wbs-h-node__date-line">{{ formatDisplayDate(t.dueDate) }}</div>
-                    </div>
+                            @if (isMilestoneExpanded(milestone.id)) {
+                              <span class="wbs-h-lr__hline" aria-hidden="true"></span>
+                              <div class="wbs-h-lr__tasks">
+                                @if (!milestone.tasks.length) {
+                                  <div class="wbs-h-node wbs-h-node--task wbs-h-node--empty">No tasks</div>
+                                }
+                                @for (task of milestone.tasks; track task.id) {
+                                  <div
+                                    class="wbs-h-node wbs-h-node--task"
+                                    [class.wbs-h-node--unassigned]="!task.responsiblePersonId"
+                                  >
+                                    <span
+                                      class="wbs-priority-bar wbs-priority-bar--horizontal wbs-h-node__priority-bar"
+                                      [class]="priorityBarClass(task.priority)"
+                                      [attr.title]="'Priority: ' + task.priority"
+                                      aria-hidden="true"
+                                    ></span>
+                                    <div class="wbs-h-node__body">
+                                      <i class="pi pi-check-square" aria-hidden="true"></i>
+                                      <div>
+                                        <strong [title]="task.name">{{ task.name }}</strong>
+                                        <div class="wbs-h-node__sub">
+                                          {{ responsibleLabel(task.responsiblePersonId) }}
+                                        </div>
+                                        <div class="wbs-h-node__date-line">
+                                          {{ formatDisplayDate(task.dueDate) }}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
                   </div>
                 }
               </div>
-            </ng-template>
-          </p-organizationChart>
-        </div>
-        <p class="wbs-page__hierarchy-hint">
-          Switch to <strong>Task editor</strong> to change task names, assign responsible persons, or add
-          tasks.
-        </p>
+            }
+          </div>
+            } @else {
+              <p-organizationChart
+                [value]="hierarchyNodes()"
+                [collapsible]="true"
+                [preserveSpace]="false"
+              >
+                <ng-template let-node pTemplate="project">
+                  <div class="wbs-h-node wbs-h-node--project">
+                    <i class="pi pi-briefcase" aria-hidden="true"></i>
+                    <div>
+                      <strong>{{ node.data.title }}</strong>
+                      <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
+                    </div>
+                  </div>
+                </ng-template>
+
+                <ng-template let-node pTemplate="site">
+                  <div class="wbs-h-node wbs-h-node--site">
+                    <i class="pi pi-map-marker" aria-hidden="true"></i>
+                    <div>
+                      <strong>{{ node.data.title }}</strong>
+                      <div class="wbs-h-node__sub">{{ node.data.subtitle }}</div>
+                      <div class="wbs-h-node__meta">{{ node.data.milestoneCount }} milestones</div>
+                    </div>
+                  </div>
+                </ng-template>
+
+                <ng-template let-node pTemplate="milestone">
+                  <div class="wbs-h-node wbs-h-node--milestone">
+                    <span
+                      class="wbs-priority-bar wbs-priority-bar--horizontal wbs-h-node__priority-bar"
+                      [class]="priorityBarClass(node.data.priority)"
+                      aria-hidden="true"
+                    ></span>
+                    <div class="wbs-h-node__body">
+                      <i class="pi pi-flag" aria-hidden="true"></i>
+                      <div>
+                        <strong>{{ node.data.title }}</strong>
+                        @if (node.data.targetDate) {
+                          <div class="wbs-h-node__sub wbs-h-node__date-line">
+                            Target {{ formatDisplayDate(node.data.targetDate) }}
+                          </div>
+                        }
+                        <div class="wbs-h-node__meta">{{ node.data.taskCount }} tasks</div>
+                      </div>
+                      <p-button
+                        icon="pi pi-pencil"
+                        [text]="true"
+                        size="small"
+                        (onClick)="scrollToEditor(node.data.siteId, node.data.id)"
+                        ariaLabel="Edit tasks in list view"
+                      />
+                    </div>
+                  </div>
+                </ng-template>
+
+                <ng-template let-node pTemplate="tasks">
+                  <div class="wbs-h-tasks-column">
+                    @if (node.data.empty) {
+                      <div class="wbs-h-node wbs-h-node--task wbs-h-node--empty">No tasks</div>
+                    }
+                    @for (t of node.data.items; track t.id) {
+                      <div class="wbs-h-node wbs-h-node--task" [class.wbs-h-node--unassigned]="t.unassigned">
+                        <span
+                          class="wbs-priority-bar wbs-priority-bar--horizontal wbs-h-node__priority-bar"
+                          [class]="priorityBarClass(t.priority)"
+                          [attr.title]="'Priority: ' + t.priority"
+                          aria-hidden="true"
+                        ></span>
+                        <div class="wbs-h-node__body">
+                          <i class="pi pi-check-square" aria-hidden="true"></i>
+                          <div>
+                            <strong [title]="t.title">{{ t.title }}</strong>
+                            <div class="wbs-h-node__sub">{{ t.responsible }}</div>
+                            <div class="wbs-h-node__date-line">{{ formatDisplayDate(t.dueDate) }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </ng-template>
+              </p-organizationChart>
+            }
+          </div>
+
+        @if (!isChartExpanded()) {
+          <p class="wbs-page__hierarchy-hint">
+            Switch to <strong>Task editor</strong> to change task names, assign responsible persons, or add
+            tasks.
+          </p>
+        }
       </p-card>
+      </div>
     }
 
     @if (viewMode() === 'editor') {
@@ -271,6 +466,7 @@
                               optionValue="value"
                               [ngModel]="milestone.priority"
                               (ngModelChange)="updateMilestonePriority(site.id, milestone.id, $event)"
+                              appendTo="body"
                               [style]="{ width: '100%' }"
                               aria-label="Milestone priority"
                             />
@@ -315,6 +511,7 @@
                                 optionValue="value"
                                 [ngModel]="task.priority"
                                 (ngModelChange)="updateTaskPriority(site.id, milestone.id, task.id, $event)"
+                                appendTo="body"
                                 [style]="{ width: '100%' }"
                                 [attr.aria-label]="'Priority for ' + task.name"
                               />
@@ -339,6 +536,7 @@
                                 [ngModel]="task.responsiblePersonId"
                                 (ngModelChange)="updateTaskResponsible(site.id, milestone.id, task.id, $event)"
                                 placeholder="Select responsible…"
+                                appendTo="body"
                                 [style]="{ width: '100%', minWidth: '200px' }"
                                 [class.wbs-tasks-table__select--unassigned]="!task.responsiblePersonId"
                               />

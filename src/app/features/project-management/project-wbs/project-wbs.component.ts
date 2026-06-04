@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MenuItem, PrimeTemplate } from 'primeng/api';
@@ -27,6 +27,7 @@ import {
 } from './project-wbs-priority';
 
 export type WbsViewMode = 'hierarchy' | 'editor';
+export type WbsHierarchyOrientation = 'horizontal' | 'vertical';
 
 @Component({
   selector: 'app-project-wbs',
@@ -44,7 +45,7 @@ export type WbsViewMode = 'hierarchy' | 'editor';
   templateUrl: './project-wbs.component.html',
   styleUrl: './project-wbs.component.scss'
 })
-export class ProjectWbsComponent {
+export class ProjectWbsComponent implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
 
   readonly projectOptions = WBS_PROJECT_OPTIONS;
@@ -56,6 +57,8 @@ export class ProjectWbsComponent {
 
   readonly selectedProjectId = signal('P-001');
   readonly viewMode = signal<WbsViewMode>('hierarchy');
+  readonly hierarchyOrientation = signal<WbsHierarchyOrientation>('horizontal');
+  readonly isChartExpanded = signal(false);
   readonly wbsStore = signal<Record<string, ProjectWbs>>(buildInitialWbsStore());
   readonly expandedSites = signal<Set<string>>(new Set());
   readonly expandedMilestones = signal<Set<string>>(new Set());
@@ -69,6 +72,12 @@ export class ProjectWbsComponent {
     const wbs = this.currentWbs();
     return wbs ? buildWbsHierarchyChart(wbs) : [];
   });
+
+  readonly hierarchySubtitle = computed(() =>
+    this.hierarchyOrientation() === 'horizontal'
+      ? 'Left to right: project → site → milestone → tasks. Use chevrons to collapse branches.'
+      : 'Top to bottom: project → site → milestone → tasks. Use node toggles to collapse branches.'
+  );
 
   readonly stats = computed(() => {
     const wbs = this.currentWbs();
@@ -104,8 +113,42 @@ export class ProjectWbsComponent {
   priorityBarClass = priorityBarClass;
   priorityTagSeverity = priorityTagSeverity;
 
+  ngOnDestroy(): void {
+    this.setChartExpanded(false);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+  }
+
   setViewMode(mode: WbsViewMode): void {
+    if (mode !== 'hierarchy') {
+      this.setChartExpanded(false);
+    }
     this.viewMode.set(mode);
+  }
+
+  setHierarchyOrientation(orientation: WbsHierarchyOrientation): void {
+    this.hierarchyOrientation.set(orientation);
+  }
+
+  toggleChartExpanded(): void {
+    this.setChartExpanded(!this.isChartExpanded());
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isChartExpanded()) {
+      this.setChartExpanded(false);
+    }
+  }
+
+  private setChartExpanded(expanded: boolean): void {
+    this.isChartExpanded.set(expanded);
+    if (typeof document === 'undefined') return;
+    const overflow = expanded ? 'hidden' : '';
+    document.documentElement.style.overflow = overflow;
+    document.body.style.overflow = overflow;
   }
 
   scrollToEditor(siteId: string, milestoneId: string): void {
