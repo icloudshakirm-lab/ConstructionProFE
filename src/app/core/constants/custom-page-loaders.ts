@@ -59,5 +59,13 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'project-wbs': () =>
     import('../../features/project-management/project-wbs/project-wbs.component').then(
       (m) => m.ProjectWbsComponent
+    ),
+  'gps-tracking': () =>
+    import('../../features/site-mobile/gps-tracking/gps-tracking.component').then(
+      (m) => m.GpsTrackingComponent
+    ),
+  'vehicle-tracking': () =>
+    import('../../features/site-mobile/vehicle-tracking/vehicle-tracking.component').then(
+      (m) => m.VehicleTrackingComponent
     )
 };

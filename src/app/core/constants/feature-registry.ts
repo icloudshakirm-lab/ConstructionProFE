@@ -500,14 +500,16 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'GPS Tracking',
         description: 'Live location tracking for staff and critical assets.',
         icon: 'pi pi-compass',
-        highlights: ['Live map', 'History trail', 'Alerts']
+        highlights: ['Live map', 'History trail', 'Alerts'],
+        component: 'gps-tracking'
       },
       {
         id: 'vehicle-tracking',
         title: 'Track Vehicles',
         description: 'Fleet GPS for dumpers, pickups, and delivery vehicles.',
         icon: 'pi pi-car',
-        highlights: ['Speed alerts', 'Route replay', 'Idle time']
+        highlights: ['Speed alerts', 'Route replay', 'Idle time'],
+        component: 'vehicle-tracking'
       },
       {
         id: 'equipment-locations',

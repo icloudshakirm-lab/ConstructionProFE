@@ -1,0 +1,310 @@
+.gps-tracking-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.gps-tracking-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  h1 {
+    margin: 0.35rem 0 0;
+    font-size: 1.75rem;
+  }
+}
+
+.gps-tracking-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  max-width: 52rem;
+}
+
+.gps-tracking-page__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gps-tracking-page__body {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  min-width: 0;
+  min-height: min(72vh, 680px);
+}
+
+.gps-tracking-page__map-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  background: var(--cp-panel-bg);
+}
+
+.gps-tracking-page__map-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.gps-tracking-page__checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  label {
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
+.gps-tracking-page__map-meta {
+  color: var(--p-text-muted-color);
+}
+
+.gps-tracking-page__map {
+  flex: 1;
+  min-height: 420px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--p-content-border-color);
+}
+
+.gps-tracking-page__list-panel {
+  flex: 0 0 min(380px, 38vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  min-height: 0;
+}
+
+.gps-tracking-page__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gps-tracking-page__search {
+  width: 100%;
+
+  input {
+    width: 100%;
+  }
+}
+
+.gps-tracking-page__list-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  line-height: 1.4;
+}
+
+.gps-tracking-page__row-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+:host ::ng-deep {
+  .gps-tracking-page__map .leaflet-container {
+    width: 100%;
+    height: 100%;
+    font-family: inherit;
+  }
+
+  .gps-tracking-page__table {
+    flex: 1;
+    min-height: 0;
+
+    .p-datatable-wrapper {
+      max-height: min(52vh, 520px);
+    }
+  }
+
+  .gps-tracking-page__row--active > td {
+    background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  }
+
+  .gps-tracking-page__table small {
+    display: block;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+  }
+
+  .gps-tracking-marker {
+    background: transparent;
+    border: none;
+    position: relative;
+  }
+
+  .gps-tracking-marker__ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2px solid;
+    border-radius: 50%;
+    opacity: 0.55;
+  }
+
+  .gps-tracking-marker--selected .gps-tracking-marker__ring {
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    opacity: 1;
+    animation: gps-marker-pulse 1.5s ease-in-out infinite;
+  }
+
+  .gps-tracking-marker__dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    border: 2px solid #f8fafc;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  }
+
+  @keyframes gps-marker-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.08);
+    }
+  }
+
+  .gps-tracking-popup {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+
+    strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.9375rem;
+    }
+  }
+}
+
+.gps-tracking-page__body:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: 0.65rem;
+  box-sizing: border-box;
+  background: var(--cp-panel-bg);
+}
+
+.gps-tracking-page__body:fullscreen .gps-tracking-page__map-section {
+  flex: 1;
+}
+
+.gps-tracking-page__body:fullscreen .gps-tracking-page__map {
+  min-height: 0;
+  height: 100%;
+}
+
+.gps-tracking-page__body:fullscreen .gps-tracking-page__list-panel {
+  max-height: 100vh;
+}
+
+.gps-tracking-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+}
+
+.gps-tracking-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+
+  dt {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+  }
+
+  dd {
+    margin: 0.1rem 0 0;
+    font-size: 0.875rem;
+  }
+}
+
+.gps-tracking-detail__section {
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+.gps-tracking-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gps-tracking-detail__audit {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.35rem;
+    background: var(--cp-subtle-bg);
+    border: 1px solid var(--p-content-border-color);
+  }
+
+  time {
+    font-variant-numeric: tabular-nums;
+    color: var(--p-text-muted-color);
+    white-space: nowrap;
+  }
+
+  em {
+    font-style: normal;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+  }
+}

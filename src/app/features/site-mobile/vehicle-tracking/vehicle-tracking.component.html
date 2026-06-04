@@ -1,0 +1,440 @@
+<div class="vehicle-tracking-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="vehicle-tracking-page__header">
+    <div>
+      <p-tag value="Site Mobile · Fleet GPS" severity="warn" />
+      <h1>Track Vehicles</h1>
+      <p class="vehicle-tracking-page__subtitle">
+        Fleet telematics for dumpers, pickups, and delivery vehicles — live map, route replay, speed alerts,
+        and idle time. Connect your GPS provider API when ready.
+      </p>
+    </div>
+    <div class="vehicle-tracking-page__header-actions">
+      <p-button label="Add vehicle" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Fit all" icon="pi pi-map" [outlined]="true" (onClick)="fitAll()" />
+      <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" (onClick)="refreshPositions()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+      <p-button
+        [label]="isFullscreen() ? 'Exit full screen' : 'Full screen map'"
+        [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+        [outlined]="true"
+        (onClick)="toggleFullscreen()"
+      />
+    </div>
+  </header>
+
+  <div #mapFullscreenHost class="vehicle-tracking-page__body">
+    <section class="vehicle-tracking-page__map-section" aria-label="Fleet vehicle map">
+      <div class="vehicle-tracking-page__map-toolbar">
+        <div class="vehicle-tracking-page__toolbar-checks">
+          <div class="vehicle-tracking-page__checkbox-wrap">
+            <p-checkbox
+              [ngModel]="showRouteReplay()"
+              (ngModelChange)="showRouteReplay.set($event)"
+              [binary]="true"
+              inputId="fleetShowRoutes"
+            />
+            <label for="fleetShowRoutes">Route replay</label>
+          </div>
+          <div class="vehicle-tracking-page__checkbox-wrap">
+            <p-checkbox
+              [ngModel]="alertsOnly()"
+              (ngModelChange)="alertsOnly.set($event)"
+              [binary]="true"
+              inputId="fleetAlertsOnly"
+            />
+            <label for="fleetAlertsOnly">Alerts &amp; idle only</label>
+          </div>
+        </div>
+        <span class="vehicle-tracking-page__map-meta">
+          {{ filteredVehicles().length }} vehicles · Last refresh
+          {{ lastRefreshed() | date: 'shortTime' }}
+        </span>
+      </div>
+      <div
+        #mapContainer
+        class="vehicle-tracking-page__map"
+        role="application"
+        aria-label="Vehicle fleet tracking map"
+      ></div>
+    </section>
+
+    <aside class="vehicle-tracking-page__list-panel" aria-label="Vehicle list and filters">
+      <div class="vehicle-tracking-page__filters">
+        <p-select
+          [options]="projectOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterPlaceholder="Project…"
+          [ngModel]="projectFilter()"
+          (ngModelChange)="onProjectFilter($event)"
+          placeholder="Project"
+          [style]="{ width: '100%' }"
+        />
+        <p-select
+          [options]="vehicleTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="vehicleTypeFilter()"
+          (ngModelChange)="onVehicleTypeFilter($event)"
+          placeholder="Vehicle type"
+          [style]="{ width: '100%' }"
+        />
+        <p-select
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="onStatusFilter($event)"
+          placeholder="Status"
+          [style]="{ width: '100%' }"
+        />
+        <p-iconfield iconPosition="left" class="vehicle-tracking-page__search">
+          <p-inputicon styleClass="pi pi-search" />
+          <input
+            type="text"
+            pInputText
+            placeholder="Search plate, driver, device…"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event)"
+          />
+        </p-iconfield>
+      </div>
+
+      <p-table
+        [value]="filteredVehicles()"
+        [rows]="8"
+        [paginator]="filteredVehicles().length > 8"
+        selectionMode="single"
+        dataKey="id"
+        styleClass="vehicle-tracking-page__table"
+        [scrollable]="true"
+        scrollHeight="420px"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Vehicle</th>
+            <th>Speed</th>
+            <th>Status</th>
+            <th style="width: 9.5rem">Actions</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr
+            [class.vehicle-tracking-page__row--active]="selectedId() === row.id"
+            [class.vehicle-tracking-page__row--alert]="row.status === 'speeding'"
+            (click)="selectVehicle(row)"
+          >
+            <td>
+              <strong>{{ row.name }}</strong>
+              <small>{{ row.plateNumber }} · {{ row.driverName }}</small>
+            </td>
+            <td [class.vehicle-tracking-page__speed--over]="isOverSpeed(row)">
+              {{ speedDisplay(row) }}
+            </td>
+            <td>
+              <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+            </td>
+            <td>
+              <div class="vehicle-tracking-page__row-actions" (click)="$event.stopPropagation()">
+                <p-button
+                  icon="pi pi-map-marker"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  title="Show on map"
+                  (onClick)="selectVehicle(row)"
+                />
+                <p-button
+                  icon="pi pi-pencil"
+                  [rounded]="true"
+                  [text]="true"
+                  title="Edit vehicle"
+                  (onClick)="openEdit(row)"
+                />
+                <p-button
+                  icon="pi pi-eye"
+                  [rounded]="true"
+                  [text]="true"
+                  title="Details"
+                  (onClick)="openDetail(row)"
+                />
+                <p-button
+                  icon="pi pi-trash"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="danger"
+                  title="Delete vehicle"
+                  (onClick)="requestDelete(row)"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="4">No vehicles match the current filters.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <p class="vehicle-tracking-page__list-hint">
+        Add or edit vehicle register data here. Live GPS speed, position, and routes come from telematics when connected.
+      </p>
+    </aside>
+  </div>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 94vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  <form class="vehicle-form" [formGroup]="vehicleForm" (ngSubmit)="saveVehicle()">
+    @if (formError(); as err) {
+      <p class="vehicle-form__error">{{ err }}</p>
+    }
+    <p class="vehicle-form__hint">
+      Register fleet master data only. Position, speed, fuel, and route replay are filled by your GPS API — not edited here.
+    </p>
+
+    <div class="vehicle-form__field">
+      <label for="vehName">Vehicle name <span aria-hidden="true">*</span></label>
+      <input id="vehName" type="text" pInputText formControlName="name" class="vehicle-form__input" />
+      @if (fieldInvalid('name')) {
+        <small class="vehicle-form__invalid">Name is required (max 80 characters).</small>
+      }
+    </div>
+
+    <div class="vehicle-form__field">
+      <label for="vehPlate">Plate number <span aria-hidden="true">*</span></label>
+      <input id="vehPlate" type="text" pInputText formControlName="plateNumber" class="vehicle-form__input" />
+      @if (fieldInvalid('plateNumber')) {
+        <small class="vehicle-form__invalid">Plate number is required.</small>
+      }
+    </div>
+
+    <div class="vehicle-form__row">
+      <div class="vehicle-form__field">
+        <label for="vehType">Vehicle type <span aria-hidden="true">*</span></label>
+        <p-select
+          inputId="vehType"
+          formControlName="vehicleType"
+          [options]="formVehicleTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="vehicle-form__field">
+        <label for="vehLimit">Speed limit (km/h) <span aria-hidden="true">*</span></label>
+        <p-inputNumber
+          inputId="vehLimit"
+          formControlName="speedLimitKph"
+          [min]="10"
+          [max]="120"
+          [useGrouping]="false"
+          [style]="{ width: '100%' }"
+        />
+        @if (fieldInvalid('speedLimitKph')) {
+          <small class="vehicle-form__invalid">Enter a limit between 10 and 120 km/h.</small>
+        }
+      </div>
+    </div>
+
+    <div class="vehicle-form__field">
+      <label for="vehDriver">Driver / operator <span aria-hidden="true">*</span></label>
+      <p-select
+        inputId="vehDriver"
+        formControlName="driverEmployeeId"
+        [options]="driverEmployeeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterPlaceholder="Search employee…"
+        placeholder="Select driver or operator…"
+        [style]="{ width: '100%' }"
+      />
+      <small class="vehicle-form__help">Employees with designation Driver or Operator only.</small>
+      @if (fieldInvalid('driverEmployeeId')) {
+        <small class="vehicle-form__invalid">Select an employee from the list.</small>
+      }
+    </div>
+
+    <div class="vehicle-form__field">
+      <label for="vehProject">Project <span aria-hidden="true">*</span></label>
+      <p-select
+        inputId="vehProject"
+        formControlName="projectId"
+        [options]="formProjectOptions"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        [style]="{ width: '100%' }"
+      />
+      @if (fieldInvalid('projectId')) {
+        <small class="vehicle-form__invalid">Select a project.</small>
+      }
+    </div>
+
+    <div class="vehicle-form__field">
+      <label for="vehDevice">Telematics device ID</label>
+      <input
+        id="vehDevice"
+        type="text"
+        pInputText
+        formControlName="deviceId"
+        class="vehicle-form__input"
+        placeholder="e.g. FLT-GPS-1234 — links to GPS feed"
+      />
+      <small class="vehicle-form__help">Optional until your GPS provider is connected.</small>
+    </div>
+
+    <div class="vehicle-form__field">
+      <label for="vehNotes">Notes</label>
+      <textarea id="vehNotes" pTextarea formControlName="notes" rows="3" class="vehicle-form__input"></textarea>
+    </div>
+
+    <div class="vehicle-form__footer">
+      <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+      <p-button
+        [label]="formMode() === 'create' ? 'Add vehicle' : 'Save changes'"
+        icon="pi pi-check"
+        type="submit"
+      />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Delete vehicle?"
+  [visible]="deleteConfirmVisible()"
+  (visibleChange)="deleteConfirmVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(400px, 92vw)' }"
+  [draggable]="false"
+>
+  @if (vehicleToDelete(); as v) {
+    <p>
+      Remove <strong>{{ v.name }}</strong> ({{ v.plateNumber }}) from the fleet register? GPS history on the server is
+      not affected.
+    </p>
+    <div class="vehicle-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Vehicle detail"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(560px, 94vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailVehicle(); as v) {
+    <div class="vehicle-tracking-detail">
+      <div class="vehicle-tracking-detail__head">
+        <div>
+          <h2>{{ v.name }}</h2>
+          <span class="vehicle-tracking-detail__plate">{{ v.plateNumber }}</span>
+        </div>
+        <p-tag [value]="v.status" [severity]="statusSeverity(v.status)" />
+      </div>
+
+      <section class="vehicle-tracking-detail__section">
+        <h3>Fleet register</h3>
+        <dl class="vehicle-tracking-detail__grid">
+          <div><dt>Type</dt><dd>{{ typeLabel(v.vehicleType) }}</dd></div>
+          <div><dt>Driver</dt><dd>{{ v.driverName }}</dd></div>
+          <div><dt>Project</dt><dd>{{ v.projectName }}</dd></div>
+          <div><dt>Speed limit</dt><dd>{{ v.speedLimitKph }} km/h</dd></div>
+          <div><dt>Device ID</dt><dd>{{ v.deviceId || '—' }}</dd></div>
+          @if (v.notes) {
+            <div class="vehicle-tracking-detail__full">
+              <dt>Notes</dt>
+              <dd>{{ v.notes }}</dd>
+            </div>
+          }
+        </dl>
+        <p-button label="Edit vehicle" icon="pi pi-pencil" [outlined]="true" size="small" (onClick)="editFromDetail()" />
+      </section>
+
+      <section class="vehicle-tracking-detail__section vehicle-tracking-detail__section--gps">
+        <h3>Live GPS <span class="vehicle-tracking-detail__badge">from telematics</span></h3>
+        @if (!hasGpsLink(v)) {
+          <p class="vehicle-tracking-detail__empty">No device ID — assign one when editing to receive GPS data.</p>
+        }
+        <dl class="vehicle-tracking-detail__grid">
+          <div><dt>Status</dt><dd><p-tag [value]="v.status" [severity]="statusSeverity(v.status)" /></dd></div>
+          <div><dt>Coordinates</dt><dd>{{ v.lat.toFixed(6) }}, {{ v.lng.toFixed(6) }}</dd></div>
+          <div>
+            <dt>Speed</dt>
+            <dd [class.vehicle-tracking-detail__over]="isOverSpeed(v)">
+              {{ v.speedKph }} km/h
+            </dd>
+          </div>
+          <div><dt>Idle time</dt><dd>{{ idleDisplay(v) }}</dd></div>
+          <div><dt>Fuel</dt><dd>{{ v.fuelPct }}%</dd></div>
+          <div><dt>Odometer</dt><dd>{{ v.odometerKm | number }} km</dd></div>
+          <div><dt>Last update</dt><dd>{{ formatTime(v.lastUpdate) }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="vehicle-tracking-detail__section">
+        <h3>Role-based actions (demo)</h3>
+        <div class="vehicle-tracking-detail__actions">
+          <p-button label="Approve dispatch" icon="pi pi-check" [outlined]="true" size="small" />
+          <p-button
+            label="Acknowledge speed alert"
+            icon="pi pi-exclamation-triangle"
+            severity="warn"
+            [outlined]="true"
+            size="small"
+          />
+          <p-button label="Request maintenance" icon="pi pi-wrench" [outlined]="true" size="small" />
+        </div>
+      </section>
+
+      <section class="vehicle-tracking-detail__section">
+        <h3>Audit trail</h3>
+        <ul class="vehicle-tracking-detail__audit">
+          @for (entry of v.audit; track entry.at) {
+            <li>
+              <time>{{ entry.at }}</time>
+              <span>{{ entry.action }}</span>
+              <em>{{ entry.by }}</em>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="vehicle-tracking-detail__section">
+        <h3>Document attachments</h3>
+        @if (v.attachments.length) {
+          <ul class="vehicle-tracking-detail__attachments">
+            @for (file of v.attachments; track file.id) {
+              <li>
+                <i class="pi pi-file"></i>
+                <span>{{ file.name }}</span>
+                <small>{{ file.type }} · {{ file.uploadedAt }}</small>
+                <p-button icon="pi pi-download" [rounded]="true" [text]="true" size="small" title="Download" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="vehicle-tracking-detail__empty">No documents attached for this vehicle.</p>
+        }
+      </section>
+    </div>
+  }
+</p-dialog>

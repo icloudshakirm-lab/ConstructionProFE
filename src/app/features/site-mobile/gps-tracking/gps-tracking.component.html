@@ -1,0 +1,202 @@
+<div class="gps-tracking-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="gps-tracking-page__header">
+    <div>
+      <p-tag value="Site Mobile · Live map" severity="success" />
+      <h1>GPS Tracking</h1>
+      <p class="gps-tracking-page__subtitle">
+        Live location for site staff and critical assets. Filter the list, replay trails on the map, and
+        open detail for audit history — connect your telematics API when ready.
+      </p>
+    </div>
+    <div class="gps-tracking-page__header-actions">
+      <p-button label="Fit all" icon="pi pi-map" [outlined]="true" (onClick)="fitAll()" />
+      <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" (onClick)="refreshPositions()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+      <p-button
+        [label]="isFullscreen() ? 'Exit full screen' : 'Full screen map'"
+        [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+        [outlined]="true"
+        (onClick)="toggleFullscreen()"
+      />
+    </div>
+  </header>
+
+  <div #mapFullscreenHost class="gps-tracking-page__body">
+    <section class="gps-tracking-page__map-section" aria-label="Live GPS map">
+      <div class="gps-tracking-page__map-toolbar">
+        <div class="gps-tracking-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="showTrails()"
+            (ngModelChange)="showTrails.set($event)"
+            [binary]="true"
+            inputId="gpsShowTrails"
+          />
+          <label for="gpsShowTrails">Show history trails</label>
+        </div>
+        <span class="gps-tracking-page__map-meta">
+          {{ filteredTrackers().length }} on map · Last refresh
+          {{ lastRefreshed() | date: 'shortTime' }}
+        </span>
+      </div>
+      <div #mapContainer class="gps-tracking-page__map" role="application" aria-label="GPS tracking map"></div>
+    </section>
+
+    <aside class="gps-tracking-page__list-panel" aria-label="Tracker list and filters">
+      <div class="gps-tracking-page__filters">
+        <p-select
+          [options]="projectOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterPlaceholder="Project…"
+          [ngModel]="projectFilter()"
+          (ngModelChange)="onProjectFilter($event)"
+          placeholder="Project"
+          [style]="{ width: '100%' }"
+        />
+        <p-select
+          [options]="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="typeFilter()"
+          (ngModelChange)="onTypeFilter($event)"
+          placeholder="Type"
+          [style]="{ width: '100%' }"
+        />
+        <p-select
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="onStatusFilter($event)"
+          placeholder="Status"
+          [style]="{ width: '100%' }"
+        />
+        <p-iconfield iconPosition="left" class="gps-tracking-page__search">
+          <p-inputicon styleClass="pi pi-search" />
+          <input
+            type="text"
+            pInputText
+            placeholder="Search name, role, device…"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event)"
+          />
+        </p-iconfield>
+      </div>
+
+      <p-table
+        [value]="filteredTrackers()"
+        [rows]="8"
+        [paginator]="filteredTrackers().length > 8"
+        selectionMode="single"
+        dataKey="id"
+        styleClass="gps-tracking-page__table"
+        [scrollable]="true"
+        scrollHeight="420px"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th style="width: 7rem">Actions</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr
+            [class.gps-tracking-page__row--active]="selectedId() === row.id"
+            (click)="selectTracker(row)"
+          >
+            <td>
+              <strong>{{ row.name }}</strong>
+              <small>{{ row.role }} · {{ typeLabel(row.type) }}</small>
+            </td>
+            <td>
+              <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+            </td>
+            <td>
+              <div class="gps-tracking-page__row-actions" (click)="$event.stopPropagation()">
+                <p-button
+                  icon="pi pi-map-marker"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  title="Show on map"
+                  (onClick)="selectTracker(row)"
+                />
+                <p-button
+                  icon="pi pi-eye"
+                  [rounded]="true"
+                  [text]="true"
+                  title="Details"
+                  (onClick)="openDetail(row)"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="3">No trackers match the current filters.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <p class="gps-tracking-page__list-hint">
+        Row actions: center map · open detail with validation hooks and audit trail (demo data).
+      </p>
+    </aside>
+  </div>
+</div>
+
+<p-dialog
+  header="Tracker detail"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 94vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailTracker(); as t) {
+    <div class="gps-tracking-detail">
+      <div class="gps-tracking-detail__head">
+        <h2>{{ t.name }}</h2>
+        <p-tag [value]="t.status" [severity]="statusSeverity(t.status)" />
+      </div>
+      <dl class="gps-tracking-detail__grid">
+        <div><dt>Type</dt><dd>{{ typeLabel(t.type) }}</dd></div>
+        <div><dt>Role</dt><dd>{{ t.role }}</dd></div>
+        <div><dt>Project</dt><dd>{{ t.projectName }}</dd></div>
+        <div><dt>Device</dt><dd>{{ t.deviceId }}</dd></div>
+        <div><dt>Coordinates</dt><dd>{{ t.lat.toFixed(6) }}, {{ t.lng.toFixed(6) }}</dd></div>
+        <div><dt>Speed</dt><dd>{{ t.speedKph }} km/h</dd></div>
+        <div><dt>Battery</dt><dd>{{ t.batteryPct }}%</dd></div>
+        <div><dt>Last update</dt><dd>{{ formatTime(t.lastUpdate) }}</dd></div>
+      </dl>
+
+      <section class="gps-tracking-detail__section">
+        <h3>Role-based actions (demo)</h3>
+        <div class="gps-tracking-detail__actions">
+          <p-button label="Request check-in" icon="pi pi-check" [outlined]="true" size="small" />
+          <p-button label="Escalate alert" icon="pi pi-exclamation-triangle" severity="warn" [outlined]="true" size="small" />
+          <p-button label="Attach note" icon="pi pi-paperclip" [outlined]="true" size="small" />
+        </div>
+      </section>
+
+      <section class="gps-tracking-detail__section">
+        <h3>Audit trail</h3>
+        <ul class="gps-tracking-detail__audit">
+          @for (entry of t.audit; track entry.at) {
+            <li>
+              <time>{{ entry.at }}</time>
+              <span>{{ entry.action }}</span>
+              <em>{{ entry.by }}</em>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</p-dialog>
