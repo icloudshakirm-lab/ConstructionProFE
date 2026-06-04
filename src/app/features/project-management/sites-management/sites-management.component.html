@@ -1,0 +1,538 @@
+<div class="sites-mgmt-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="sites-mgmt-page__header">
+    <div>
+      <p-tag value="Project Management" severity="info" />
+      <h1>Sites</h1>
+      <p class="sites-mgmt-page__subtitle">
+        Manage site hierarchy, geofence zones, and site contacts. Each tab supports CRUD, export, approval
+        workflow, audit trail, and document attachments (demo).
+      </p>
+    </div>
+  </header>
+
+  <section class="sites-mgmt-page__toolbar" aria-label="Filters">
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [filter]="true"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 32vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 28vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="sites-mgmt-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search current tab…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+  </section>
+
+  <p-tabs class="sites-mgmt-page__tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist>
+      <p-tab value="hierarchy">Site hierarchy</p-tab>
+      <p-tab value="geofence">Geofence zones</p-tab>
+      <p-tab value="contacts">Site contacts</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <p-tabpanel value="hierarchy">
+        <div class="sites-mgmt-page__tab-bar">
+          <p-button label="Add site" icon="pi pi-plus" (onClick)="openCreate('site')" />
+          <span>{{ filteredSites().length }} site(s)</span>
+        </div>
+        <p-table
+          [value]="filteredSites()"
+          [rows]="10"
+          [paginator]="filteredSites().length > 10"
+          dataKey="id"
+          styleClass="sites-mgmt-page__table"
+          [scrollable]="true"
+          scrollHeight="420px"
+        >
+          <ng-template #header>
+            <tr>
+              <th>Hierarchy</th>
+              <th>Project</th>
+              <th>Location</th>
+              <th>Superintendent</th>
+              <th>Progress</th>
+              <th>Approval</th>
+              <th style="width: 9rem">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>
+                <span class="sites-mgmt-page__indent" [style.padding-left.px]="depth(row) * 18">
+                  @if (depth(row) > 0) {
+                    <i class="pi pi-angle-right sites-mgmt-page__child-icon" aria-hidden="true"></i>
+                  }
+                  <strong>{{ row.name }}</strong>
+                </span>
+                <small>{{ row.id }} · {{ row.operationalStatus }}</small>
+              </td>
+              <td>{{ row.projectName }}</td>
+              <td>{{ row.location }}</td>
+              <td>{{ row.superintendent }}</td>
+              <td>{{ row.progressPct }}%</td>
+              <td>
+                <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+              </td>
+              <td>
+                <div class="sites-mgmt-page__row-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailSite(row)" />
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditSite(row)" />
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="requestDelete('site', row.name, row.id)"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+
+      <p-tabpanel value="geofence">
+        <div class="sites-mgmt-page__tab-bar">
+          <p-button label="Add geofence" icon="pi pi-plus" (onClick)="openCreate('geofence')" />
+          <span>{{ filteredGeofences().length }} zone(s)</span>
+        </div>
+        <p-table
+          [value]="filteredGeofences()"
+          [rows]="10"
+          [paginator]="filteredGeofences().length > 10"
+          dataKey="id"
+          styleClass="sites-mgmt-page__table"
+          [scrollable]="true"
+          scrollHeight="420px"
+        >
+          <ng-template #header>
+            <tr>
+              <th>Zone</th>
+              <th>Site</th>
+              <th>Type</th>
+              <th>Alerts</th>
+              <th>Approval</th>
+              <th style="width: 9rem">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>
+                <strong>{{ row.name }}</strong>
+                <small>{{ row.id }} · {{ row.active ? 'Active' : 'Inactive' }}</small>
+              </td>
+              <td>{{ row.siteName }}</td>
+              <td>
+                {{ row.zoneType }}
+                @if (row.radiusM) {
+                  <small> · {{ row.radiusM }} m</small>
+                }
+              </td>
+              <td>
+                @if (row.entryAlert) {
+                  <span>Entry</span>
+                }
+                @if (row.exitAlert) {
+                  <span>Exit</span>
+                }
+              </td>
+              <td>
+                <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+              </td>
+              <td>
+                <div class="sites-mgmt-page__row-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailGeofence(row)" />
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditGeofence(row)" />
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="requestDelete('geofence', row.name, row.id)"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+
+      <p-tabpanel value="contacts">
+        <div class="sites-mgmt-page__tab-bar">
+          <p-button label="Add contact" icon="pi pi-plus" (onClick)="openCreate('contact')" />
+          <span>{{ filteredContacts().length }} contact(s)</span>
+        </div>
+        <p-table
+          [value]="filteredContacts()"
+          [rows]="10"
+          [paginator]="filteredContacts().length > 10"
+          dataKey="id"
+          styleClass="sites-mgmt-page__table"
+          [scrollable]="true"
+          scrollHeight="420px"
+        >
+          <ng-template #header>
+            <tr>
+              <th>Name</th>
+              <th>Site</th>
+              <th>Role</th>
+              <th>Contact</th>
+              <th>Approval</th>
+              <th style="width: 9rem">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr>
+              <td>
+                <strong>{{ row.name }}</strong>
+                @if (row.isPrimary) {
+                  <p-tag value="Primary" severity="info" class="sites-mgmt-page__primary-tag" />
+                }
+              </td>
+              <td>{{ row.siteName }}</td>
+              <td>{{ row.role }}</td>
+              <td>
+                <small>{{ row.phone }}</small>
+                <small>{{ row.email }}</small>
+              </td>
+              <td>
+                <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+              </td>
+              <td>
+                <div class="sites-mgmt-page__row-actions">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailContact(row)" />
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditContact(row)" />
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="requestDelete('contact', row.name, row.id)"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  styleClass="sites-form-dialog"
+  [contentStyle]="{ overflow: 'auto', maxHeight: 'min(70vh, 640px)' }"
+  [style]="{ width: 'min(540px, 94vw)' }"
+  (onHide)="closeForm()"
+>
+  @if (formError(); as err) {
+    <p class="sites-form__error">{{ err }}</p>
+  }
+
+  @switch (formKind()) {
+    @case ('site') {
+      <form class="sites-form" [formGroup]="siteForm" (ngSubmit)="saveForm()">
+        <div class="sites-form__field">
+          <label for="siteProject">Project *</label>
+          <p-select
+            inputId="siteProject"
+            formControlName="projectId"
+            [options]="projectFormOptions"
+            optionLabel="label"
+            optionValue="value"
+            appendTo="body"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+        <div class="sites-form__field">
+          <label for="siteParent">Parent site</label>
+          <p-select
+            inputId="siteParent"
+            formControlName="parentSiteId"
+            [options]="parentOptions()"
+            optionLabel="label"
+            optionValue="value"
+            appendTo="body"
+            [showClear]="true"
+            placeholder="Root site (no parent)"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+        <div class="sites-form__field">
+          <label>Site name *</label>
+          <input pInputText formControlName="name" class="sites-form__input" />
+        </div>
+        <div class="sites-form__row">
+          <div class="sites-form__field">
+            <label>Location *</label>
+            <input pInputText formControlName="location" class="sites-form__input" />
+          </div>
+          <div class="sites-form__field">
+            <label>Zone code</label>
+            <input pInputText formControlName="zoneCode" class="sites-form__input" />
+          </div>
+        </div>
+        <div class="sites-form__row">
+          <div class="sites-form__field">
+            <label>Superintendent *</label>
+            <input pInputText formControlName="superintendent" class="sites-form__input" />
+          </div>
+          <div class="sites-form__field">
+            <label>Progress %</label>
+            <p-inputNumber formControlName="progressPct" [min]="0" [max]="100" [useGrouping]="false" [style]="{ width: '100%' }" />
+          </div>
+        </div>
+        <div class="sites-form__field">
+          <label for="siteOperational">Operational status</label>
+          <p-select
+            inputId="siteOperational"
+            formControlName="operationalStatus"
+            [options]="operationalOptions"
+            optionLabel="label"
+            optionValue="value"
+            appendTo="body"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+        <div class="sites-form__footer">
+          <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+          <p-button label="Save" icon="pi pi-check" type="submit" />
+        </div>
+      </form>
+    }
+    @case ('geofence') {
+      <form class="sites-form" [formGroup]="geofenceForm" (ngSubmit)="saveForm()">
+        <div class="sites-form__field">
+          <label for="gfSite">Site *</label>
+          <p-select
+            inputId="gfSite"
+            formControlName="siteId"
+            [options]="siteSelectOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            appendTo="body"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+        <div class="sites-form__field">
+          <label>Zone name *</label>
+          <input pInputText formControlName="name" class="sites-form__input" />
+        </div>
+        <div class="sites-form__row">
+          <div class="sites-form__field">
+            <label for="gfType">Type *</label>
+            <p-select
+              inputId="gfType"
+              formControlName="zoneType"
+              [options]="geofenceTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              [style]="{ width: '100%' }"
+            />
+          </div>
+          <div class="sites-form__field">
+            <label>Radius (m)</label>
+            <p-inputNumber formControlName="radiusM" [min]="1" [useGrouping]="false" [style]="{ width: '100%' }" />
+          </div>
+        </div>
+        <div class="sites-form__checks">
+          <div class="sites-form__check">
+            <p-checkbox formControlName="active" [binary]="true" inputId="gfActive" />
+            <label for="gfActive">Active</label>
+          </div>
+          <div class="sites-form__check">
+            <p-checkbox formControlName="entryAlert" [binary]="true" inputId="gfEntry" />
+            <label for="gfEntry">Entry alert</label>
+          </div>
+          <div class="sites-form__check">
+            <p-checkbox formControlName="exitAlert" [binary]="true" inputId="gfExit" />
+            <label for="gfExit">Exit alert</label>
+          </div>
+        </div>
+        <div class="sites-form__footer">
+          <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+          <p-button label="Save" icon="pi pi-check" type="submit" />
+        </div>
+      </form>
+    }
+    @case ('contact') {
+      <form class="sites-form" [formGroup]="contactForm" (ngSubmit)="saveForm()">
+        <div class="sites-form__field">
+          <label for="ctSite">Site *</label>
+          <p-select
+            inputId="ctSite"
+            formControlName="siteId"
+            [options]="siteSelectOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            appendTo="body"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+        <div class="sites-form__field">
+          <label>Name *</label>
+          <input pInputText formControlName="name" class="sites-form__input" />
+        </div>
+        <div class="sites-form__field">
+          <label>Role *</label>
+          <input pInputText formControlName="role" class="sites-form__input" />
+        </div>
+        <div class="sites-form__row">
+          <div class="sites-form__field">
+            <label>Phone *</label>
+            <input pInputText formControlName="phone" class="sites-form__input" />
+          </div>
+          <div class="sites-form__field">
+            <label>Email *</label>
+            <input pInputText formControlName="email" class="sites-form__input" />
+          </div>
+        </div>
+        <div class="sites-form__check">
+          <p-checkbox formControlName="isPrimary" [binary]="true" inputId="ctPrimary" />
+          <label for="ctPrimary">Primary site contact</label>
+        </div>
+        <div class="sites-form__footer">
+          <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+          <p-button label="Save" icon="pi pi-check" type="submit" />
+        </div>
+      </form>
+    }
+  }
+</p-dialog>
+
+<p-dialog header="Confirm delete" [visible]="deleteConfirmVisible()" (visibleChange)="deleteConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(400px, 92vw)' }">
+  <p>Remove <strong>{{ deleteLabel() }}</strong>?</p>
+  <div class="sites-form__footer">
+    <p-button label="Cancel" [outlined]="true" (onClick)="deleteConfirmVisible.set(false)" />
+    <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+  </div>
+</p-dialog>
+
+<p-dialog header="Detail" [visible]="detailVisible()" (visibleChange)="detailVisible.set($event)" [modal]="true" [style]="{ width: 'min(600px, 96vw)' }" (onHide)="closeDetail()">
+  @switch (detailKind()) {
+    @case ('site') {
+      @if (detailSite(); as s) {
+        <div class="sites-detail">
+          <h2>{{ hierarchyLabel(s) }}</h2>
+          <p-tag [value]="approvalLabel(s.approvalStatus)" [severity]="approvalSeverity(s.approvalStatus)" />
+          <dl class="sites-detail__grid">
+            <div><dt>Project</dt><dd>{{ s.projectName }}</dd></div>
+            <div><dt>Location</dt><dd>{{ s.location }}</dd></div>
+            <div><dt>Superintendent</dt><dd>{{ s.superintendent }}</dd></div>
+            <div><dt>Progress</dt><dd>{{ s.progressPct }}%</dd></div>
+          </dl>
+          <ng-container *ngTemplateOutlet="workflowActions; context: { $implicit: 'site', id: s.id, status: s.approvalStatus }" />
+          <ng-container *ngTemplateOutlet="auditBlock; context: { $implicit: s.audit }" />
+          <ng-container *ngTemplateOutlet="attachBlock; context: { $implicit: s.attachments }" />
+        </div>
+      }
+    }
+    @case ('geofence') {
+      @if (detailGeofence(); as g) {
+        <div class="sites-detail">
+          <h2>{{ g.name }}</h2>
+          <dl class="sites-detail__grid">
+            <div><dt>Site</dt><dd>{{ g.siteName }}</dd></div>
+            <div><dt>Type</dt><dd>{{ g.zoneType }}</dd></div>
+            <div><dt>Radius</dt><dd>{{ g.radiusM ? g.radiusM + ' m' : '—' }}</dd></div>
+          </dl>
+          <ng-container *ngTemplateOutlet="workflowActions; context: { $implicit: 'geofence', id: g.id, status: g.approvalStatus }" />
+          <ng-container *ngTemplateOutlet="auditBlock; context: { $implicit: g.audit }" />
+          <ng-container *ngTemplateOutlet="attachBlock; context: { $implicit: g.attachments }" />
+        </div>
+      }
+    }
+    @case ('contact') {
+      @if (detailContact(); as c) {
+        <div class="sites-detail">
+          <h2>{{ c.name }}</h2>
+          <dl class="sites-detail__grid">
+            <div><dt>Site</dt><dd>{{ c.siteName }}</dd></div>
+            <div><dt>Role</dt><dd>{{ c.role }}</dd></div>
+            <div><dt>Phone</dt><dd>{{ c.phone }}</dd></div>
+            <div><dt>Email</dt><dd>{{ c.email }}</dd></div>
+          </dl>
+          <ng-container *ngTemplateOutlet="workflowActions; context: { $implicit: 'contact', id: c.id, status: c.approvalStatus }" />
+          <ng-container *ngTemplateOutlet="auditBlock; context: { $implicit: c.audit }" />
+          <ng-container *ngTemplateOutlet="attachBlock; context: { $implicit: c.attachments }" />
+        </div>
+      }
+    }
+  }
+</p-dialog>
+
+<ng-template #workflowActions let-kind let-id="id" let-status="status">
+  <section class="sites-detail__section">
+    <h3>Role-based actions</h3>
+    <div class="sites-detail__actions">
+      <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" size="small" [disabled]="!canSubmit(status)" (onClick)="submitApproval(kind, id)" />
+      <p-button label="Approve" icon="pi pi-check" severity="success" [outlined]="true" size="small" [disabled]="!canApprove(status)" (onClick)="approveEntity(kind, id)" />
+      <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" size="small" [disabled]="!canApprove(status)" (onClick)="rejectEntity(kind, id)" />
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #auditBlock let-audit>
+  <section class="sites-detail__section">
+    <h3>Audit trail</h3>
+    <ul class="sites-detail__audit">
+      @for (entry of audit; track entry.at) {
+        <li>
+          <time>{{ entry.at }}</time>
+          <span>{{ entry.action }}</span>
+          <em>{{ entry.by }}</em>
+        </li>
+      }
+    </ul>
+  </section>
+</ng-template>
+
+<ng-template #attachBlock let-attachments>
+  <section class="sites-detail__section">
+    <h3>Document attachments</h3>
+    @if (attachments.length) {
+      <ul class="sites-detail__attachments">
+        @for (file of attachments; track file.id) {
+          <li>
+            <i class="pi pi-file"></i>
+            <span>{{ file.name }}</span>
+            <small>{{ file.type }} · {{ file.uploadedAt }}</small>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="sites-detail__empty">No attachments — connect DMS to upload.</p>
+    }
+  </section>
+</ng-template>

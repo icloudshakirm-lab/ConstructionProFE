@@ -67,5 +67,13 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'vehicle-tracking': () =>
     import('../../features/site-mobile/vehicle-tracking/vehicle-tracking.component').then(
       (m) => m.VehicleTrackingComponent
+    ),
+  'projects-register': () =>
+    import('../../features/project-management/projects-register/projects-register.component').then(
+      (m) => m.ProjectsRegisterComponent
+    ),
+  'sites-management': () =>
+    import('../../features/project-management/sites-management/sites-management.component').then(
+      (m) => m.SitesManagementComponent
     )
 };

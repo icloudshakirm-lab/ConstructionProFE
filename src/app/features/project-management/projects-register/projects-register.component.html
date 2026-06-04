@@ -1,0 +1,353 @@
+<div class="projects-register-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="projects-register-page__header">
+    <div>
+      <p-tag value="Project Management" severity="info" />
+      <h1>Projects</h1>
+      <p class="projects-register-page__subtitle">
+        Master project register with contract value, timeline, client, and approval workflow. Site links are
+        managed separately under Sites.
+      </p>
+    </div>
+    <div class="projects-register-page__header-actions">
+      <p-button label="Add project" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="projects-register-page__toolbar" aria-label="Project filters">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Lifecycle status"
+      [style]="{ minWidth: 'min(160px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(180px, 32vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="projects-register-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search project, client, manager, ID…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="projects-register-page__count">{{ filteredProjects().length }} project(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredProjects()"
+    [rows]="10"
+    [paginator]="filteredProjects().length > 10"
+    selectionMode="single"
+    dataKey="id"
+    styleClass="projects-register-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Project</th>
+        <th>Client</th>
+        <th>Contract</th>
+        <th>Timeline</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th>Sites</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.projects-register-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ row.name }}</strong>
+          <small>{{ row.id }} · {{ row.projectManager }}</small>
+        </td>
+        <td>{{ row.client }}</td>
+        <td>{{ contractDisplay(row) }}</td>
+        <td>
+          <span class="projects-register-page__dates">{{ row.startDate }} → {{ row.endDate }}</span>
+        </td>
+        <td>
+          <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+        </td>
+        <td>
+          <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+        </td>
+        <td>{{ row.linkedSiteCount }}</td>
+        <td>
+          <div class="projects-register-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button
+              icon="pi pi-eye"
+              [rounded]="true"
+              [text]="true"
+              title="Details"
+              (onClick)="openDetail(row)"
+            />
+            <p-button
+              icon="pi pi-pencil"
+              [rounded]="true"
+              [text]="true"
+              title="Edit"
+              (onClick)="openEdit(row)"
+            />
+            <p-button
+              icon="pi pi-trash"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              title="Delete"
+              (onClick)="requestDelete(row)"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="8">No projects match the current filters.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(560px, 94vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  <form class="project-form" [formGroup]="projectForm" (ngSubmit)="saveProject()">
+    @if (formError(); as err) {
+      <p class="project-form__error">{{ err }}</p>
+    }
+
+    <div class="project-form__field">
+      <label for="prjName">Project name <span aria-hidden="true">*</span></label>
+      <input id="prjName" type="text" pInputText formControlName="name" class="project-form__input" />
+      @if (fieldInvalid('name')) {
+        <small class="project-form__invalid">Project name is required.</small>
+      }
+    </div>
+
+    <div class="project-form__field">
+      <label for="prjClient">Client <span aria-hidden="true">*</span></label>
+      <input id="prjClient" type="text" pInputText formControlName="client" class="project-form__input" />
+      @if (fieldInvalid('client')) {
+        <small class="project-form__invalid">Client is required.</small>
+      }
+    </div>
+
+    <div class="project-form__row">
+      <div class="project-form__field">
+        <label for="prjStatus">Lifecycle status <span aria-hidden="true">*</span></label>
+        <p-select
+          inputId="prjStatus"
+          formControlName="status"
+          [options]="formStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="project-form__field">
+        <label for="prjManager">Project manager <span aria-hidden="true">*</span></label>
+        <input id="prjManager" type="text" pInputText formControlName="projectManager" class="project-form__input" />
+      </div>
+    </div>
+
+    <div class="project-form__row">
+      <div class="project-form__field">
+        <label for="prjValue">Contract value <span aria-hidden="true">*</span></label>
+        <p-inputNumber
+          inputId="prjValue"
+          formControlName="contractValue"
+          [min]="1"
+          [useGrouping]="true"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="project-form__field">
+        <label for="prjCurrency">Currency</label>
+        <p-select
+          inputId="prjCurrency"
+          formControlName="currency"
+          [options]="currencyOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+    </div>
+
+    <div class="project-form__row">
+      <div class="project-form__field">
+        <label for="prjStart">Start date <span aria-hidden="true">*</span></label>
+        <input id="prjStart" type="date" class="project-form__input project-form__date" formControlName="startDate" />
+      </div>
+      <div class="project-form__field">
+        <label for="prjEnd">End date <span aria-hidden="true">*</span></label>
+        <input id="prjEnd" type="date" class="project-form__input project-form__date" formControlName="endDate" />
+      </div>
+    </div>
+
+    <div class="project-form__field">
+      <label for="prjScope">Scope / charter summary</label>
+      <textarea id="prjScope" pTextarea formControlName="scopeSummary" rows="4" class="project-form__input"></textarea>
+    </div>
+
+    <div class="project-form__footer">
+      <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+      <p-button
+        [label]="formMode() === 'create' ? 'Create project' : 'Save changes'"
+        icon="pi pi-check"
+        type="submit"
+      />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Delete project?"
+  [visible]="deleteConfirmVisible()"
+  (visibleChange)="deleteConfirmVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 92vw)' }"
+>
+  @if (projectToDelete(); as p) {
+    <p>Remove <strong>{{ p.name }}</strong> ({{ p.id }}) from the register? Linked sites in other modules are not deleted.</p>
+    <div class="project-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Project detail"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(640px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailProject(); as p) {
+    <div class="project-detail">
+      <div class="project-detail__head">
+        <div>
+          <h2>{{ p.name }}</h2>
+          <span class="project-detail__id">{{ p.id }}</span>
+        </div>
+        <div class="project-detail__tags">
+          <p-tag [value]="p.status" [severity]="statusSeverity(p.status)" />
+          <p-tag [value]="approvalLabel(p.approvalStatus)" [severity]="approvalSeverity(p.approvalStatus)" />
+        </div>
+      </div>
+
+      <dl class="project-detail__grid">
+        <div><dt>Client</dt><dd>{{ p.client }}</dd></div>
+        <div><dt>Project manager</dt><dd>{{ p.projectManager }}</dd></div>
+        <div><dt>Contract</dt><dd>{{ contractDisplay(p) }}</dd></div>
+        <div><dt>Linked sites</dt><dd>{{ p.linkedSiteCount }}</dd></div>
+        <div><dt>Start</dt><dd>{{ p.startDate }}</dd></div>
+        <div><dt>End</dt><dd>{{ p.endDate }}</dd></div>
+        @if (p.scopeSummary) {
+          <div class="project-detail__full">
+            <dt>Scope summary</dt>
+            <dd>{{ p.scopeSummary }}</dd>
+          </div>
+        }
+      </dl>
+
+      <section class="project-detail__section">
+        <h3>Role-based actions</h3>
+        <div class="project-detail__actions">
+          <p-button
+            label="Edit project"
+            icon="pi pi-pencil"
+            [outlined]="true"
+            size="small"
+            (onClick)="editFromDetail()"
+          />
+          <p-button
+            label="Submit for approval"
+            icon="pi pi-send"
+            [outlined]="true"
+            size="small"
+            [disabled]="!canSubmit(p)"
+            (onClick)="submitForApproval(p)"
+          />
+          <p-button
+            label="Approve"
+            icon="pi pi-check"
+            severity="success"
+            [outlined]="true"
+            size="small"
+            [disabled]="!canApprove(p)"
+            (onClick)="approveProject(p)"
+          />
+          <p-button
+            label="Reject"
+            icon="pi pi-times"
+            severity="danger"
+            [outlined]="true"
+            size="small"
+            [disabled]="!canApprove(p)"
+            (onClick)="rejectProject(p)"
+          />
+        </div>
+      </section>
+
+      <section class="project-detail__section">
+        <h3>Audit trail</h3>
+        <ul class="project-detail__audit">
+          @for (entry of p.audit; track entry.at) {
+            <li>
+              <time>{{ entry.at }}</time>
+              <span>{{ entry.action }}</span>
+              <em>{{ entry.by }}</em>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="project-detail__section">
+        <h3>Document attachments</h3>
+        @if (p.attachments.length) {
+          <ul class="project-detail__attachments">
+            @for (file of p.attachments; track file.id) {
+              <li>
+                <i class="pi pi-file"></i>
+                <span>{{ file.name }}</span>
+                <small>{{ file.type }} · {{ file.uploadedAt }}</small>
+                <p-button icon="pi pi-download" [rounded]="true" [text]="true" size="small" title="Download" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="project-detail__empty">No documents attached. Upload via your DMS integration when connected.</p>
+        }
+      </section>
+    </div>
+  }
+</p-dialog>

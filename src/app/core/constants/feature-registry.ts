@@ -13,14 +13,16 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Projects',
         description: 'Master project register with contract value, timeline, and client details.',
         icon: 'pi pi-briefcase',
-        highlights: ['Project charter', 'Contract summary', 'Status dashboard']
+        highlights: ['Project charter', 'Contract summary', 'Status dashboard'],
+        component: 'projects-register'
       },
       {
         id: 'sites',
         title: 'Sites',
         description: 'Physical job sites linked to projects with location and superintendent assignment.',
         icon: 'pi pi-map-marker',
-        highlights: ['Site hierarchy', 'Geofence zones', 'Site contacts']
+        highlights: ['Site hierarchy', 'Geofence zones', 'Site contacts'],
+        component: 'sites-management'
       },
       {
         id: 'sites-map',
