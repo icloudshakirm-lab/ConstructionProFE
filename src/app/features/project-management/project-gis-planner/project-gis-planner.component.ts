@@ -188,6 +188,7 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
 
   enableEdit(): void {
     this.mapGis.stopLabelPlacement();
+    this.mapGis.stopEditMode();
     this.mapGis.enableEditMode();
     this.activeTool.set(null);
     this.lastAction.set('Edit mode — drag vertices; segment lengths update automatically.');

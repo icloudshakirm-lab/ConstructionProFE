@@ -130,7 +130,9 @@ export function applyStrokeStyle(layer: L.Layer, meta: GisSketchMeta): void {
   if (!(layer instanceof L.Path)) return;
   const pathOpts: L.PathOptions = {
     color: meta.strokeColor,
-    weight: meta.strokeWeight
+    weight: meta.strokeWeight,
+    lineCap: 'round',
+    lineJoin: 'round'
   };
   if (layer instanceof L.Polygon) {
     pathOpts.fillColor = meta.strokeColor;

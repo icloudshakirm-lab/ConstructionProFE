@@ -34,6 +34,7 @@ export class LeafletGisService {
   private annotations: L.FeatureGroup | null = null;
   private drawControl: L.Control.Draw | null = null;
   private activeHandler: { enable: () => void; disable: () => void } | null = null;
+  private activeEditHandler: { disable: () => void } | null = null;
   private onGeometryChange?: (action: SketchEventAction) => void;
   private labelClickHandler: ((e: L.LeafletMouseEvent) => void) | null = null;
 
@@ -107,6 +108,19 @@ export class LeafletGisService {
       });
       this.onGeometryChange?.('delete');
     });
+
+    this.map.on(L.Draw.Event.EDITSTART, () => this.setEditCursorActive(true));
+    this.map.on(L.Draw.Event.EDITSTOP, () => this.setEditCursorActive(false));
+  }
+
+  private setEditCursorActive(active: boolean): void {
+    this.map?.getContainer().classList.toggle('gis-edit-active', active);
+  }
+
+  stopEditMode(): void {
+    this.activeEditHandler?.disable();
+    this.activeEditHandler = null;
+    this.setEditCursorActive(false);
   }
 
   setLineStyle(style: Partial<GisLineStyle>): void {
@@ -201,6 +215,7 @@ export class LeafletGisService {
   startDraw(tool: 'point' | 'polyline' | 'polygon'): void {
     if (!this.map || !this.drawnItems) return;
     this.stopLabelPlacement();
+    this.stopEditMode();
     this.cancelDraw();
 
     const style = this.lineStyle();
@@ -208,7 +223,9 @@ export class LeafletGisService {
       color: style.color,
       weight: style.weight,
       fillColor: style.color,
-      fillOpacity: 0.25
+      fillOpacity: 0.25,
+      lineCap: 'round',
+      lineJoin: 'round'
     };
 
     switch (tool) {
@@ -240,11 +257,13 @@ export class LeafletGisService {
     }
 
     this.activeHandler.enable();
+    this.map.getContainer().classList.add('gis-draw-active');
   }
 
   cancelDraw(): void {
     this.activeHandler?.disable();
     this.activeHandler = null;
+    this.map?.getContainer().classList.remove('gis-draw-active');
   }
 
   clearAll(): void {
@@ -268,10 +287,15 @@ export class LeafletGisService {
   enableEditMode(): void {
     if (!this.map || !this.drawnItems) return;
     this.stopLabelPlacement();
-    this.cancelDraw();
+    this.activeHandler?.disable();
+    this.activeHandler = null;
+    this.stopEditMode();
     const Edit = (L as typeof L & { EditToolbar: { Edit: new (...args: unknown[]) => { enable: () => void } } })
       .EditToolbar.Edit;
-    new Edit(this.map, { featureGroup: this.drawnItems }).enable();
+    const handler = new Edit(this.map, { featureGroup: this.drawnItems });
+    handler.enable();
+    this.activeEditHandler = handler;
+    this.setEditCursorActive(true);
   }
 
   getGraphicCount(): number {
@@ -382,6 +406,7 @@ export class LeafletGisService {
 
   destroy(): void {
     this.stopLabelPlacement();
+    this.stopEditMode();
     this.cancelDraw();
     this.map?.remove();
     this.map = null;

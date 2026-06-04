@@ -71,10 +71,12 @@ function updateAngleGuides(handler: DrawHandlerInternal, cursor: L.LatLng): void
     );
     const endLatLng = handler._map.layerPointToLatLng(end);
     L.polyline([last, endLatLng], {
-      color: '#64748b',
+      color: '#38bdf8',
       weight: 1,
-      opacity: 0.45,
-      dashArray: '3,5',
+      opacity: 0.5,
+      dashArray: '4,6',
+      lineCap: 'round',
+      lineJoin: 'round',
       interactive: false
     }).addTo(handler._angleGuides);
     }
