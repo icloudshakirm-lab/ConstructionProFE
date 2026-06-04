@@ -40,6 +40,15 @@ export const FEATURE_MODULES: FeatureModule[] = [
         component: 'project-gis-planner'
       },
       {
+        id: 'site-status-gis',
+        title: 'Site Status by GIS',
+        description:
+          'Seoul OSM roads preloaded as progress layers — excavation, backfill, compaction, pipe welding/laying, concrete, asphalt, and more.',
+        icon: 'pi pi-chart-bar',
+        highlights: ['Seoul roads GeoJSON', '12 progress layers', 'Layer toggles'],
+        component: 'site-status-gis'
+      },
+      {
         id: 'tasks',
         title: 'Work Breakdown Structure',
         description:

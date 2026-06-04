@@ -12,6 +12,7 @@ export type FeaturePageComponent =
   | 'qa-qc-inspections'
   | 'sites-map'
   | 'project-gis-planner'
+  | 'site-status-gis'
   | 'project-wbs';
 
 export interface FeaturePage {

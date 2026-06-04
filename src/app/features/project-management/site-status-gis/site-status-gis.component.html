@@ -1,0 +1,250 @@
+<div class="site-status-gis-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="site-status-gis-page__header">
+    <div>
+      <p-tag value="Road corridor progress · Leaflet" severity="warn" />
+      <h1>Site Status by GIS</h1>
+      <p class="site-status-gis-page__subtitle">
+        Preloaded with OpenStreetMap roads (Seoul sample). Each segment is assigned a road-building or
+        pipe-laying stage — toggle layers on the right to view excavation, backfill, compaction, welding, and more.
+      </p>
+    </div>
+  </header>
+
+  <div class="site-status-gis-page__body">
+  <div #gisFullscreenHost class="site-status-gis-page__workspace">
+    <div class="site-status-gis-page__toolbar" role="toolbar" aria-label="Site progress GIS tools">
+      <div class="site-status-gis-page__toolbar-group site-status-gis-page__toolbar-group--progress">
+        <span class="site-status-gis-page__toolbar-label">Progress type</span>
+        <p-select
+          [options]="progressOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="mapGis.activeProgressStatus()"
+          (ngModelChange)="onProgressStatusChange($event)"
+          placeholder="Select progress…"
+          [style]="{ minWidth: 'min(280px, 42vw)' }"
+        />
+        <span
+          class="site-status-gis-page__swatch"
+          [style.background]="activeProgressDef().color"
+          [title]="activeProgressDef().label"
+        ></span>
+        <p-tag [value]="activeProgressDef().shortLabel" />
+      </div>
+
+      <div class="site-status-gis-page__toolbar-group">
+        <span class="site-status-gis-page__toolbar-label">Draw reach</span>
+        <p-button
+          label="Line (from–to)"
+          icon="pi pi-minus"
+          [outlined]="activeTool() !== 'polyline'"
+          [severity]="activeTool() === 'polyline' ? 'primary' : 'secondary'"
+          (onClick)="selectTool('polyline')"
+        />
+        <p-button
+          label="Area"
+          icon="pi pi-stop"
+          [outlined]="activeTool() !== 'polygon'"
+          [severity]="activeTool() === 'polygon' ? 'primary' : 'secondary'"
+          (onClick)="selectTool('polygon')"
+          title="Mark a completed area (e.g. compound)"
+        />
+        <p-button
+          label="Point"
+          icon="pi pi-map-marker"
+          [outlined]="activeTool() !== 'point'"
+          [severity]="activeTool() === 'point' ? 'primary' : 'secondary'"
+          (onClick)="selectTool('point')"
+        />
+        <p-button label="Cancel draw" icon="pi pi-times" [text]="true" (onClick)="cancelDraw()" />
+        <p-select
+          [options]="weightOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="mapGis.lineStyle().weight"
+          (ngModelChange)="onLineWeightChange($event)"
+          placeholder="Line thickness"
+          [style]="{ minWidth: '130px' }"
+          title="Thickness for the next reach drawn"
+        />
+        <div class="site-status-gis-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="mapGis.lockAngles()"
+            (ngModelChange)="onLockAnglesChange($event)"
+            [binary]="true"
+            inputId="siteGisLockAngles"
+          />
+          <label for="siteGisLockAngles">Lock angles</label>
+        </div>
+        <div class="site-status-gis-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="mapGis.showSegmentLengths()"
+            (ngModelChange)="onShowSegmentLengthsChange($event)"
+            [binary]="true"
+            inputId="siteGisShowLengths"
+          />
+          <label for="siteGisShowLengths">Show lengths (m)</label>
+        </div>
+      </div>
+
+      <div class="site-status-gis-page__toolbar-group">
+        <span class="site-status-gis-page__toolbar-label">Labels</span>
+        <div class="site-status-gis-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="mapGis.showLineLabels()"
+            (ngModelChange)="onShowLineLabelsChange($event)"
+            [binary]="true"
+            inputId="siteGisShowLabels"
+          />
+          <label for="siteGisShowLabels">Show labels</label>
+        </div>
+        <input
+          type="text"
+          pInputText
+          class="site-status-gis-page__label-input"
+          placeholder="Extra label (optional)…"
+          [ngModel]="labelText()"
+          (ngModelChange)="onLabelTextChange($event)"
+        />
+        <p-button
+          label="Place on line"
+          icon="pi pi-tag"
+          [outlined]="true"
+          (onClick)="startPlaceLabel()"
+        />
+        @if (mapGis.labelPlacementActive()) {
+          <p-button label="Cancel" icon="pi pi-times" [text]="true" (onClick)="cancelPlaceLabel()" />
+        }
+      </div>
+
+      <div class="site-status-gis-page__toolbar-group">
+        <span class="site-status-gis-page__toolbar-label">Edit</span>
+        <p-button label="Edit shapes" icon="pi pi-pencil" [outlined]="true" (onClick)="enableEdit()" />
+        <p-button label="Delete last" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="deleteSelected()" />
+        <p-button label="Clear all" icon="pi pi-trash" [outlined]="true" (onClick)="clearAll()" />
+      </div>
+
+      <div class="site-status-gis-page__toolbar-group">
+        <span class="site-status-gis-page__toolbar-label">Project</span>
+        <p-select
+          [options]="projectOptions"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterPlaceholder="Search project…"
+          [ngModel]="selectedProjectId()"
+          (ngModelChange)="onProjectChange($event)"
+          [style]="{ minWidth: 'min(260px, 36vw)' }"
+        />
+      </div>
+
+      <div class="site-status-gis-page__toolbar-group site-status-gis-page__toolbar-group--end">
+        <p-tag [value]="graphicCount() + ' reaches'" />
+        <input
+          #geoJsonFileInput
+          type="file"
+          class="site-status-gis-page__file-input"
+          accept=".geojson,.json,application/geo+json,application/json"
+          aria-hidden="true"
+          tabindex="-1"
+          (change)="onGeoJsonFileSelected($event)"
+        />
+        <p-button label="Import GeoJSON" icon="pi pi-upload" [outlined]="true" (onClick)="triggerGeoJsonUpload()" />
+        <p-button label="Export GeoJSON" icon="pi pi-download" (onClick)="exportGeoJson()" />
+        <p-button
+          [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+          [icon]="isFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+          [outlined]="true"
+          (onClick)="toggleFullscreen()"
+        />
+      </div>
+    </div>
+
+    <p class="site-status-gis-page__status">{{ lastAction() }}</p>
+
+    <div class="site-status-gis-page__map-wrap">
+      <div
+        #mapContainer
+        class="site-status-gis-page__map"
+        role="application"
+        aria-label="Site progress GIS map"
+      ></div>
+    </div>
+
+    @if (exportPreview(); as json) {
+      <details class="site-status-gis-page__export">
+        <summary>GeoJSON export preview</summary>
+        <pre>{{ json }}</pre>
+      </details>
+    }
+  </div>
+
+  <aside class="site-status-gis-page__layers-panel" aria-label="Progress map layers">
+    <div class="site-status-gis-page__layers-header">
+      <h2>Layers</h2>
+      <p class="site-status-gis-page__layers-hint">Check to show each progress type on the map.</p>
+      <div class="site-status-gis-page__layers-actions">
+        <p-button label="Show all" icon="pi pi-eye" [text]="true" size="small" (onClick)="showAllLayers()" />
+        <p-button label="Hide all" icon="pi pi-eye-slash" [text]="true" size="small" (onClick)="hideAllLayers()" />
+      </div>
+    </div>
+    <ul class="site-status-gis-page__layers-list">
+      @for (item of progressLegend; track item.id) {
+        <li class="site-status-gis-page__layers-item" [class.site-status-gis-page__layers-item--off]="!mapGis.isProgressLayerVisible(item.id)">
+          <p-checkbox
+            [ngModel]="mapGis.isProgressLayerVisible(item.id)"
+            (ngModelChange)="onLayerVisibilityChange(item.id, $event)"
+            [binary]="true"
+            [inputId]="'progressLayer-' + item.id"
+          />
+          <label [for]="'progressLayer-' + item.id" class="site-status-gis-page__layers-label">
+            <span class="site-status-gis-page__legend-swatch" [style.background]="item.color"></span>
+            <span class="site-status-gis-page__layers-text">
+              <strong>{{ item.shortLabel }}</strong>
+              <span class="site-status-gis-page__layers-desc">{{ item.label }}</span>
+            </span>
+            <span class="site-status-gis-page__layers-count">{{ mapGis.getProgressLayerCount(item.id) }}</span>
+          </label>
+        </li>
+      }
+    </ul>
+  </aside>
+  </div>
+
+  <aside class="site-status-gis-page__help">
+    <h2>Progress legend</h2>
+    <ul class="site-status-gis-page__legend">
+      @for (item of progressLegend; track item.id) {
+        <li class="site-status-gis-page__legend-item">
+          <span class="site-status-gis-page__legend-swatch" [style.background]="item.color"></span>
+          <div>
+            <strong>{{ item.label }}</strong>
+            <p>{{ item.description }}</p>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <h2>How to use</h2>
+    <ol>
+      <li>
+        <strong>Preloaded data</strong> — <code>roads-seoul.geojson</code> (OSM roads). Segments are grouped into
+        progress layers (survey, excavation, backfill, sub-base, compaction, pipe work, asphalt, etc.).
+      </li>
+      <li>
+        <strong>Layers panel</strong> — on the right, check or uncheck each stage to show or hide those road
+        segments on the map.
+      </li>
+      <li>
+        <strong>Draw more</strong> — pick a progress type, then <em>Line (from–to)</em> to add reaches; export
+        includes <code>progressStatus</code> and <code>roadName</code>.
+      </li>
+    </ol>
+    <p class="site-status-gis-page__help-note">
+      Data source: OpenStreetMap via Overpass (Seoul road sample). Layer assignment is illustrative for demo —
+      adjust on site or replace with your survey / as-built GeoJSON.
+    </p>
+  </aside>
+</div>
