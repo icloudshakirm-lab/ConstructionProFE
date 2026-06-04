@@ -1,7 +1,7 @@
 import * as L from 'leaflet';
-import type { GisSketchMeta } from './gis-sketch.model';
+import type { GisLineLabel, GisSketchMeta } from './gis-sketch.model';
 
-type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string };
+type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string; gisLabelId?: string };
 
 export const GIS_META_KEY = 'gisMeta';
 
@@ -88,22 +88,33 @@ export function createLengthMarker(
 
 export function createLabelMarker(
   latlng: L.LatLng,
-  text: string,
+  label: GisLineLabel,
   parentStamp: number,
   accentColor: string
 ): L.Marker {
+  const visible = label.visible !== false;
   const marker = L.marker(latlng, {
     icon: L.divIcon({
       className: 'gis-line-label',
-      html: `<span style="border-color:${accentColor}">${escapeHtml(text)}</span>`,
+      html: `<div class="gis-line-label-wrap" data-label-id="${escapeHtml(label.id)}">
+        ${
+          visible
+            ? `<span class="gis-line-label-text" style="border-color:${accentColor}">${escapeHtml(label.text)}</span>`
+            : ''
+        }
+        <button type="button" class="gis-line-label-toggle" data-label-id="${escapeHtml(label.id)}">${
+          visible ? 'Hide' : 'Show'
+        }</button>
+      </div>`,
       iconSize: [0, 0],
-      iconAnchor: [0, 16]
+      iconAnchor: [0, 18]
     }),
     interactive: true,
     zIndexOffset: 900
   });
   (marker as LabelMarker).gisParent = parentStamp;
   (marker as LabelMarker).gisRole = 'label';
+  (marker as LabelMarker).gisLabelId = label.id;
   return marker;
 }
 
@@ -151,7 +162,7 @@ export function buildSegmentLengthMarkers(
 export function buildUserLabelMarkers(layer: L.Layer, meta: GisSketchMeta): L.Marker[] {
   const stamp = layerStamp(layer);
   return meta.labels.map((label) =>
-    createLabelMarker(L.latLng(label.lat, label.lng), label.text, stamp, meta.strokeColor)
+    createLabelMarker(L.latLng(label.lat, label.lng), label, stamp, meta.strokeColor)
   );
 }
 

@@ -10,6 +10,8 @@ export interface GisLineLabel {
   lat: number;
   lng: number;
   text: string;
+  /** When false, only the on-line Show control is rendered. */
+  visible?: boolean;
 }
 
 export interface GisLineStyle {

@@ -20,6 +20,7 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
 import { ThemeService } from '../../../core/services/theme.service';
+import { GisGeoJsonParseError, parseGeoJsonText } from './gis-geojson-import';
 import { LeafletGisService } from './leaflet-gis.service';
 import {
   GIS_LINE_COLOR_PRESETS,
@@ -48,6 +49,7 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('gisFullscreenHost', { static: true }) gisFullscreenHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('geoJsonFileInput') geoJsonFileInput?: ElementRef<HTMLInputElement>;
 
   readonly projectOptions = GIS_PROJECT_OPTIONS;
   readonly selectedProjectId = signal('');
@@ -125,6 +127,15 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     this.lastAction.set(show ? 'Segment lengths shown on lines.' : 'Segment lengths hidden.');
   }
 
+  onShowLineLabelsChange(show: boolean): void {
+    this.mapGis.setShowLineLabels(show);
+    this.lastAction.set(
+      show
+        ? 'Line labels shown — use Hide/Show on each label on the map.'
+        : 'Line labels hidden on the map.'
+    );
+  }
+
   onLabelTextChange(text: string): void {
     this.labelText.set(text);
     this.mapGis.setPendingLabelText(text);
@@ -193,6 +204,40 @@ export class ProjectGisPlannerComponent implements AfterViewInit, OnDestroy {
     this.mapGis.deleteSelected();
     this.refreshCount();
     this.lastAction.set('Removed last shape.');
+  }
+
+  triggerGeoJsonUpload(): void {
+    this.geoJsonFileInput?.nativeElement.click();
+  }
+
+  onGeoJsonFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const collection = parseGeoJsonText(String(reader.result ?? ''));
+        const count = this.mapGis.importGeoJSON(collection, { fitBounds: true });
+        this.refreshCount();
+        this.lastAction.set(
+          count > 0
+            ? `Imported ${count} layer(s) from “${file.name}”. Map zoomed to data extent.`
+            : `No drawable features found in “${file.name}”.`
+        );
+      } catch (err) {
+        const msg =
+          err instanceof GisGeoJsonParseError ? err.message : 'Could not import GeoJSON file.';
+        this.lastAction.set(msg);
+      }
+      input.value = '';
+    };
+    reader.onerror = () => {
+      this.lastAction.set('Failed to read the selected file.');
+      input.value = '';
+    };
+    reader.readAsText(file);
   }
 
   exportGeoJson(): void {

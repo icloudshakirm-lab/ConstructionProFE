@@ -6,8 +6,8 @@
       <p-tag value="Leaflet · OpenStreetMap" severity="success" />
       <h1>Project GIS Planner</h1>
       <p class="gis-planner-page__subtitle">
-        Draw and edit project geometries (point, line, polygon) on an open-source Leaflet map. Shapes are
-        client-side only; export as GeoJSON for your API.
+        Draw and edit project geometries (point, line, polygon) on an open-source Leaflet map. Import or
+        export GeoJSON files; shapes are client-side only until you POST to your API.
       </p>
     </div>
   </header>
@@ -90,6 +90,15 @@
 
       <div class="gis-planner-page__toolbar-group">
         <span class="gis-planner-page__toolbar-label">Labels</span>
+        <div class="gis-planner-page__checkbox-wrap">
+          <p-checkbox
+            [ngModel]="mapGis.showLineLabels()"
+            (ngModelChange)="onShowLineLabelsChange($event)"
+            [binary]="true"
+            inputId="gisShowLineLabels"
+          />
+          <label for="gisShowLineLabels">Show line labels</label>
+        </div>
         <input
           type="text"
           pInputText
@@ -133,6 +142,21 @@
 
       <div class="gis-planner-page__toolbar-group gis-planner-page__toolbar-group--end">
         <p-tag [value]="graphicCount() + ' shapes'" />
+        <input
+          #geoJsonFileInput
+          type="file"
+          class="gis-planner-page__file-input"
+          accept=".geojson,.json,application/geo+json,application/json"
+          aria-hidden="true"
+          tabindex="-1"
+          (change)="onGeoJsonFileSelected($event)"
+        />
+        <p-button
+          label="Import GeoJSON"
+          icon="pi pi-upload"
+          [outlined]="true"
+          (onClick)="triggerGeoJsonUpload()"
+        />
         <p-button label="Export GeoJSON" icon="pi pi-download" (onClick)="exportGeoJson()" />
         <p-button
           [label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
@@ -164,10 +188,11 @@
       <li><strong>Line style</strong> — pick color and thickness before drawing; each line keeps its style.</li>
       <li><strong>Lock angles</strong> — when checked, segments snap to 45° / 90° while drawing; uncheck for freehand.</li>
       <li><strong>Line</strong> — click vertices, double-click to finish. Segment lengths (m) appear on each segment.</li>
-      <li><strong>Labels</strong> — enter text, click <em>Place on line</em>, then click the target line.</li>
+      <li><strong>Labels</strong> — enter text, click <em>Place on line</em>, then click the target line. Use <em>Hide</em> / <em>Show</em> on each label on the map, or turn off <em>Show line labels</em> in the toolbar.</li>
       <li><strong>Polygon</strong> — same style, lengths on edges, and labels as lines.</li>
       <li><strong>Edit shapes</strong> — enable edit mode, then drag vertices.</li>
       <li><strong>Delete</strong> — edit a shape, then use Delete.</li>
+      <li><strong>Import GeoJSON</strong> — upload a <code>.geojson</code> or <code>.json</code> file (FeatureCollection, single Feature, or geometry). Layers are added to the map and the view zooms to the data.</li>
       <li><strong>Export GeoJSON</strong> — logs to browser console (F12) and shows preview below the map.</li>
     </ol>
     <p class="gis-planner-page__help-note">

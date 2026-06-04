@@ -18,12 +18,13 @@ import {
   type GisLineStyle,
   type GisSketchMeta
 } from './gis-sketch.model';
+import { labelsFromProperties } from './gis-geojson-import';
 import { MAP_TILES } from '../sites-map/sites-map.data';
 import type { GeoJsonFeatureCollection } from './map-gis.service';
 
 export type SketchEventAction = 'create' | 'update' | 'delete';
 
-type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string };
+type LabelMarker = L.Marker & { gisParent?: number; gisRole?: string; gisLabelId?: string };
 
 @Injectable({ providedIn: 'root' })
 export class LeafletGisService {
@@ -39,6 +40,7 @@ export class LeafletGisService {
   readonly lineStyle = signal<GisLineStyle>({ ...DEFAULT_GIS_LINE_STYLE });
   readonly lockAngles = signal(gisDrawAngleSettings.lockAngles);
   readonly showSegmentLengths = signal(true);
+  readonly showLineLabels = signal(true);
   readonly labelPlacementActive = signal(false);
   readonly pendingLabelText = signal('');
 
@@ -121,6 +123,23 @@ export class LeafletGisService {
     this.redrawAllDecorations();
   }
 
+  setShowLineLabels(show: boolean): void {
+    this.showLineLabels.set(show);
+    this.redrawAllDecorations();
+  }
+
+  toggleLineLabelVisibility(layer: L.Layer, labelId: string): void {
+    const meta = getSketchMeta(layer);
+    if (!meta) return;
+
+    meta.labels = meta.labels.map((label) =>
+      label.id === labelId ? { ...label, visible: label.visible === false } : label
+    );
+    setSketchMeta(layer, meta);
+    this.refreshLayerDecorations(layer);
+    this.onGeometryChange?.('update');
+  }
+
   setPendingLabelText(text: string): void {
     this.pendingLabelText.set(text);
   }
@@ -160,7 +179,7 @@ export class LeafletGisService {
     const meta = getSketchMeta(hit.layer) ?? this.createDefaultMeta();
     meta.labels = [
       ...meta.labels,
-      { id: newLabelId(), lat: hit.midpoint.lat, lng: hit.midpoint.lng, text }
+      { id: newLabelId(), lat: hit.midpoint.lat, lng: hit.midpoint.lng, text, visible: true }
     ];
     setSketchMeta(hit.layer, meta);
     this.refreshLayerDecorations(hit.layer);
@@ -261,6 +280,82 @@ export class LeafletGisService {
     return count;
   }
 
+  importGeoJSON(
+    collection: GeoJsonFeatureCollection,
+    options?: { replace?: boolean; fitBounds?: boolean }
+  ): number {
+    if (!this.map || !this.drawnItems) return 0;
+
+    if (options?.replace) {
+      this.drawnItems.clearLayers();
+      this.annotations?.clearLayers();
+    }
+
+    const style = this.lineStyle();
+    const geoLayer = L.geoJSON(collection as GeoJSON.GeoJsonObject, {
+      style: (feature) => {
+        const props = feature?.properties as Record<string, unknown> | undefined;
+        const color =
+          typeof props?.['strokeColor'] === 'string' ? (props['strokeColor'] as string) : style.color;
+        const weight =
+          typeof props?.['strokeWeight'] === 'number' ? (props['strokeWeight'] as number) : style.weight;
+        return {
+          color,
+          weight,
+          fillColor: color,
+          fillOpacity: 0.25
+        };
+      },
+      pointToLayer: (feature, latlng) => {
+        const props = feature.properties as Record<string, unknown> | undefined;
+        const color =
+          typeof props?.['strokeColor'] === 'string' ? (props['strokeColor'] as string) : style.color;
+        return L.marker(latlng, {
+          icon: L.divIcon({
+            className: 'gis-draw-marker',
+            html: `<span style="background:${color}"></span>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          })
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties as Record<string, unknown> | undefined;
+        const meta: GisSketchMeta = {
+          strokeColor:
+            typeof props?.['strokeColor'] === 'string' ? (props['strokeColor'] as string) : style.color,
+          strokeWeight:
+            typeof props?.['strokeWeight'] === 'number' ? (props['strokeWeight'] as number) : style.weight,
+          labels: labelsFromProperties(props?.['labels'])
+        };
+        if (layer instanceof L.Polyline || layer instanceof L.Marker) {
+          setSketchMeta(layer, meta);
+          applyStrokeStyle(layer, meta);
+        }
+      }
+    });
+
+    let added = 0;
+    geoLayer.eachLayer((layer) => {
+      this.drawnItems?.addLayer(layer);
+      this.refreshLayerDecorations(layer);
+      added++;
+    });
+
+    if (added > 0 && options?.fitBounds !== false) {
+      const bounds = geoLayer.getBounds();
+      if (bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16 });
+      }
+    }
+
+    if (added > 0) {
+      this.onGeometryChange?.('create');
+    }
+
+    return added;
+  }
+
   exportToGeoJSON(): GeoJsonFeatureCollection {
     const features: GeoJSON.Feature[] = [];
     this.drawnItems?.eachLayer((layer) => {
@@ -330,8 +425,17 @@ export class LeafletGisService {
       }
     }
 
-    for (const marker of buildUserLabelMarkers(layer, meta)) {
-      this.annotations.addLayer(marker);
+    if (this.showLineLabels()) {
+      for (const marker of buildUserLabelMarkers(layer, meta)) {
+        marker.on('click', (e: L.LeafletMouseEvent) => {
+          const target = e.originalEvent.target as HTMLElement;
+          if (!target.closest('.gis-line-label-toggle')) return;
+          L.DomEvent.stopPropagation(e);
+          const labelId = (marker as LabelMarker).gisLabelId;
+          if (labelId) this.toggleLineLabelVisibility(layer, labelId);
+        });
+        this.annotations.addLayer(marker);
+      }
     }
   }
 
