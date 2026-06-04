@@ -4,6 +4,8 @@ import type {
   DiagramEdge,
   DiagramNode,
   EdgeStyle,
+  NodeStyle,
+  ResolvedNodeStyle,
   ToolboxItem
 } from './workflow-diagram.model';
 
@@ -24,6 +26,33 @@ export const DEFAULT_EDGE_STYLE: EdgeStyle = {
 
 
 export const EDGE_STROKE_WIDTH_OPTIONS = [1, 1.5, 2, 3, 4, 5, 6] as const;
+
+export const NODE_BORDER_WIDTH_OPTIONS = [1, 1.5, 2, 3, 4] as const;
+
+export const ALERT_VARIANT_OPTIONS: { label: string; value: AlertVariant }[] = [
+  { label: 'Primary', value: 'primary' },
+  { label: 'Secondary', value: 'secondary' },
+  { label: 'Success', value: 'success' },
+  { label: 'Danger', value: 'danger' },
+  { label: 'Warning', value: 'warning' },
+  { label: 'Info', value: 'info' }
+];
+
+export interface AlertColorPreset {
+  variant: AlertVariant;
+  label: string;
+  style: AlertStyle;
+}
+
+export function hasCustomNodeColors(node: DiagramNode): boolean {
+  const s = node.style;
+  return !!(s?.fill || s?.borderColor || s?.textColor || s?.accentColor);
+}
+
+export function nodeStyleKeepingBorderWidth(node: DiagramNode): NodeStyle | undefined {
+  const w = node.style?.borderWidth;
+  return w != null ? { borderWidth: w } : undefined;
+}
 
 
 
@@ -82,7 +111,6 @@ export const DIAGRAM_TOOLBOX: ToolboxItem[] = [
 /** Bootstrap 5 alert palette (light theme) */
 
 export const ALERT_STYLES: Record<AlertVariant, AlertStyle> = {
-
   primary: { bg: '#cfe2ff', border: '#b6d4fe', text: '#084298', accent: '#0d6efd' },
 
   secondary: { bg: '#e2e3e5', border: '#d3d6d8', text: '#41464b', accent: '#6c757d' },
@@ -97,7 +125,12 @@ export const ALERT_STYLES: Record<AlertVariant, AlertStyle> = {
 
 };
 
-
+/** Bootstrap alert palettes for consistent shape styling */
+export const ALERT_COLOR_PRESETS: AlertColorPreset[] = ALERT_VARIANT_OPTIONS.map((o) => ({
+  variant: o.value,
+  label: o.label,
+  style: ALERT_STYLES[o.value]
+}));
 
 export function defaultNodeVariant(shape: DiagramNode['shape']): AlertVariant {
 
@@ -130,6 +163,30 @@ export function nodeAlertStyle(node: DiagramNode): AlertStyle {
   const variant = node.variant ?? defaultNodeVariant(node.shape);
 
   return ALERT_STYLES[variant];
+
+}
+
+
+
+export function resolveNodeStyle(node: DiagramNode): ResolvedNodeStyle {
+
+  const preset = nodeAlertStyle(node);
+
+  const s: Partial<NodeStyle> = node.style ?? {};
+
+  return {
+
+    bg: s.fill ?? preset.bg,
+
+    border: s.borderColor ?? preset.border,
+
+    text: s.textColor ?? preset.text,
+
+    accent: s.accentColor ?? preset.accent,
+
+    borderWidth: s.borderWidth ?? 1.5
+
+  };
 
 }
 

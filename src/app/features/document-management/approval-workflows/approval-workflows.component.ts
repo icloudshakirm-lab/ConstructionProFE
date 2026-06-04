@@ -20,21 +20,31 @@ import { Tooltip } from 'primeng/tooltip';
 import { getModuleById } from '../../../core/constants/feature-registry';
 import { ActivatedRoute } from '@angular/router';
 import {
+  ALERT_COLOR_PRESETS,
   DEFAULT_EDGE_STYLE,
   DIAGRAM_TOOLBOX,
   EDGE_STROKE_WIDTH_OPTIONS,
-  nodeAlertStyle,
-  resolveEdgeStyle
+  NODE_BORDER_WIDTH_OPTIONS,
+  defaultNodeVariant,
+  hasCustomNodeColors,
+  nodeStyleKeepingBorderWidth,
+  resolveEdgeStyle,
+  resolveNodeStyle
 } from './workflow-diagram.data';
 import type {
-  AlertStyle,
+  AlertVariant,
+  ConnectionPortHit,
   DiagramNode,
   DiagramTool,
   EdgeCornerStyle,
   EdgeLineStyle,
+  EdgePort,
   EdgeStyle,
   NodeShape,
+  NodeStyle,
   Point,
+  PortSide,
+  ResolvedNodeStyle,
   WorkflowDiagram
 } from './workflow-diagram.model';
 import {
@@ -44,17 +54,21 @@ import {
   allNodeBounds,
   buildEdgePaths,
   canvasWidth,
+  connectionPortsForBounds,
+  defaultPortToward,
   defaultShapeSize,
   addWaypointOnEdge,
   dragSegmentWaypoints,
   dragWaypointTo,
-  edgeAnchors,
   initialDiagram,
   laneOffsets,
   newId,
+  nodeBounds,
   nodePositionFromDrag,
   polylinePoints,
+  portFromPoint,
   removeWaypointAt,
+  resolveEdgeEndpoints,
   resolveEdgeWaypoints,
   snapToLaneContent,
   variantForNewShape,
@@ -83,6 +97,8 @@ export class ApprovalWorkflowsComponent {
   readonly toolbox = DIAGRAM_TOOLBOX;
   readonly gridStep = GRID_STEP;
   readonly edgeStrokeWidthOptions = EDGE_STROKE_WIDTH_OPTIONS;
+  readonly nodeBorderWidthOptions = NODE_BORDER_WIDTH_OPTIONS;
+  readonly alertColorPresets = ALERT_COLOR_PRESETS;
   readonly lineStyleOptions = [
     { label: 'Solid', value: 'solid' as EdgeLineStyle },
     { label: 'Dashed', value: 'dashed' as EdgeLineStyle }
@@ -96,16 +112,17 @@ export class ApprovalWorkflowsComponent {
   readonly selectedNodeId = signal<string | null>(null);
   readonly selectedEdgeId = signal<string | null>(null);
   readonly connectorFromId = signal<string | null>(null);
+  readonly connectorFromPort = signal<EdgePort | null>(null);
   readonly statusHint = signal('Select a tool, then click the canvas or shapes.');
 
   readonly labelDialogVisible = signal(false);
   readonly labelDraft = signal('');
   readonly lineStylePanelExpanded = signal(true);
+  readonly shapeStylePanelExpanded = signal(true);
 
-  /** Line style panel: visible when a canvas shape or connector is selected */
-  readonly showLineStylePanel = computed(
-    () => this.selectedNodeId() !== null || this.selectedEdgeId() !== null
-  );
+  readonly showLineStylePanel = computed(() => this.selectedEdgeId() !== null);
+
+  readonly showShapeStylePanel = computed(() => this.selectedNodeId() !== null);
 
   private dragNodeId: string | null = null;
   private dragOffsetX = 0;
@@ -123,6 +140,7 @@ export class ApprovalWorkflowsComponent {
     startAnchor: Point;
     endAnchor: Point;
   } | null = null;
+  private dragEndpoint: { edgeId: string; end: 'from' | 'to'; nodeId: string } | null = null;
 
   readonly canvasHeight = CANVAS_HEIGHT;
   readonly canvasWidth = computed(() => canvasWidth(this.diagram().lanes));
@@ -138,6 +156,19 @@ export class ApprovalWorkflowsComponent {
   readonly selectedEdgeStyle = computed(() => {
     const edge = this.selectedEdge();
     return edge ? resolveEdgeStyle(edge) : DEFAULT_EDGE_STYLE;
+  });
+
+  readonly selectedNode = computed(() => {
+    const id = this.selectedNodeId();
+    if (!id) {
+      return null;
+    }
+    return this.diagram().nodes.find((n) => n.id === id) ?? null;
+  });
+
+  readonly selectedNodeStyle = computed((): ResolvedNodeStyle | null => {
+    const node = this.selectedNode();
+    return node ? resolveNodeStyle(node) : null;
   });
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
@@ -159,19 +190,146 @@ export class ApprovalWorkflowsComponent {
     return this.canvasHeight - this.diagram().laneHeaderHeight;
   }
 
-  alertStyle(node: DiagramNode): AlertStyle {
-    return nodeAlertStyle(node);
+  shapeStyle(node: DiagramNode): ResolvedNodeStyle {
+    return resolveNodeStyle(node);
+  }
+
+  showConnectionPorts(nodeId: string): boolean {
+    const tool = this.activeTool();
+    if (tool === 'connector') {
+      return true;
+    }
+    if (tool !== 'select') {
+      return false;
+    }
+    if (this.selectedNodeId() === nodeId) {
+      return true;
+    }
+    const edgeId = this.selectedEdgeId();
+    if (!edgeId) {
+      return false;
+    }
+    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    return edge ? edge.fromId === nodeId || edge.toId === nodeId : false;
+  }
+
+  connectionPorts(nodeId: string): ConnectionPortHit[] {
+    const bounds = this.boundsForNode(nodeId);
+    if (!bounds) {
+      return [];
+    }
+    const edge = this.selectedEdge();
+    if (
+      this.activeTool() === 'select' &&
+      edge &&
+      (edge.fromId === nodeId || edge.toId === nodeId)
+    ) {
+      const path = this.edgePaths().find((p) => p.id === edge.id);
+      if (path) {
+        const port = edge.fromId === nodeId ? path.fromPort : path.toPort;
+        const pt = edge.fromId === nodeId ? path.start : path.end;
+        return connectionPortsForBounds(bounds).map((hit) =>
+          hit.side === port.side ? { ...hit, x: pt.x, y: pt.y, ratio: port.ratio } : hit
+        );
+      }
+    }
+    return connectionPortsForBounds(bounds);
+  }
+
+  private boundsForNode(nodeId: string) {
+    const node = this.diagram().nodes.find((n) => n.id === nodeId);
+    if (!node) {
+      return null;
+    }
+    const laneX = this.laneX(node.laneId);
+    return nodeBounds(node, laneX, this.diagram().laneHeaderHeight);
   }
 
   toggleLineStylePanel(): void {
     this.lineStylePanelExpanded.update((open) => !open);
   }
 
+  toggleShapeStylePanel(): void {
+    this.shapeStylePanelExpanded.update((open) => !open);
+  }
+
+  updateSelectedNodeStyle(patch: Partial<NodeStyle>): void {
+    const nodeId = this.selectedNodeId();
+    if (!nodeId) {
+      return;
+    }
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      nodes: d.nodes.map((n) =>
+        n.id === nodeId ? { ...n, style: { ...n.style, ...patch } } : n
+      )
+    });
+  }
+
+  onAlertColorPresetSelect(variant: AlertVariant): void {
+    const nodeId = this.selectedNodeId();
+    if (!nodeId) {
+      return;
+    }
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      nodes: d.nodes.map((n) =>
+        n.id === nodeId
+          ? { ...n, variant, style: nodeStyleKeepingBorderWidth(n) }
+          : n
+      )
+    });
+  }
+
+  isAlertPresetActive(variant: AlertVariant): boolean {
+    const node = this.selectedNode();
+    if (!node) {
+      return false;
+    }
+    const effective = node.variant ?? defaultNodeVariant(node.shape);
+    return effective === variant && !hasCustomNodeColors(node);
+  }
+
+  onNodeBorderWidthChange(width: number): void {
+    this.updateSelectedNodeStyle({ borderWidth: width });
+  }
+
+  resetSelectedNodeStyle(): void {
+    const nodeId = this.selectedNodeId();
+    if (!nodeId) {
+      return;
+    }
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      nodes: d.nodes.map((n) =>
+        n.id === nodeId
+          ? { ...n, variant: defaultNodeVariant(n.shape), style: undefined }
+          : n
+      )
+    });
+    this.messages.add({ severity: 'info', summary: 'Shape style reset', life: 1500 });
+  }
+
+  openSelectedNodeLabel(): void {
+    const node = this.selectedNode();
+    if (!node) {
+      return;
+    }
+    this.labelDraft.set(node.label);
+    this.labelDialogVisible.set(true);
+  }
+
   setTool(tool: DiagramTool): void {
     this.activeTool.set(tool);
     this.connectorFromId.set(null);
+    this.connectorFromPort.set(null);
     if (tool === 'connector') {
-      this.statusHint.set('Click a source shape, then one or more target shapes (repeat from same source).');
+      this.statusHint.set(
+        'Click a connection point (top/right/bottom/left) on the source, then on target shape(s).'
+      );
     } else if (tool === 'swimlane') {
       this.statusHint.set('Use Add swim lane for a new vertical column.');
     } else if (tool === 'select') {
@@ -278,7 +436,7 @@ export class ApprovalWorkflowsComponent {
     const tool = this.activeTool();
 
     if (tool === 'connector') {
-      this.handleConnectorClick(nodeId);
+      this.handleConnectorClick(nodeId, null);
       return;
     }
 
@@ -298,7 +456,8 @@ export class ApprovalWorkflowsComponent {
     this.suppressCanvasClick = false;
     this.selectedNodeId.set(nodeId);
     this.selectedEdgeId.set(null);
-    this.lineStylePanelExpanded.set(true);
+    this.shapeStylePanelExpanded.set(true);
+    this.lineStylePanelExpanded.set(false);
   }
 
   onNodeDoubleClick(event: MouseEvent, nodeId: string): void {
@@ -334,6 +493,7 @@ export class ApprovalWorkflowsComponent {
     this.selectedEdgeId.set(edgeId);
     this.selectedNodeId.set(null);
     this.lineStylePanelExpanded.set(true);
+    this.shapeStylePanelExpanded.set(false);
     const count = this.edgePaths().find((p) => p.id === edgeId)?.waypoints.length ?? 0;
     this.statusHint.set(
       `${count} bend(s) — drag line sections or blue handles. Shift+click / double-click to add. Alt+click blue handle to remove.`
@@ -413,6 +573,55 @@ export class ApprovalWorkflowsComponent {
     this.statusHint.set(`${wps.length} bend(s) on this connector.`);
   }
 
+  onConnectionPortMouseDown(
+    event: MouseEvent,
+    nodeId: string,
+    side: PortSide,
+    ratio: number
+  ): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.suppressCanvasClick = true;
+    const port: EdgePort = { side, ratio };
+
+    if (this.activeTool() === 'connector') {
+      this.handleConnectorClick(nodeId, port);
+      return;
+    }
+
+    if (this.activeTool() !== 'select') {
+      return;
+    }
+
+    const edge = this.selectedEdge();
+    if (!edge) {
+      return;
+    }
+    if (edge.fromId === nodeId) {
+      this.persistEdgePort(edge.id, 'from', port);
+    } else if (edge.toId === nodeId) {
+      this.persistEdgePort(edge.id, 'to', port);
+    }
+  }
+
+  onEndpointMouseDown(event: MouseEvent, edgeId: string, end: 'from' | 'to'): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.activeTool() !== 'select') {
+      return;
+    }
+    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    if (!edge) {
+      return;
+    }
+    const nodeId = end === 'from' ? edge.fromId : edge.toId;
+    this.dragEndpoint = { edgeId, end, nodeId };
+    this.selectedEdgeId.set(edgeId);
+    this.selectedNodeId.set(null);
+    this.suppressCanvasClick = true;
+    this.statusHint.set('Drag along the shape edge to move the arrow attachment.');
+  }
+
   onEdgeSegmentMouseDown(event: MouseEvent, edgeId: string, segmentIndex: number): void {
     event.stopPropagation();
     event.preventDefault();
@@ -471,6 +680,10 @@ export class ApprovalWorkflowsComponent {
 
   @HostListener('document:mousemove', ['$event'])
   onDocumentMouseMove(event: MouseEvent): void {
+    if (this.dragEndpoint) {
+      this.moveEndpoint(event);
+      return;
+    }
     if (this.dragSegment) {
       this.moveSegment(event);
       return;
@@ -522,6 +735,21 @@ export class ApprovalWorkflowsComponent {
     this.dragNodeId = null;
     this.dragSegment = null;
     this.dragWaypoint = null;
+    this.dragEndpoint = null;
+  }
+
+  private moveEndpoint(event: MouseEvent): void {
+    const drag = this.dragEndpoint;
+    if (!drag) {
+      return;
+    }
+    const pt = this.svgPoint(event);
+    const bounds = this.boundsForNode(drag.nodeId);
+    if (!pt || !bounds) {
+      return;
+    }
+    const port = portFromPoint(bounds, pt);
+    this.persistEdgePort(drag.edgeId, drag.end, port);
   }
 
   private moveSegment(event: MouseEvent): void {
@@ -565,13 +793,27 @@ export class ApprovalWorkflowsComponent {
     const from = bounds.get(edge.fromId);
     const to = bounds.get(edge.toId);
     if (!from || !to) return null;
-    const { start, end } = edgeAnchors(from, to);
+    const { start, end } = resolveEdgeEndpoints(edge, from, to);
     const waypoints = resolveEdgeWaypoints(edge, start, end);
     return {
       start,
       end,
       poly: polylinePoints(start, end, waypoints)
     };
+  }
+
+  private persistEdgePort(edgeId: string, end: 'from' | 'to', port: EdgePort): void {
+    const d = this.diagram();
+    const stored: EdgePort = { side: port.side, ratio: port.ratio };
+    this.diagram.set({
+      ...d,
+      edges: d.edges.map((e) => {
+        if (e.id !== edgeId) {
+          return e;
+        }
+        return end === 'from' ? { ...e, fromPort: stored } : { ...e, toPort: stored };
+      })
+    });
   }
 
   private persistEdgeWaypoints(edgeId: string, waypoints: Point[]): void {
@@ -583,30 +825,52 @@ export class ApprovalWorkflowsComponent {
     });
   }
 
-  private handleConnectorClick(nodeId: string): void {
+  private handleConnectorClick(nodeId: string, toPort: EdgePort | null): void {
     const from = this.connectorFromId();
     if (!from) {
       this.connectorFromId.set(nodeId);
+      this.connectorFromPort.set(toPort);
       this.selectedNodeId.set(nodeId);
-      this.statusHint.set('Source set — click target shape(s). Click source again to change.');
+      this.selectedEdgeId.set(null);
+      const side = toPort?.side ?? 'any side';
+      this.statusHint.set(
+        toPort
+          ? `Source (${side}) set — click a connection point on target shape(s).`
+          : 'Click a connection point on the source shape (top, right, bottom, or left).'
+      );
       return;
     }
-    if (from === nodeId) {
+    if (from === nodeId && !toPort) {
       this.connectorFromId.set(null);
-      this.statusHint.set('Connector cleared — pick a new source.');
+      this.connectorFromPort.set(null);
+      this.statusHint.set('Connector cleared — pick a new source point.');
       return;
     }
     const d = this.diagram();
-    const exists = d.edges.some((e) => e.fromId === from && e.toId === nodeId);
+    const bounds = new Map(allNodeBounds(d).map((b) => [b.id, b]));
+    const fromBox = bounds.get(from);
+    const toBox = bounds.get(nodeId);
+    if (!fromBox || !toBox) {
+      return;
+    }
+
+    const resolvedFrom = this.connectorFromPort() ?? defaultPortToward(fromBox, toBox);
+    const resolvedTo = toPort ?? defaultPortToward(toBox, fromBox);
+
+    const exists = d.edges.some(
+      (e) =>
+        e.fromId === from &&
+        e.toId === nodeId &&
+        e.fromPort?.side === resolvedFrom.side &&
+        e.toPort?.side === resolvedTo.side
+    );
     if (!exists) {
-      const bounds = new Map(allNodeBounds(d).map((b) => [b.id, b]));
-      const fromBox = bounds.get(from);
-      const toBox = bounds.get(nodeId);
-      let waypoints: Point[] | undefined;
-      if (fromBox && toBox) {
-        const anchors = edgeAnchors(fromBox, toBox);
-        waypoints = waypointsForNewEdge(anchors.start, anchors.end);
-      }
+      const { start, end } = resolveEdgeEndpoints(
+        { id: '', fromId: from, toId: nodeId, fromPort: resolvedFrom, toPort: resolvedTo },
+        fromBox,
+        toBox
+      );
+      const waypoints = waypointsForNewEdge(start, end);
       this.diagram.set({
         ...d,
         edges: [
@@ -615,6 +879,8 @@ export class ApprovalWorkflowsComponent {
             id: newId('e'),
             fromId: from,
             toId: nodeId,
+            fromPort: resolvedFrom,
+            toPort: resolvedTo,
             waypoints,
             style: { ...DEFAULT_EDGE_STYLE }
           }
@@ -622,8 +888,12 @@ export class ApprovalWorkflowsComponent {
       });
       this.messages.add({ severity: 'info', summary: 'Connected', life: 1500 });
     }
+    this.connectorFromPort.set(resolvedFrom);
     this.selectedNodeId.set(nodeId);
-    this.statusHint.set('Select the connector — drag sections or handles to shape the path.');
+    this.selectedEdgeId.set(null);
+    this.statusHint.set(
+      'Source locked — click another target point, or click source again to change.'
+    );
   }
 
   private svgPoint(event: MouseEvent): { x: number; y: number } | null {

@@ -60,6 +60,34 @@ export interface DiagramNode {
 
   variant?: AlertVariant;
 
+  /** Optional overrides on top of the theme preset */
+
+  style?: Partial<NodeStyle>;
+
+}
+
+
+
+export interface NodeStyle {
+
+  fill?: string;
+
+  borderColor?: string;
+
+  textColor?: string;
+
+  accentColor?: string;
+
+  borderWidth?: number;
+
+}
+
+
+
+export interface ResolvedNodeStyle extends AlertStyle {
+
+  borderWidth: number;
+
 }
 
 
@@ -97,6 +125,14 @@ export interface DiagramEdge {
   /** Bend points in canvas coordinates (between shape anchors) */
 
   waypoints?: Point[];
+
+  /** Where the line leaves the source shape */
+
+  fromPort?: EdgePort;
+
+  /** Where the line meets the target shape */
+
+  toPort?: EdgePort;
 
   style?: Partial<EdgeStyle>;
 
@@ -156,6 +192,24 @@ export interface Point {
 
 
 
+/** Which side of a shape a connector attaches to */
+
+export type PortSide = 'top' | 'right' | 'bottom' | 'left';
+
+
+
+/** Attachment on a shape edge (ratio 0–1 along that side) */
+
+export interface EdgePort {
+
+  side: PortSide;
+
+  ratio: number;
+
+}
+
+
+
 export interface NodeBounds {
 
   id: string;
@@ -209,6 +263,28 @@ export interface EdgePath {
   /** Midpoint handles on each segment when selected */
 
   virtualBends: VirtualBendHit[];
+
+  start: Point;
+
+  end: Point;
+
+  fromPort: EdgePort;
+
+  toPort: EdgePort;
+
+}
+
+
+
+export interface ConnectionPortHit {
+
+  side: PortSide;
+
+  x: number;
+
+  y: number;
+
+  ratio: number;
 
 }
 

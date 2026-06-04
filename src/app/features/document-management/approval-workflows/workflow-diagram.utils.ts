@@ -1,10 +1,13 @@
 import type {
+  ConnectionPortHit,
   DiagramEdge,
   DiagramNode,
   EdgePath,
+  EdgePort,
   EdgeSegmentHit,
   NodeBounds,
   Point,
+  PortSide,
   SwimLane,
   VirtualBendHit,
   WorkflowDiagram
@@ -65,24 +68,91 @@ export function allNodeBounds(diagram: WorkflowDiagram): NodeBounds[] {
   });
 }
 
-export function edgeAnchors(from: NodeBounds, to: NodeBounds): { start: Point; end: Point } {
-  const dx = to.cx - from.cx;
-  const dy = to.cy - from.cy;
-  const start = boundaryPoint(from, dx, dy);
-  const end = boundaryPoint(to, -dx, -dy);
-  return { start, end };
+export const PORT_SIDES: PortSide[] = ['top', 'right', 'bottom', 'left'];
+
+const DEFAULT_PORT_RATIO = 0.5;
+
+export function anchorPoint(bounds: NodeBounds, port: EdgePort): Point {
+  const ratio = Math.max(0, Math.min(1, port.ratio));
+  const { left, right, top, bottom } = bounds;
+  switch (port.side) {
+    case 'top':
+      return { x: left + (right - left) * ratio, y: top };
+    case 'bottom':
+      return { x: left + (right - left) * ratio, y: bottom };
+    case 'left':
+      return { x: left, y: top + (bottom - top) * ratio };
+    case 'right':
+      return { x: right, y: top + (bottom - top) * ratio };
+  }
 }
 
-function boundaryPoint(box: NodeBounds, dx: number, dy: number): Point {
+/** Pick the side that faces the other shape (used when no port is stored) */
+export function defaultPortToward(from: NodeBounds, toward: NodeBounds): EdgePort {
+  const dx = toward.cx - from.cx;
+  const dy = toward.cy - from.cy;
   if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
-    return { x: box.right, y: box.cy };
+    return { side: 'right', ratio: DEFAULT_PORT_RATIO };
   }
-  const hw = (box.right - box.left) / 2;
-  const hh = (box.bottom - box.top) / 2;
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-  const scale = absDx / hw > absDy / hh ? hw / absDx : hh / absDy;
-  return { x: box.cx + dx * scale, y: box.cy + dy * scale };
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return { side: dx > 0 ? 'right' : 'left', ratio: DEFAULT_PORT_RATIO };
+  }
+  return { side: dy > 0 ? 'bottom' : 'top', ratio: DEFAULT_PORT_RATIO };
+}
+
+/** Snap a canvas point to the nearest location on the shape outline */
+export function portFromPoint(bounds: NodeBounds, p: Point): EdgePort {
+  const { left, right, top, bottom } = bounds;
+  const w = Math.max(right - left, 1);
+  const h = Math.max(bottom - top, 1);
+
+  const candidates: EdgePort[] = [
+    { side: 'top', ratio: Math.max(0, Math.min(1, (p.x - left) / w)) },
+    { side: 'bottom', ratio: Math.max(0, Math.min(1, (p.x - left) / w)) },
+    { side: 'left', ratio: Math.max(0, Math.min(1, (p.y - top) / h)) },
+    { side: 'right', ratio: Math.max(0, Math.min(1, (p.y - top) / h)) }
+  ];
+
+  let best = candidates[0];
+  let bestDist = Infinity;
+  for (const port of candidates) {
+    const pt = anchorPoint(bounds, port);
+    const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = port;
+    }
+  }
+  return best;
+}
+
+export function connectionPortsForBounds(bounds: NodeBounds, ratio = DEFAULT_PORT_RATIO): ConnectionPortHit[] {
+  return PORT_SIDES.map((side) => {
+    const pt = anchorPoint(bounds, { side, ratio });
+    return { side, x: pt.x, y: pt.y, ratio };
+  });
+}
+
+export function resolveEdgeEndpoints(
+  edge: DiagramEdge,
+  from: NodeBounds,
+  to: NodeBounds
+): { start: Point; end: Point; fromPort: EdgePort; toPort: EdgePort } {
+  const fromPort = edge.fromPort ?? defaultPortToward(from, to);
+  const toPort = edge.toPort ?? defaultPortToward(to, from);
+  return {
+    start: anchorPoint(from, fromPort),
+    end: anchorPoint(to, toPort),
+    fromPort,
+    toPort
+  };
+}
+
+/** @deprecated Use resolveEdgeEndpoints */
+export function edgeAnchors(from: NodeBounds, to: NodeBounds): { start: Point; end: Point } {
+  const fromPort = defaultPortToward(from, to);
+  const toPort = defaultPortToward(to, from);
+  return { start: anchorPoint(from, fromPort), end: anchorPoint(to, toPort) };
 }
 
 /** Straight line until user adds bends */
@@ -266,7 +336,7 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
     const from = bounds.get(edge.fromId);
     const to = bounds.get(edge.toId);
     if (!from || !to) continue;
-    const { start, end } = edgeAnchors(from, to);
+    const { start, end, fromPort, toPort } = resolveEdgeEndpoints(edge, from, to);
     const waypoints = resolveEdgeWaypoints(edge, start, end);
     const poly = polylinePoints(start, end, waypoints);
     const labelPos = labelAtPolyline(poly);
@@ -283,7 +353,11 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
       lineCap: lineCapFor(style.cornerStyle),
       waypoints,
       segments: segmentHitsFromPoly(poly),
-      virtualBends: virtualBendsFromPoly(poly)
+      virtualBends: virtualBendsFromPoly(poly),
+      start,
+      end,
+      fromPort,
+      toPort
     };
     if (edge.label) path.label = edge.label;
     paths.push(path);

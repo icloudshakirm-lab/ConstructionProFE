@@ -98,17 +98,102 @@
 
       <p class="wf-page__toolbox-hint">
 
-        <strong>Connect:</strong> pick source, then any number of targets from the same source.<br />
+        <strong>Connect:</strong> click a port (top/right/bottom/left) on source, then on target.<br />
 
-        <strong>Select:</strong> drag shapes · connector: drag sections or handles · Shift+click / double-click to add bend · Alt+click blue handle to remove.
+        <strong>Select:</strong> drag orange/green endpoints along shape edges · Shift+click line to add bend.
 
       </p>
+
+      @if (showShapeStylePanel()) {
+        <div class="wf-page__shape-style" aria-label="Shape style">
+          <button
+            type="button"
+            class="wf-page__style-panel-toggle"
+            (click)="toggleShapeStylePanel()"
+            [attr.aria-expanded]="shapeStylePanelExpanded()"
+          >
+            <span>Shape style</span>
+            <i
+              class="pi"
+              [class.pi-chevron-up]="shapeStylePanelExpanded()"
+              [class.pi-chevron-down]="!shapeStylePanelExpanded()"
+              aria-hidden="true"
+            ></i>
+          </button>
+          @if (shapeStylePanelExpanded() && selectedNodeStyle(); as ns) {
+            <div class="wf-page__style-panel-body">
+              <div class="wf-page__style-panel-row">
+                <span>Alert color</span>
+                <p class="wf-page__style-panel-note">Bootstrap presets — keeps shapes consistent.</p>
+                <div class="wf-page__alert-swatches" role="listbox" aria-label="Alert color presets">
+                  @for (preset of alertColorPresets; track preset.variant) {
+                    <button
+                      type="button"
+                      class="wf-page__alert-swatch"
+                      role="option"
+                      [class.wf-page__alert-swatch--active]="isAlertPresetActive(preset.variant)"
+                      [attr.aria-label]="preset.label"
+                      [attr.aria-selected]="isAlertPresetActive(preset.variant)"
+                      (click)="onAlertColorPresetSelect(preset.variant)"
+                    >
+                      <span
+                        class="wf-page__alert-swatch-preview"
+                        [style.background]="preset.style.bg"
+                        [style.border-color]="preset.style.border"
+                        [style.color]="preset.style.text"
+                      >
+                        <span
+                          class="wf-page__alert-swatch-accent"
+                          [style.background]="preset.style.accent"
+                        ></span>
+                        Aa
+                      </span>
+                      <span class="wf-page__alert-swatch-label">{{ preset.label }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+              <label class="wf-page__style-panel-row">
+                <span>Border width</span>
+                <select
+                  class="wf-page__style-select"
+                  [value]="ns.borderWidth"
+                  (change)="onNodeBorderWidthChange(+$any($event.target).value)"
+                >
+                  @for (w of nodeBorderWidthOptions; track w) {
+                    <option [value]="w">{{ w }}px</option>
+                  }
+                </select>
+              </label>
+              <div class="wf-page__style-panel-actions">
+                <p-button
+                  label="Edit label"
+                  icon="pi pi-pencil"
+                  [outlined]="true"
+                  size="small"
+                  (onClick)="openSelectedNodeLabel()"
+                  [style]="{ width: '100%' }"
+                />
+                <p-button
+                  label="Reset style"
+                  icon="pi pi-replay"
+                  [outlined]="true"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="resetSelectedNodeStyle()"
+                  [style]="{ width: '100%' }"
+                />
+              </div>
+            </div>
+          }
+        </div>
+      }
 
       @if (showLineStylePanel()) {
         <div class="wf-page__line-style" aria-label="Connector line style">
           <button
             type="button"
-            class="wf-page__line-style-toggle"
+            class="wf-page__style-panel-toggle"
             (click)="toggleLineStylePanel()"
             [attr.aria-expanded]="lineStylePanelExpanded()"
           >
@@ -121,23 +206,20 @@
             ></i>
           </button>
           @if (lineStylePanelExpanded()) {
-            <div class="wf-page__line-style-body">
-              @if (!selectedEdgeId()) {
-                <p class="wf-page__line-style-hint">Select a connector line to edit style and bends.</p>
-              } @else {
-              <label class="wf-page__line-style-row">
+            <div class="wf-page__style-panel-body">
+              <label class="wf-page__style-panel-row">
                 <span>Color</span>
                 <input
                   type="color"
-                  class="wf-page__line-color"
+                  class="wf-page__style-color"
                   [value]="selectedEdgeStyle().color"
                   (input)="onEdgeColorChange($any($event.target).value)"
                 />
               </label>
-              <label class="wf-page__line-style-row">
+              <label class="wf-page__style-panel-row">
                 <span>Thickness</span>
                 <select
-                  class="wf-page__line-select"
+                  class="wf-page__style-select"
                   [value]="selectedEdgeStyle().strokeWidth"
                   (change)="onEdgeStrokeWidthChange(+$any($event.target).value)"
                 >
@@ -146,7 +228,7 @@
                   }
                 </select>
               </label>
-              <div class="wf-page__line-style-row">
+              <div class="wf-page__style-panel-row">
                 <span>Line</span>
                 <p-selectButton
                   [options]="lineStyleOptions"
@@ -157,7 +239,7 @@
                   [allowEmpty]="false"
                 />
               </div>
-              <div class="wf-page__line-style-row">
+              <div class="wf-page__style-panel-row">
                 <span>Corners</span>
                 <p-selectButton
                   [options]="cornerStyleOptions"
@@ -168,7 +250,7 @@
                   [allowEmpty]="false"
                 />
               </div>
-              <div class="wf-page__line-style-actions">
+              <div class="wf-page__style-panel-actions">
                 <p-button
                   label="Add bend"
                   icon="pi pi-plus-circle"
@@ -180,7 +262,6 @@
                   [style]="{ width: '100%' }"
                 />
               </div>
-              }
             </div>
           }
         </div>
@@ -424,6 +505,20 @@
                   </text>
                 }
                 @if (selectedEdgeId() === path.id && activeTool() === 'select') {
+                  <circle
+                    class="wf-page__endpoint wf-page__endpoint--from"
+                    [attr.cx]="path.start.x"
+                    [attr.cy]="path.start.y"
+                    r="6"
+                    (mousedown)="onEndpointMouseDown($event, path.id, 'from')"
+                  />
+                  <circle
+                    class="wf-page__endpoint wf-page__endpoint--to"
+                    [attr.cx]="path.end.x"
+                    [attr.cy]="path.end.y"
+                    r="6"
+                    (mousedown)="onEndpointMouseDown($event, path.id, 'to')"
+                  />
                   @for (vb of path.virtualBends; track vb.segmentIndex) {
                     <circle
                       class="wf-page__virtual-bend"
@@ -451,7 +546,7 @@
 
           @for (node of diagram().nodes; track node.id) {
 
-            @let style = alertStyle(node);
+            @let style = shapeStyle(node);
 
             <g
 
@@ -503,6 +598,8 @@
 
                     [attr.stroke]="style.border"
 
+                    [attr.stroke-width]="style.borderWidth"
+
                   />
 
                 }
@@ -543,6 +640,8 @@
 
                     [attr.stroke]="style.border"
 
+                    [attr.stroke-width]="style.borderWidth"
+
                   />
 
                 }
@@ -563,6 +662,8 @@
 
                     [attr.stroke]="style.border"
 
+                    [attr.stroke-width]="style.borderWidth"
+
                   />
 
                 }
@@ -582,6 +683,8 @@
                     [attr.fill]="style.bg"
 
                     [attr.stroke]="style.border"
+
+                    [attr.stroke-width]="style.borderWidth"
 
                   />
 
@@ -630,6 +733,29 @@
             </g>
 
           }
+
+
+
+          <g class="wf-page__connection-ports">
+            @for (node of diagram().nodes; track node.id) {
+              @if (showConnectionPorts(node.id)) {
+                @for (port of connectionPorts(node.id); track port.side) {
+                  <circle
+                    class="wf-page__conn-port"
+                    [class.wf-page__conn-port--active]="
+                      connectorFromId() === node.id && connectorFromPort()?.side === port.side
+                    "
+                    [class.wf-page__conn-port--source]="connectorFromId() === node.id"
+                    [attr.cx]="port.x"
+                    [attr.cy]="port.y"
+                    r="5"
+                    [attr.data-side]="port.side"
+                    (mousedown)="onConnectionPortMouseDown($event, node.id, port.side, port.ratio)"
+                  />
+                }
+              }
+            }
+          </g>
 
         </svg>
 
