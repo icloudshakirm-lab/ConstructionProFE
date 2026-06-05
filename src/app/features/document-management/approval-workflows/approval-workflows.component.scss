@@ -718,6 +718,22 @@
 
 
 
+.wf-page__connector-preview {
+
+  stroke: var(--p-primary-color);
+
+  stroke-width: 2;
+
+  stroke-dasharray: 6 4;
+
+  opacity: 0.85;
+
+  pointer-events: none;
+
+}
+
+
+
 .wf-page__conn-port {
 
   fill: #ffffff;

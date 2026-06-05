@@ -42,6 +42,7 @@ import type {
   ConnectionPortHit,
   DiagramNode,
   DiagramTool,
+  NodeBounds,
   EdgeCornerStyle,
   EdgeLineStyle,
   EdgePort,
@@ -59,6 +60,7 @@ import {
   DEFAULT_LANE_WIDTH,
   GRID_STEP,
   allNodeBounds,
+  anchorPoint,
   buildEdgePaths,
   canvasWidth,
   connectionPortsForBounds,
@@ -146,6 +148,7 @@ export class ApprovalWorkflowsComponent {
   readonly selectedEdgeId = signal<string | null>(null);
   readonly connectorFromId = signal<string | null>(null);
   readonly connectorFromPort = signal<EdgePort | null>(null);
+  readonly connectorPreviewPoint = signal<Point | null>(null);
   readonly statusHint = signal('Select a tool, then click the canvas or shapes.');
 
   readonly labelDialogVisible = signal(false);
@@ -181,6 +184,23 @@ export class ApprovalWorkflowsComponent {
   readonly canvasWidth = computed(() => canvasWidth(this.diagram().lanes));
   readonly laneOffsetMap = computed(() => laneOffsets(this.diagram().lanes));
   readonly edgePaths = computed(() => buildEdgePaths(this.diagram()));
+
+  readonly connectorPreviewLine = computed(() => {
+    const fromId = this.connectorFromId();
+    const fromPort = this.connectorFromPort();
+    const cursor = this.connectorPreviewPoint();
+    if (!fromId || !fromPort || !cursor) {
+      return null;
+    }
+    const fromBox = allNodeBounds(this.diagram()).find((b) => b.id === fromId);
+    if (!fromBox) {
+      return null;
+    }
+    return {
+      start: anchorPoint(fromBox, fromPort),
+      end: this.resolveConnectorPreviewEnd(cursor, fromId, fromBox)
+    };
+  });
 
   readonly selectedEdge = computed(() => {
     const id = this.selectedEdgeId();
@@ -373,9 +393,10 @@ export class ApprovalWorkflowsComponent {
     this.activeTool.set(tool);
     this.connectorFromId.set(null);
     this.connectorFromPort.set(null);
+    this.connectorPreviewPoint.set(null);
     if (tool === 'connector') {
       this.statusHint.set(
-        'Click a connection point (top/right/bottom/left) on the source, then on target shape(s).'
+        'Click a source connection point — a line follows your cursor. Click a target point or shape to connect.'
       );
     } else if (tool === 'swimlane') {
       this.statusHint.set('Use Add swim lane for a new vertical column.');
@@ -506,7 +527,11 @@ export class ApprovalWorkflowsComponent {
     const tool = this.activeTool();
 
     if (tool === 'connector') {
-      this.handleConnectorClick(nodeId, null);
+      if (this.connectorFromId()) {
+        this.handleConnectorClick(nodeId, null);
+      } else {
+        this.statusHint.set('Click a connection point on the source shape first.');
+      }
       return;
     }
 
@@ -781,6 +806,26 @@ export class ApprovalWorkflowsComponent {
     this.suppressCanvasClick = true;
   }
 
+  onCanvasMouseMove(event: MouseEvent): void {
+    if (
+      this.activeTool() !== 'connector' ||
+      !this.connectorFromId() ||
+      !this.connectorFromPort()
+    ) {
+      return;
+    }
+    const pt = this.svgPoint(event);
+    if (pt) {
+      this.connectorPreviewPoint.set(pt);
+    }
+  }
+
+  onCanvasMouseLeave(): void {
+    if (this.activeTool() === 'connector' && this.connectorFromId()) {
+      this.connectorPreviewPoint.set(null);
+    }
+  }
+
   toggleFullscreen(): void {
     const el = this.designerShell?.nativeElement;
     if (!el) {
@@ -816,6 +861,16 @@ export class ApprovalWorkflowsComponent {
     if (this.dragResize) {
       this.moveResize(event);
       return;
+    }
+    if (
+      this.activeTool() === 'connector' &&
+      this.connectorFromId() &&
+      this.connectorFromPort()
+    ) {
+      const pt = this.svgPoint(event);
+      if (pt) {
+        this.connectorPreviewPoint.set(pt);
+      }
     }
     if (!this.dragNodeId) return;
 
@@ -988,22 +1043,33 @@ export class ApprovalWorkflowsComponent {
   private handleConnectorClick(nodeId: string, toPort: EdgePort | null): void {
     const from = this.connectorFromId();
     if (!from) {
+      if (!toPort) {
+        this.statusHint.set(
+          'Click a connection point on the source shape (top, right, bottom, or left).'
+        );
+        return;
+      }
       this.connectorFromId.set(nodeId);
       this.connectorFromPort.set(toPort);
       this.selectedNodeId.set(nodeId);
       this.selectedEdgeId.set(null);
-      const side = toPort?.side ?? 'any side';
       this.statusHint.set(
-        toPort
-          ? `Source (${side}) set — click a connection point on target shape(s).`
-          : 'Click a connection point on the source shape (top, right, bottom, or left).'
+        `Source (${toPort.side}) set — click a target point or shape. Line follows your cursor.`
       );
       return;
     }
-    if (from === nodeId && !toPort) {
-      this.connectorFromId.set(null);
-      this.connectorFromPort.set(null);
-      this.statusHint.set('Connector cleared — pick a new source point.');
+    if (from === nodeId) {
+      if (toPort) {
+        this.connectorFromPort.set(toPort);
+        this.statusHint.set(
+          `Source (${toPort.side}) set — click a target point or shape. Line follows your cursor.`
+        );
+      } else {
+        this.connectorFromId.set(null);
+        this.connectorFromPort.set(null);
+        this.connectorPreviewPoint.set(null);
+        this.statusHint.set('Connector cleared — pick a new source point.');
+      }
       return;
     }
     const d = this.diagram();
@@ -1052,8 +1118,43 @@ export class ApprovalWorkflowsComponent {
     this.selectedNodeId.set(nodeId);
     this.selectedEdgeId.set(null);
     this.statusHint.set(
-      'Source locked — click another target point, or click source again to change.'
+      'Source locked — click another target point or shape, or click the source shape to reset.'
     );
+  }
+
+  private resolveConnectorPreviewEnd(cursor: Point, fromId: string, fromBox: NodeBounds): Point {
+    const boundsList = allNodeBounds(this.diagram());
+    let nearestPort: { dist: number; point: Point } | null = null;
+
+    for (const box of boundsList) {
+      if (box.id === fromId) {
+        continue;
+      }
+      for (const hit of connectionPortsForBounds(box)) {
+        const dist = Math.hypot(cursor.x - hit.x, cursor.y - hit.y);
+        if (dist <= 14 && (!nearestPort || dist < nearestPort.dist)) {
+          nearestPort = { dist, point: { x: hit.x, y: hit.y } };
+        }
+      }
+    }
+    if (nearestPort) {
+      return nearestPort.point;
+    }
+
+    for (const box of boundsList) {
+      if (box.id === fromId) {
+        continue;
+      }
+      if (
+        cursor.x >= box.left &&
+        cursor.x <= box.right &&
+        cursor.y >= box.top &&
+        cursor.y <= box.bottom
+      ) {
+        return anchorPoint(box, defaultPortToward(box, fromBox));
+      }
+    }
+    return cursor;
   }
 
   private svgPoint(event: MouseEvent): { x: number; y: number } | null {

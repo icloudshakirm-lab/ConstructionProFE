@@ -102,7 +102,7 @@
       </div>
 
       <p class="wf-page__toolbox-hint">
-        <strong>Connect:</strong> click a port (top/right/bottom/left) on source, then on target.<br />
+        <strong>Connect:</strong> click a source port — line follows cursor — click target port or shape.<br />
         <strong>Select:</strong> drag shapes · resize with handles · edit style in the Properties panel.
       </p>
 
@@ -156,6 +156,10 @@
           [attr.viewBox]="'0 0 ' + canvasWidth() + ' ' + canvasHeight"
 
           (click)="onCanvasClick($event)"
+
+          (mousemove)="onCanvasMouseMove($event)"
+
+          (mouseleave)="onCanvasMouseLeave()"
 
         >
 
@@ -333,6 +337,17 @@
           }
 
 
+
+          @if (connectorPreviewLine(); as preview) {
+            <line
+              class="wf-page__connector-preview"
+              [attr.x1]="preview.start.x"
+              [attr.y1]="preview.start.y"
+              [attr.x2]="preview.end.x"
+              [attr.y2]="preview.end.y"
+              pointer-events="none"
+            />
+          }
 
           <g class="wf-page__edges">
             @for (path of edgePaths(); track path.id) {
