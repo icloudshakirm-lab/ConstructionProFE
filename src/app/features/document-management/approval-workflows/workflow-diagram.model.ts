@@ -98,6 +98,10 @@ export type EdgeLineStyle = 'solid' | 'dashed';
 
 export type EdgeCornerStyle = 'sharp' | 'rounded' | 'sketch';
 
+/** Marker at the target end of the connector (marker-end) */
+
+export type ArrowMarkerType = 'none' | 'arrow' | 'openArrow' | 'diamond' | 'circle' | 'square' | 'bar';
+
 
 
 export interface EdgeStyle {
@@ -109,6 +113,14 @@ export interface EdgeStyle {
   lineStyle: EdgeLineStyle;
 
   cornerStyle: EdgeCornerStyle;
+
+  /** Marker at target / head end */
+
+  arrowHead: ArrowMarkerType;
+
+  /** Marker at source / tail end */
+
+  arrowTail: ArrowMarkerType;
 
 }
 
@@ -255,6 +267,10 @@ export interface EdgePath {
   lineCap: 'butt' | 'round';
 
   cornerStyle: EdgeCornerStyle;
+
+  arrowHead: ArrowMarkerType;
+
+  arrowTail: ArrowMarkerType;
 
   /** Draggable bend handles (canvas coordinates) */
 

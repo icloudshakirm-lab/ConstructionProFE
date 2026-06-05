@@ -503,6 +503,8 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
       lineJoin: lineJoinFor(style.cornerStyle),
       lineCap: lineCapFor(style.cornerStyle),
       cornerStyle: style.cornerStyle,
+      arrowHead: style.arrowHead,
+      arrowTail: style.arrowTail,
       waypoints,
       segments: segmentHitsFromPoly(poly),
       virtualBends: virtualBendsFromPoly(poly),

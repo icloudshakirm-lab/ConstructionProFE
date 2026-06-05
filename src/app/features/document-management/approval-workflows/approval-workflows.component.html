@@ -2,55 +2,70 @@
 
 <div class="wf-page">
 
-  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+  <div #designerShell class="wf-page__designer-shell" [class.wf-page__designer-shell--fullscreen]="fullscreen()">
 
+    @if (!fullscreen()) {
+      <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
 
+      <header class="wf-page__header">
+        <div>
+          <p-tag value="Document Management" severity="info" />
+          <h1>Approval Workflows</h1>
+          <p class="wf-page__subtitle">
+            Select a connector and drag any section or handle — Shift+click or double-click to add bends (any angle).
+          </p>
+        </div>
+        <div class="wf-page__header-actions">
+          <p-button label="Add swim lane" icon="pi pi-plus" [outlined]="true" (onClick)="addSwimLane()" />
+          <p-button
+            label="Delete"
+            icon="pi pi-trash"
+            severity="danger"
+            [outlined]="true"
+            [disabled]="!selectedNodeId() && !selectedEdgeId()"
+            (onClick)="deleteSelected()"
+          />
+          <p-button label="Export JSON" icon="pi pi-download" [outlined]="true" (onClick)="exportJson()" />
+          <p-button
+            icon="pi pi-window-maximize"
+            [outlined]="true"
+            pTooltip="Full screen"
+            tooltipPosition="bottom"
+            (onClick)="toggleFullscreen()"
+          />
+        </div>
+      </header>
+    } @else {
+      <div class="wf-page__fullscreen-bar">
+        <span class="wf-page__fullscreen-title">
+          <i class="pi pi-sitemap" aria-hidden="true"></i>
+          Approval Workflows
+        </span>
+        <div class="wf-page__header-actions">
+          <p-button label="Add swim lane" icon="pi pi-plus" [outlined]="true" size="small" (onClick)="addSwimLane()" />
+          <p-button
+            label="Delete"
+            icon="pi pi-trash"
+            severity="danger"
+            [outlined]="true"
+            size="small"
+            [disabled]="!selectedNodeId() && !selectedEdgeId()"
+            (onClick)="deleteSelected()"
+          />
+          <p-button label="Export JSON" icon="pi pi-download" [outlined]="true" size="small" (onClick)="exportJson()" />
+          <p-button
+            icon="pi pi-window-minimize"
+            [outlined]="true"
+            size="small"
+            pTooltip="Exit full screen"
+            tooltipPosition="bottom"
+            (onClick)="toggleFullscreen()"
+          />
+        </div>
+      </div>
+    }
 
-  <header class="wf-page__header">
-
-    <div>
-
-      <p-tag value="Document Management" severity="info" />
-
-      <h1>Approval Workflows</h1>
-
-      <p class="wf-page__subtitle">
-
-        Select a connector and drag any section or handle — Shift+click or double-click to add bends (any angle).
-
-      </p>
-
-    </div>
-
-    <div class="wf-page__header-actions">
-
-      <p-button label="Add swim lane" icon="pi pi-plus" [outlined]="true" (onClick)="addSwimLane()" />
-
-      <p-button
-
-        label="Delete"
-
-        icon="pi pi-trash"
-
-        severity="danger"
-
-        [outlined]="true"
-
-        [disabled]="!selectedNodeId() && !selectedEdgeId()"
-
-        (onClick)="deleteSelected()"
-
-      />
-
-      <p-button label="Export JSON" icon="pi pi-download" [outlined]="true" (onClick)="exportJson()" />
-
-    </div>
-
-  </header>
-
-
-
-  <div class="wf-page__workspace">
+    <div class="wf-page__workspace">
 
     <aside class="wf-page__toolbox" aria-label="Diagram toolbox">
 
@@ -87,204 +102,9 @@
       </div>
 
       <p class="wf-page__toolbox-hint">
-
         <strong>Connect:</strong> click a port (top/right/bottom/left) on source, then on target.<br />
-
-        <strong>Select:</strong> drag shapes · resize with handles · connector endpoints & bends in Line style.
-
+        <strong>Select:</strong> drag shapes · resize with handles · edit style in the Properties panel.
       </p>
-
-      @if (showShapeStylePanel()) {
-        <div class="wf-page__shape-style" aria-label="Shape style">
-          <button
-            type="button"
-            class="wf-page__style-panel-toggle"
-            (click)="toggleShapeStylePanel()"
-            [attr.aria-expanded]="shapeStylePanelExpanded()"
-          >
-            <span>Shape style</span>
-            <i
-              class="pi"
-              [class.pi-chevron-up]="shapeStylePanelExpanded()"
-              [class.pi-chevron-down]="!shapeStylePanelExpanded()"
-              aria-hidden="true"
-            ></i>
-          </button>
-          @if (shapeStylePanelExpanded() && selectedNodeStyle(); as ns) {
-            <div class="wf-page__style-panel-body">
-              <div class="wf-page__style-panel-row">
-                <span>Alert color</span>
-                <p class="wf-page__style-panel-note">Bootstrap presets — keeps shapes consistent.</p>
-                <div class="wf-page__alert-swatches" role="listbox" aria-label="Alert color presets">
-                  @for (preset of alertColorPresets; track preset.variant) {
-                    <button
-                      type="button"
-                      class="wf-page__alert-swatch"
-                      role="option"
-                      [class.wf-page__alert-swatch--active]="isAlertPresetActive(preset.variant)"
-                      [attr.aria-label]="preset.label"
-                      [attr.aria-selected]="isAlertPresetActive(preset.variant)"
-                      (click)="onAlertColorPresetSelect(preset.variant)"
-                    >
-                      <span
-                        class="wf-page__alert-swatch-preview"
-                        [style.background]="preset.style.bg"
-                        [style.border-color]="preset.style.border"
-                        [style.color]="preset.style.text"
-                      >
-                        <span
-                          class="wf-page__alert-swatch-accent"
-                          [style.background]="preset.style.accent"
-                        ></span>
-                        Aa
-                      </span>
-                      <span class="wf-page__alert-swatch-label">{{ preset.label }}</span>
-                    </button>
-                  }
-                </div>
-              </div>
-              <label class="wf-page__style-panel-row">
-                <span>Border width</span>
-                <select
-                  class="wf-page__style-select"
-                  [value]="ns.borderWidth"
-                  (change)="onNodeBorderWidthChange(+$any($event.target).value)"
-                >
-                  @for (w of nodeBorderWidthOptions; track w) {
-                    <option [value]="w">{{ w }}px</option>
-                  }
-                </select>
-              </label>
-              <div class="wf-page__style-panel-actions">
-                <p-button
-                  label="Edit label"
-                  icon="pi pi-pencil"
-                  [outlined]="true"
-                  size="small"
-                  (onClick)="openSelectedNodeLabel()"
-                  [style]="{ width: '100%' }"
-                />
-                <p-button
-                  label="Reset style"
-                  icon="pi pi-replay"
-                  [outlined]="true"
-                  severity="secondary"
-                  size="small"
-                  (onClick)="resetSelectedNodeStyle()"
-                  [style]="{ width: '100%' }"
-                />
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      @if (showLineStylePanel()) {
-        <div class="wf-page__line-style" aria-label="Connector line style">
-          <button
-            type="button"
-            class="wf-page__style-panel-toggle"
-            (click)="toggleLineStylePanel()"
-            [attr.aria-expanded]="lineStylePanelExpanded()"
-          >
-            <span>Line style</span>
-            <i
-              class="pi"
-              [class.pi-chevron-up]="lineStylePanelExpanded()"
-              [class.pi-chevron-down]="!lineStylePanelExpanded()"
-              aria-hidden="true"
-            ></i>
-          </button>
-          @if (lineStylePanelExpanded()) {
-            <div class="wf-page__style-panel-body">
-              @if (!selectedEdgeId()) {
-                <p class="wf-page__style-panel-note">Select a connector line to edit style and bends.</p>
-              } @else {
-              <label class="wf-page__style-panel-row">
-                <span>Color</span>
-                <input
-                  type="color"
-                  class="wf-page__style-color"
-                  [value]="selectedEdgeStyle().color"
-                  (input)="onEdgeColorChange($any($event.target).value)"
-                />
-              </label>
-              <label class="wf-page__style-panel-row">
-                <span>Thickness</span>
-                <select
-                  class="wf-page__style-select"
-                  [value]="selectedEdgeStyle().strokeWidth"
-                  (change)="onEdgeStrokeWidthChange(+$any($event.target).value)"
-                >
-                  @for (w of edgeStrokeWidthOptions; track w) {
-                    <option [value]="w">{{ w }}px</option>
-                  }
-                </select>
-              </label>
-              <div class="wf-page__style-panel-row">
-                <span>Line</span>
-                <p-selectButton
-                  [options]="lineStyleOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  [ngModel]="selectedEdgeStyle().lineStyle"
-                  (ngModelChange)="onEdgeLineStyleChange($event)"
-                  [allowEmpty]="false"
-                />
-              </div>
-              <div class="wf-page__style-panel-row">
-                <span>Path</span>
-                <p class="wf-page__style-panel-note">Sketch adds automatic pencil-style waves.</p>
-                <p-selectButton
-                  [options]="cornerStyleOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  [ngModel]="selectedEdgeStyle().cornerStyle"
-                  (ngModelChange)="onEdgeCornerStyleChange($event)"
-                  [allowEmpty]="false"
-                />
-              </div>
-              <div class="wf-page__style-panel-row wf-page__style-panel-row--bends">
-                <span>Bends @if (selectedEdgeBendCount() > 0) { ({{ selectedEdgeBendCount() }}) }</span>
-                <div class="wf-page__style-panel-actions">
-                  <p-button
-                    label="Add bend"
-                    icon="pi pi-plus-circle"
-                    [outlined]="true"
-                    severity="warn"
-                    size="small"
-                    [disabled]="activeTool() !== 'select'"
-                    (onClick)="addBendOnSelectedEdge()"
-                    [style]="{ width: '100%' }"
-                  />
-                  <p-button
-                    label="Remove bend"
-                    icon="pi pi-minus-circle"
-                    [outlined]="true"
-                    severity="secondary"
-                    size="small"
-                    [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
-                    (onClick)="removeBendOnSelectedEdge()"
-                    [style]="{ width: '100%' }"
-                  />
-                  <p-button
-                    label="Clear all bends"
-                    icon="pi pi-replay"
-                    [outlined]="true"
-                    severity="contrast"
-                    size="small"
-                    [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
-                    (onClick)="clearSelectedEdgePath()"
-                    [style]="{ width: '100%' }"
-                  />
-                </div>
-                <p class="wf-page__style-panel-note">Alt+click a blue handle to remove one bend.</p>
-              </div>
-              }
-            </div>
-          }
-        </div>
-      }
 
     </aside>
 
@@ -305,6 +125,15 @@
         }
 
         <span class="wf-page__status-text">{{ statusHint() }}</span>
+
+        <p-button
+          [icon]="fullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+          [text]="true"
+          size="small"
+          [pTooltip]="fullscreen() ? 'Exit full screen' : 'Full screen'"
+          tooltipPosition="left"
+          (onClick)="toggleFullscreen()"
+        />
 
       </div>
 
@@ -357,17 +186,46 @@
             </pattern>
 
             @for (path of edgePaths(); track path.id) {
-              <marker
-                [attr.id]="'wf-arrow-' + path.id"
-                markerWidth="10"
-                markerHeight="10"
-                refX="9"
-                refY="5"
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
-                <path d="M0,0 L10,5 L0,10 Z" [attr.fill]="path.stroke" />
-              </marker>
+              @if (path.arrowHead !== 'none') {
+                <marker
+                  [attr.id]="'wf-head-' + path.id"
+                  markerWidth="10"
+                  markerHeight="10"
+                  [attr.refX]="arrowMarkerRefX(path.arrowHead, 'head')"
+                  refY="5"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <path
+                    [attr.d]="arrowMarkerPath(path.arrowHead)"
+                    [attr.fill]="arrowMarkerFilled(path.arrowHead) ? path.stroke : 'none'"
+                    [attr.stroke]="!arrowMarkerFilled(path.arrowHead) ? path.stroke : null"
+                    [attr.stroke-width]="!arrowMarkerFilled(path.arrowHead) ? 1.5 : null"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </marker>
+              }
+              @if (path.arrowTail !== 'none') {
+                <marker
+                  [attr.id]="'wf-tail-' + path.id"
+                  markerWidth="10"
+                  markerHeight="10"
+                  [attr.refX]="arrowMarkerRefX(path.arrowTail, 'tail')"
+                  refY="5"
+                  orient="auto-start-reverse"
+                  markerUnits="strokeWidth"
+                >
+                  <path
+                    [attr.d]="arrowMarkerPath(path.arrowTail)"
+                    [attr.fill]="arrowMarkerFilled(path.arrowTail) ? path.stroke : 'none'"
+                    [attr.stroke]="!arrowMarkerFilled(path.arrowTail) ? path.stroke : null"
+                    [attr.stroke-width]="!arrowMarkerFilled(path.arrowTail) ? 1.5 : null"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </marker>
+              }
             }
 
           </defs>
@@ -487,7 +345,12 @@
                   [class.wf-page__edge-path--sketch]="path.cornerStyle === 'sketch'"
                   [class.wf-page__edge-path--selected]="selectedEdgeId() === path.id"
                   [attr.d]="path.d"
-                  [attr.marker-end]="'url(#wf-arrow-' + path.id + ')'"
+                  [attr.marker-end]="
+                    path.arrowHead !== 'none' ? 'url(#wf-head-' + path.id + ')' : null
+                  "
+                  [attr.marker-start]="
+                    path.arrowTail !== 'none' ? 'url(#wf-tail-' + path.id + ')' : null
+                  "
                   [attr.stroke]="path.stroke"
                   [attr.stroke-width]="
                     selectedEdgeId() === path.id ? path.strokeWidth + 0.5 : path.strokeWidth
@@ -808,6 +671,269 @@
       </div>
 
     </section>
+
+    <aside class="wf-page__properties" aria-label="Diagram properties">
+      <h2>Properties</h2>
+
+      <div class="wf-page__shape-style" aria-label="Shape style">
+          <button
+            type="button"
+            class="wf-page__style-panel-toggle"
+            (click)="toggleShapeStylePanel()"
+            [attr.aria-expanded]="shapeStylePanelExpanded()"
+          >
+            <span>Shape style</span>
+            <i
+              class="pi"
+              [class.pi-chevron-up]="shapeStylePanelExpanded()"
+              [class.pi-chevron-down]="!shapeStylePanelExpanded()"
+              aria-hidden="true"
+            ></i>
+          </button>
+          @if (shapeStylePanelExpanded()) {
+            <div class="wf-page__style-panel-body">
+              @if (selectedNodeStyle(); as ns) {
+              <div class="wf-page__style-panel-row">
+                <span>Alert color</span>
+                <p class="wf-page__style-panel-note">Bootstrap presets — keeps shapes consistent.</p>
+                <div class="wf-page__alert-swatches" role="listbox" aria-label="Alert color presets">
+                  @for (preset of alertColorPresets; track preset.variant) {
+                    <button
+                      type="button"
+                      class="wf-page__alert-swatch"
+                      role="option"
+                      [class.wf-page__alert-swatch--active]="isAlertPresetActive(preset.variant)"
+                      [attr.aria-label]="preset.label"
+                      [attr.aria-selected]="isAlertPresetActive(preset.variant)"
+                      (click)="onAlertColorPresetSelect(preset.variant)"
+                    >
+                      <span
+                        class="wf-page__alert-swatch-preview"
+                        [style.background]="preset.style.bg"
+                        [style.border-color]="preset.style.border"
+                        [style.color]="preset.style.text"
+                      >
+                        <span
+                          class="wf-page__alert-swatch-accent"
+                          [style.background]="preset.style.accent"
+                        ></span>
+                        Aa
+                      </span>
+                      <span class="wf-page__alert-swatch-label">{{ preset.label }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+              <label class="wf-page__style-panel-row">
+                <span>Border width</span>
+                <select
+                  class="wf-page__style-select"
+                  [value]="ns.borderWidth"
+                  (change)="onNodeBorderWidthChange(+$any($event.target).value)"
+                >
+                  @for (w of nodeBorderWidthOptions; track w) {
+                    <option [value]="w">{{ w }}px</option>
+                  }
+                </select>
+              </label>
+              <div class="wf-page__style-panel-actions">
+                <p-button
+                  label="Edit label"
+                  icon="pi pi-pencil"
+                  [outlined]="true"
+                  size="small"
+                  (onClick)="openSelectedNodeLabel()"
+                  [style]="{ width: '100%' }"
+                />
+                <p-button
+                  label="Reset style"
+                  icon="pi pi-replay"
+                  [outlined]="true"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="resetSelectedNodeStyle()"
+                  [style]="{ width: '100%' }"
+                />
+              </div>
+              } @else {
+                <p class="wf-page__style-panel-note">Select a shape to edit style.</p>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="wf-page__line-style" aria-label="Connector line style">
+          <button
+            type="button"
+            class="wf-page__style-panel-toggle"
+            (click)="toggleLineStylePanel()"
+            [attr.aria-expanded]="lineStylePanelExpanded()"
+          >
+            <span>Line style</span>
+            <i
+              class="pi"
+              [class.pi-chevron-up]="lineStylePanelExpanded()"
+              [class.pi-chevron-down]="!lineStylePanelExpanded()"
+              aria-hidden="true"
+            ></i>
+          </button>
+          @if (lineStylePanelExpanded()) {
+            <div class="wf-page__style-panel-body">
+              @if (!selectedEdgeId()) {
+                <p class="wf-page__style-panel-note">Select a connector line to edit style and bends.</p>
+              } @else {
+                <label class="wf-page__style-panel-row">
+                  <span>Color</span>
+                  <input
+                    type="color"
+                    class="wf-page__style-color"
+                    [value]="selectedEdgeStyle().color"
+                    (input)="onEdgeColorChange($any($event.target).value)"
+                  />
+                </label>
+                <label class="wf-page__style-panel-row">
+                  <span>Thickness</span>
+                  <select
+                    class="wf-page__style-select"
+                    [value]="selectedEdgeStyle().strokeWidth"
+                    (change)="onEdgeStrokeWidthChange(+$any($event.target).value)"
+                  >
+                    @for (w of edgeStrokeWidthOptions; track w) {
+                      <option [value]="w">{{ w }}px</option>
+                    }
+                  </select>
+                </label>
+                <div class="wf-page__style-panel-row">
+                  <span>Line</span>
+                  <p-selectButton
+                    [options]="lineStyleOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="selectedEdgeStyle().lineStyle"
+                    (ngModelChange)="onEdgeLineStyleChange($event)"
+                    [allowEmpty]="false"
+                  />
+                </div>
+                <div class="wf-page__style-panel-row">
+                  <span>Path</span>
+                  <p class="wf-page__style-panel-note">Sketch adds automatic pencil-style waves.</p>
+                  <p-selectButton
+                    [options]="cornerStyleOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="selectedEdgeStyle().cornerStyle"
+                    (ngModelChange)="onEdgeCornerStyleChange($event)"
+                    [allowEmpty]="false"
+                  />
+                </div>
+                <div class="wf-page__style-panel-row">
+                  <span>Arrow head (target)</span>
+                  <div class="wf-page__marker-picker" role="listbox" aria-label="Arrow head type">
+                    @for (opt of arrowMarkerOptions; track opt.value) {
+                      <button
+                        type="button"
+                        class="wf-page__marker-option"
+                        role="option"
+                        [class.wf-page__marker-option--active]="selectedEdgeStyle().arrowHead === opt.value"
+                        [attr.aria-label]="opt.label"
+                        [attr.aria-selected]="selectedEdgeStyle().arrowHead === opt.value"
+                        [pTooltip]="opt.label"
+                        tooltipPosition="left"
+                        (click)="onArrowHeadChange(opt.value)"
+                      >
+                        <svg viewBox="0 0 16 16" class="wf-page__marker-preview" aria-hidden="true">
+                          @if (opt.value !== 'none') {
+                            <g [attr.transform]="arrowMarkerPreviewTransform(opt.value, 'head')">
+                              <path
+                                [attr.d]="arrowMarkerPath(opt.value)"
+                                [attr.fill]="arrowMarkerFilled(opt.value) ? 'currentColor' : 'none'"
+                                [attr.stroke]="!arrowMarkerFilled(opt.value) ? 'currentColor' : null"
+                                stroke-width="1.4"
+                              />
+                            </g>
+                          }
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="wf-page__style-panel-row">
+                  <span>Arrow tail (source)</span>
+                  <div class="wf-page__marker-picker" role="listbox" aria-label="Arrow tail type">
+                    @for (opt of arrowMarkerOptions; track opt.value) {
+                      <button
+                        type="button"
+                        class="wf-page__marker-option"
+                        role="option"
+                        [class.wf-page__marker-option--active]="selectedEdgeStyle().arrowTail === opt.value"
+                        [attr.aria-label]="opt.label"
+                        [attr.aria-selected]="selectedEdgeStyle().arrowTail === opt.value"
+                        [pTooltip]="opt.label"
+                        tooltipPosition="left"
+                        (click)="onArrowTailChange(opt.value)"
+                      >
+                        <svg viewBox="0 0 16 16" class="wf-page__marker-preview" aria-hidden="true">
+                          @if (opt.value !== 'none') {
+                            <g [attr.transform]="arrowMarkerPreviewTransform(opt.value, 'tail')">
+                              <path
+                                [attr.d]="arrowMarkerPath(opt.value)"
+                                [attr.fill]="arrowMarkerFilled(opt.value) ? 'currentColor' : 'none'"
+                                [attr.stroke]="!arrowMarkerFilled(opt.value) ? 'currentColor' : null"
+                                stroke-width="1.4"
+                              />
+                            </g>
+                          }
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                </div>
+                <p class="wf-page__style-panel-note">
+                  Set both to arrows for double-ended connectors, or None for plain lines.
+                </p>
+                <div class="wf-page__style-panel-row wf-page__style-panel-row--bends">
+                  <span>Bends @if (selectedEdgeBendCount() > 0) { ({{ selectedEdgeBendCount() }}) }</span>
+                  <div class="wf-page__style-panel-actions">
+                    <p-button
+                      label="Add bend"
+                      icon="pi pi-plus-circle"
+                      [outlined]="true"
+                      severity="warn"
+                      size="small"
+                      [disabled]="activeTool() !== 'select'"
+                      (onClick)="addBendOnSelectedEdge()"
+                      [style]="{ width: '100%' }"
+                    />
+                    <p-button
+                      label="Remove bend"
+                      icon="pi pi-minus-circle"
+                      [outlined]="true"
+                      severity="secondary"
+                      size="small"
+                      [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
+                      (onClick)="removeBendOnSelectedEdge()"
+                      [style]="{ width: '100%' }"
+                    />
+                    <p-button
+                      label="Clear all bends"
+                      icon="pi pi-replay"
+                      [outlined]="true"
+                      severity="contrast"
+                      size="small"
+                      [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
+                      (onClick)="clearSelectedEdgePath()"
+                      [style]="{ width: '100%' }"
+                    />
+                  </div>
+                  <p class="wf-page__style-panel-note">Alt+click a blue handle to remove one bend.</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+    </aside>
+
+    </div>
 
   </div>
 

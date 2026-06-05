@@ -21,10 +21,15 @@ import { getModuleById } from '../../../core/constants/feature-registry';
 import { ActivatedRoute } from '@angular/router';
 import {
   ALERT_COLOR_PRESETS,
+  ARROW_MARKER_OPTIONS,
   DEFAULT_EDGE_STYLE,
   DIAGRAM_TOOLBOX,
   EDGE_STROKE_WIDTH_OPTIONS,
   NODE_BORDER_WIDTH_OPTIONS,
+  arrowMarkerFilled,
+  arrowMarkerPath,
+  arrowMarkerPreviewTransform,
+  arrowMarkerRefX,
   defaultNodeVariant,
   hasCustomNodeColors,
   nodeStyleKeepingBorderWidth,
@@ -33,6 +38,7 @@ import {
 } from './workflow-diagram.data';
 import type {
   AlertVariant,
+  ArrowMarkerType,
   ConnectionPortHit,
   DiagramNode,
   DiagramTool,
@@ -95,10 +101,18 @@ export class ApprovalWorkflowsComponent {
   private readonly messages = inject(MessageService);
 
   @ViewChild('canvasSvg', { static: true }) canvasSvg!: ElementRef<SVGSVGElement>;
+  @ViewChild('designerShell') designerShell?: ElementRef<HTMLElement>;
+
+  readonly fullscreen = signal(false);
 
   readonly toolbox = DIAGRAM_TOOLBOX;
   readonly gridStep = GRID_STEP;
   readonly edgeStrokeWidthOptions = EDGE_STROKE_WIDTH_OPTIONS;
+  readonly arrowMarkerOptions = ARROW_MARKER_OPTIONS;
+  readonly arrowMarkerPath = arrowMarkerPath;
+  readonly arrowMarkerFilled = arrowMarkerFilled;
+  readonly arrowMarkerRefX = arrowMarkerRefX;
+  readonly arrowMarkerPreviewTransform = arrowMarkerPreviewTransform;
   readonly nodeBorderWidthOptions = NODE_BORDER_WIDTH_OPTIONS;
   readonly alertColorPresets = ALERT_COLOR_PRESETS;
   readonly resizeHandleSize = 8;
@@ -138,10 +152,6 @@ export class ApprovalWorkflowsComponent {
   readonly labelDraft = signal('');
   readonly lineStylePanelExpanded = signal(true);
   readonly shapeStylePanelExpanded = signal(true);
-
-  readonly showLineStylePanel = computed(() => this.selectedEdgeId() !== null);
-
-  readonly showShapeStylePanel = computed(() => this.selectedNodeId() !== null);
 
   private dragNodeId: string | null = null;
   private dragResize: {
@@ -517,7 +527,6 @@ export class ApprovalWorkflowsComponent {
     this.selectedNodeId.set(nodeId);
     this.selectedEdgeId.set(null);
     this.shapeStylePanelExpanded.set(true);
-    this.lineStylePanelExpanded.set(false);
   }
 
   onNodeDoubleClick(event: MouseEvent, nodeId: string): void {
@@ -553,7 +562,6 @@ export class ApprovalWorkflowsComponent {
     this.selectedEdgeId.set(edgeId);
     this.selectedNodeId.set(null);
     this.lineStylePanelExpanded.set(true);
-    this.shapeStylePanelExpanded.set(false);
     const count = this.edgePaths().find((p) => p.id === edgeId)?.waypoints.length ?? 0;
     this.statusHint.set(
       `${count} bend(s) — drag line sections or blue handles. Shift+click / double-click to add. Alt+click blue handle to remove.`
@@ -595,6 +603,14 @@ export class ApprovalWorkflowsComponent {
 
   onEdgeCornerStyleChange(cornerStyle: EdgeCornerStyle): void {
     this.updateSelectedEdgeStyle({ cornerStyle });
+  }
+
+  onArrowHeadChange(type: ArrowMarkerType): void {
+    this.updateSelectedEdgeStyle({ arrowHead: type });
+  }
+
+  onArrowTailChange(type: ArrowMarkerType): void {
+    this.updateSelectedEdgeStyle({ arrowTail: type });
   }
 
   addBendOnSelectedEdge(): void {
@@ -763,6 +779,24 @@ export class ApprovalWorkflowsComponent {
     this.selectedEdgeId.set(edgeId);
     this.selectedNodeId.set(null);
     this.suppressCanvasClick = true;
+  }
+
+  toggleFullscreen(): void {
+    const el = this.designerShell?.nativeElement;
+    if (!el) {
+      return;
+    }
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void el.requestFullscreen();
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    const el = this.designerShell?.nativeElement;
+    this.fullscreen.set(!!el && document.fullscreenElement === el);
   }
 
   @HostListener('document:mousemove', ['$event'])

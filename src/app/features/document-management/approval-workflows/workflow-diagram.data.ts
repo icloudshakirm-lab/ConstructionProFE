@@ -1,6 +1,7 @@
 import type {
   AlertStyle,
   AlertVariant,
+  ArrowMarkerType,
   DiagramEdge,
   DiagramNode,
   EdgeStyle,
@@ -19,9 +20,23 @@ export const DEFAULT_EDGE_STYLE: EdgeStyle = {
 
   lineStyle: 'solid',
 
-  cornerStyle: 'sharp'
+  cornerStyle: 'sharp',
+
+  arrowHead: 'arrow',
+
+  arrowTail: 'none'
 
 };
+
+export const ARROW_MARKER_OPTIONS: { label: string; value: ArrowMarkerType }[] = [
+  { label: 'None', value: 'none' },
+  { label: 'Arrow (filled)', value: 'arrow' },
+  { label: 'Open arrow', value: 'openArrow' },
+  { label: 'Diamond', value: 'diamond' },
+  { label: 'Circle', value: 'circle' },
+  { label: 'Square', value: 'square' },
+  { label: 'Bar', value: 'bar' }
+];
 
 
 
@@ -63,6 +78,45 @@ export function resolveEdgeStyle(edge: DiagramEdge): EdgeStyle {
 }
 
 
+
+export function arrowMarkerPath(type: ArrowMarkerType): string {
+  switch (type) {
+    case 'arrow':
+      return 'M0,0 L10,5 L0,10 Z';
+    case 'openArrow':
+      return 'M1,1 L9,5 L1,9';
+    case 'diamond':
+      return 'M0,5 L5,0 L10,5 L5,10 Z';
+    case 'circle':
+      return 'M5,5 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0';
+    case 'square':
+      return 'M2,2 L8,2 L8,8 L2,8 Z';
+    case 'bar':
+      return 'M5,1 L5,9';
+    default:
+      return '';
+  }
+}
+
+export function arrowMarkerFilled(type: ArrowMarkerType): boolean {
+  return type !== 'none' && type !== 'openArrow' && type !== 'bar';
+}
+
+export function arrowMarkerRefX(type: ArrowMarkerType, end: 'head' | 'tail'): number {
+  if (type === 'bar') {
+    return 5;
+  }
+  return end === 'head' ? 9 : 1;
+}
+
+/** SVG transform for centered arrow previews in the properties panel (16×16 viewBox). */
+export function arrowMarkerPreviewTransform(type: ArrowMarkerType, side: 'head' | 'tail'): string {
+  if (type === 'none') {
+    return '';
+  }
+  const scale = side === 'head' ? 1.25 : -1.25;
+  return `translate(8, 8) scale(${scale}, 1.25) translate(-5, -5)`;
+}
 
 export function strokeDasharrayFor(lineStyle: EdgeStyle['lineStyle']): string {
 
