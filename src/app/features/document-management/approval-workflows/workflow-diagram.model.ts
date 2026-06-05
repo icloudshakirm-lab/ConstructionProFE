@@ -18,6 +18,8 @@ export type DiagramTool =
 
 export type NodeShape = 'rectangle' | 'circle' | 'diamond' | 'text';
 
+export type NodeResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
 
 
 /** Bootstrap 5 alert semantic colors */
@@ -94,7 +96,7 @@ export interface ResolvedNodeStyle extends AlertStyle {
 
 export type EdgeLineStyle = 'solid' | 'dashed';
 
-export type EdgeCornerStyle = 'sharp' | 'rounded';
+export type EdgeCornerStyle = 'sharp' | 'rounded' | 'sketch';
 
 
 
@@ -251,6 +253,8 @@ export interface EdgePath {
   lineJoin: 'miter' | 'round';
 
   lineCap: 'butt' | 'round';
+
+  cornerStyle: EdgeCornerStyle;
 
   /** Draggable bend handles (canvas coordinates) */
 

@@ -438,6 +438,58 @@
 
 
 
+.wf-page__node-selection {
+
+  stroke: #0d6efd;
+
+  stroke-width: 1.5;
+
+  stroke-dasharray: 5 3;
+
+  pointer-events: none;
+
+}
+
+
+
+.wf-page__resize-handle {
+
+  fill: #ffffff;
+
+  stroke: #0d6efd;
+
+  stroke-width: 1.5;
+
+  cursor: nwse-resize;
+
+
+
+  &[data-cursor='ns-resize'] {
+    cursor: ns-resize;
+  }
+
+  &[data-cursor='ew-resize'] {
+    cursor: ew-resize;
+  }
+
+  &[data-cursor='nesw-resize'] {
+    cursor: nesw-resize;
+  }
+
+
+
+  &:hover {
+
+    fill: #e7f1ff;
+
+    stroke-width: 2;
+
+  }
+
+}
+
+
+
 .wf-page__edge-segment {
 
   stroke: transparent;
@@ -497,6 +549,16 @@
 .wf-page__edge-path--selected {
 
   filter: drop-shadow(0 0 1px rgb(13 110 253 / 35%));
+
+}
+
+
+
+.wf-page__edge-path--sketch {
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
 
 }
 
@@ -721,6 +783,18 @@
   gap: 0.35rem;
 
   margin-top: 0.25rem;
+
+}
+
+
+
+.wf-page__style-panel-row--bends {
+
+  margin-top: 0.35rem;
+
+  padding-top: 0.5rem;
+
+  border-top: 1px dashed var(--p-content-border-color);
 
 }
 

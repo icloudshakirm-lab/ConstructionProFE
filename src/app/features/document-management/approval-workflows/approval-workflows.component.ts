@@ -40,6 +40,7 @@ import type {
   EdgeLineStyle,
   EdgePort,
   EdgeStyle,
+  NodeResizeHandle,
   NodeShape,
   NodeStyle,
   Point,
@@ -65,6 +66,7 @@ import {
   newId,
   nodeBounds,
   nodePositionFromDrag,
+  resizeNodeBounds,
   polylinePoints,
   portFromPoint,
   removeWaypointAt,
@@ -99,13 +101,30 @@ export class ApprovalWorkflowsComponent {
   readonly edgeStrokeWidthOptions = EDGE_STROKE_WIDTH_OPTIONS;
   readonly nodeBorderWidthOptions = NODE_BORDER_WIDTH_OPTIONS;
   readonly alertColorPresets = ALERT_COLOR_PRESETS;
+  readonly resizeHandleSize = 8;
+  readonly nodeResizeHandles: {
+    handle: NodeResizeHandle;
+    cx: number;
+    cy: number;
+    cursor: string;
+  }[] = [
+    { handle: 'nw', cx: 0, cy: 0, cursor: 'nwse-resize' },
+    { handle: 'n', cx: 0.5, cy: 0, cursor: 'ns-resize' },
+    { handle: 'ne', cx: 1, cy: 0, cursor: 'nesw-resize' },
+    { handle: 'e', cx: 1, cy: 0.5, cursor: 'ew-resize' },
+    { handle: 'se', cx: 1, cy: 1, cursor: 'nwse-resize' },
+    { handle: 's', cx: 0.5, cy: 1, cursor: 'ns-resize' },
+    { handle: 'sw', cx: 0, cy: 1, cursor: 'nesw-resize' },
+    { handle: 'w', cx: 0, cy: 0.5, cursor: 'ew-resize' }
+  ];
   readonly lineStyleOptions = [
     { label: 'Solid', value: 'solid' as EdgeLineStyle },
     { label: 'Dashed', value: 'dashed' as EdgeLineStyle }
   ];
   readonly cornerStyleOptions = [
     { label: 'Sharp', value: 'sharp' as EdgeCornerStyle },
-    { label: 'Rounded', value: 'rounded' as EdgeCornerStyle }
+    { label: 'Rounded', value: 'rounded' as EdgeCornerStyle },
+    { label: 'Sketch', value: 'sketch' as EdgeCornerStyle }
   ];
   readonly diagram = signal<WorkflowDiagram>(initialDiagram());
   readonly activeTool = signal<DiagramTool>('select');
@@ -125,6 +144,12 @@ export class ApprovalWorkflowsComponent {
   readonly showShapeStylePanel = computed(() => this.selectedNodeId() !== null);
 
   private dragNodeId: string | null = null;
+  private dragResize: {
+    nodeId: string;
+    handle: NodeResizeHandle;
+    startBounds: { x: number; y: number; w: number; h: number };
+    laneId: string;
+  } | null = null;
   private dragOffsetX = 0;
   private dragOffsetY = 0;
   private dragPointerStartX = 0;
@@ -156,6 +181,18 @@ export class ApprovalWorkflowsComponent {
   readonly selectedEdgeStyle = computed(() => {
     const edge = this.selectedEdge();
     return edge ? resolveEdgeStyle(edge) : DEFAULT_EDGE_STYLE;
+  });
+
+  readonly selectedEdgeBendCount = computed(() => {
+    const id = this.selectedEdgeId();
+    if (!id) {
+      return 0;
+    }
+    const path = this.edgePaths().find((p) => p.id === id);
+    if (path) {
+      return path.waypoints.length;
+    }
+    return this.selectedEdge()?.waypoints?.length ?? 0;
   });
 
   readonly selectedNode = computed(() => {
@@ -334,7 +371,7 @@ export class ApprovalWorkflowsComponent {
       this.statusHint.set('Use Add swim lane for a new vertical column.');
     } else if (tool === 'select') {
       this.statusHint.set(
-        'Connectors: select a line, drag sections or blue handles, Shift+click / double-click to add bends.'
+        'Drag shapes to move · drag corner/edge handles to resize · connectors: select line to style or bend.'
       );
     } else {
       this.statusHint.set(`Click inside a lane column to place a ${tool}.`);
@@ -427,6 +464,29 @@ export class ApprovalWorkflowsComponent {
     const d = this.diagram();
     this.diagram.set({ ...d, nodes: [...d.nodes, node] });
     this.selectedNodeId.set(node.id);
+  }
+
+  onResizeHandleMouseDown(event: MouseEvent, nodeId: string, handle: NodeResizeHandle): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.activeTool() !== 'select') {
+      return;
+    }
+    const node = this.diagram().nodes.find((n) => n.id === nodeId);
+    if (!node) {
+      return;
+    }
+    this.dragResize = {
+      nodeId,
+      handle,
+      startBounds: { x: node.x, y: node.y, w: node.w, h: node.h },
+      laneId: node.laneId
+    };
+    this.dragNodeId = null;
+    this.selectedNodeId.set(nodeId);
+    this.selectedEdgeId.set(null);
+    this.suppressCanvasClick = true;
+    this.statusHint.set('Drag to resize the shape.');
   }
 
   onNodeMouseDown(event: MouseEvent, nodeId: string): void {
@@ -554,6 +614,33 @@ export class ApprovalWorkflowsComponent {
     this.persistEdgeWaypoints(edgeId, wps);
     this.selectedEdgeId.set(edgeId);
     this.messages.add({ severity: 'info', summary: 'Bend added', life: 1200 });
+  }
+
+  removeBendOnSelectedEdge(): void {
+    const edgeId = this.selectedEdgeId();
+    if (!edgeId) {
+      return;
+    }
+    const ctx = this.edgeContext(edgeId);
+    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    if (!ctx || !edge) {
+      return;
+    }
+    const wps = resolveEdgeWaypoints(edge, ctx.start, ctx.end);
+    if (!wps.length) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'No bends',
+        detail: 'This connector has no bends to remove.',
+        life: 2000
+      });
+      return;
+    }
+    const next = removeWaypointAt(wps, wps.length - 1);
+    this.persistEdgeWaypoints(edgeId, next);
+    this.selectedEdgeId.set(edgeId);
+    this.statusHint.set(`${next.length} bend(s) on this connector.`);
+    this.messages.add({ severity: 'info', summary: 'Bend removed', life: 1200 });
   }
 
   private addBendOnEdge(edgeId: string, event: MouseEvent): void {
@@ -692,6 +779,10 @@ export class ApprovalWorkflowsComponent {
       this.moveWaypoint(event);
       return;
     }
+    if (this.dragResize) {
+      this.moveResize(event);
+      return;
+    }
     if (!this.dragNodeId) return;
 
     const moved =
@@ -733,9 +824,44 @@ export class ApprovalWorkflowsComponent {
       this.statusHint.set(`${count} bend(s) — drag sections or handles to adjust.`);
     }
     this.dragNodeId = null;
+    this.dragResize = null;
     this.dragSegment = null;
     this.dragWaypoint = null;
     this.dragEndpoint = null;
+  }
+
+  private moveResize(event: MouseEvent): void {
+    const drag = this.dragResize;
+    if (!drag) {
+      return;
+    }
+    const pt = this.svgPoint(event);
+    const node = this.diagram().nodes.find((n) => n.id === drag.nodeId);
+    const lane = this.diagram().lanes.find((l) => l.id === drag.laneId);
+    if (!pt || !node || !lane) {
+      return;
+    }
+    const laneX = this.laneX(drag.laneId);
+    const headerH = this.diagram().laneHeaderHeight;
+    const localX = pt.x - laneX;
+    const localY = pt.y - headerH;
+    const maxY = this.laneContentHeight();
+    const bounds = resizeNodeBounds(
+      drag.handle,
+      drag.startBounds,
+      localX,
+      localY,
+      lane.width,
+      maxY,
+      node.shape
+    );
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      nodes: d.nodes.map((n) =>
+        n.id === drag.nodeId ? { ...n, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h } : n
+      )
+    });
   }
 
   private moveEndpoint(event: MouseEvent): void {

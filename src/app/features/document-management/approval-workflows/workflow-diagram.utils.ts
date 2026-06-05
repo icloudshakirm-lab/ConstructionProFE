@@ -2,6 +2,7 @@ import type {
   ConnectionPortHit,
   DiagramEdge,
   DiagramNode,
+  NodeResizeHandle,
   EdgeCornerStyle,
   EdgePath,
   EdgePort,
@@ -15,6 +16,7 @@ import type {
 } from './workflow-diagram.model';
 import {
   cornerRadiusFor,
+  sketchWaveAmplitude,
   defaultNodeVariant,
   lineCapFor,
   lineJoinFor,
@@ -220,11 +222,97 @@ export function pathFromPointsRounded(points: Point[], radius: number): string {
   return parts.join(' ');
 }
 
+function polylineLength(points: Point[]): number {
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    total += distPoints(points[i], points[i + 1]);
+  }
+  return total;
+}
+
+function pointAtDistance(
+  points: Point[],
+  dist: number
+): { point: Point; tangent: Point } {
+  let acc = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const len = distPoints(a, b);
+    if (len < 0.001) {
+      continue;
+    }
+    if (acc + len >= dist - 0.001 || i === points.length - 2) {
+      const t = Math.max(0, Math.min(1, (dist - acc) / len));
+      const ux = (b.x - a.x) / len;
+      const uy = (b.y - a.y) / len;
+      return {
+        point: { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t },
+        tangent: { x: ux, y: uy }
+      };
+    }
+    acc += len;
+  }
+  const last = points[points.length - 1];
+  const prev = points[points.length - 2] ?? last;
+  return { point: { ...last }, tangent: unitVector(prev, last) };
+}
+
+function pathQuadraticSmooth(pts: Point[]): string {
+  if (pts.length < 2) {
+    return pts.length ? `M ${pts[0].x} ${pts[0].y}` : '';
+  }
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i];
+    if (i < pts.length - 1) {
+      const n = pts[i + 1];
+      d += ` Q ${p.x} ${p.y} ${(p.x + n.x) / 2} ${(p.y + n.y) / 2}`;
+    } else {
+      d += ` L ${p.x} ${p.y}`;
+    }
+  }
+  return d;
+}
+
+/** Hand-drawn pencil flow: automatic waves and small arcs along the connector */
+export function pathFromPointsSketch(points: Point[], strokeWidth: number): string {
+  if (points.length < 2) {
+    return '';
+  }
+  const total = polylineLength(points);
+  const step = Math.max(10, Math.min(18, 22 - strokeWidth * 1.5));
+  const amp = sketchWaveAmplitude(strokeWidth);
+  const freq = (2 * Math.PI) / 24;
+
+  const wavy: Point[] = [{ ...points[0] }];
+  for (let d = step; d < total - step * 0.5; d += step) {
+    const { point, tangent } = pointAtDistance(points, d);
+    const px = -tangent.y;
+    const py = tangent.x;
+    const phase = d * freq;
+    const wobble =
+      Math.sin(phase) * 0.58 +
+      Math.sin(phase * 1.9 + 0.55) * 0.27 +
+      Math.sin(phase * 3.1 + 1.2) * 0.15;
+    wavy.push({
+      x: point.x + px * amp * wobble,
+      y: point.y + py * amp * wobble
+    });
+  }
+  wavy.push({ ...points[points.length - 1] });
+
+  return pathQuadraticSmooth(wavy);
+}
+
 export function pathFromPoints(
   points: Point[],
   cornerStyle: EdgeCornerStyle = 'sharp',
   strokeWidth = 2
 ): string {
+  if (cornerStyle === 'sketch') {
+    return pathFromPointsSketch(points, strokeWidth);
+  }
   if (cornerStyle === 'rounded') {
     return pathFromPointsRounded(points, cornerRadiusFor(strokeWidth));
   }
@@ -414,6 +502,7 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
       strokeDasharray: strokeDasharrayFor(style.lineStyle),
       lineJoin: lineJoinFor(style.cornerStyle),
       lineCap: lineCapFor(style.cornerStyle),
+      cornerStyle: style.cornerStyle,
       waypoints,
       segments: segmentHitsFromPoly(poly),
       virtualBends: virtualBendsFromPoly(poly),
@@ -482,6 +571,73 @@ export function nodePositionFromDrag(
     x: Math.min(maxX, Math.max(4, left - hit.laneX)),
     y: Math.min(maxY, Math.max(4, top - headerH))
   };
+}
+
+export function minNodeSize(shape: DiagramNode['shape']): { w: number; h: number } {
+  switch (shape) {
+    case 'circle':
+      return { w: 56, h: 56 };
+    case 'diamond':
+      return { w: 72, h: 52 };
+    case 'text':
+      return { w: 80, h: 28 };
+    default:
+      return { w: 80, h: 36 };
+  }
+}
+
+export function resizeNodeBounds(
+  handle: NodeResizeHandle,
+  start: { x: number; y: number; w: number; h: number },
+  pointerX: number,
+  pointerY: number,
+  laneWidth: number,
+  maxContentY: number,
+  shape: DiagramNode['shape']
+): { x: number; y: number; w: number; h: number } {
+  const min = minNodeSize(shape);
+  let x = start.x;
+  let y = start.y;
+  let w = start.w;
+  let h = start.h;
+  const right = start.x + start.w;
+  const bottom = start.y + start.h;
+
+  if (handle.includes('e')) {
+    w = pointerX - start.x;
+  }
+  if (handle.includes('w')) {
+    x = pointerX;
+    w = right - pointerX;
+  }
+  if (handle.includes('s')) {
+    h = pointerY - start.y;
+  }
+  if (handle.includes('n')) {
+    y = pointerY;
+    h = bottom - pointerY;
+  }
+
+  w = Math.max(min.w, w);
+  h = Math.max(min.h, h);
+  x = Math.max(4, x);
+  y = Math.max(4, y);
+  w = Math.min(w, laneWidth - x - 4);
+  h = Math.min(h, maxContentY - y - 4);
+
+  if (shape === 'circle' && handle.length === 2) {
+    const size = Math.max(w, h);
+    if (handle.includes('w')) {
+      x = right - size;
+    }
+    if (handle.includes('n')) {
+      y = bottom - size;
+    }
+    w = size;
+    h = size;
+  }
+
+  return { x, y, w, h };
 }
 
 export function defaultShapeSize(shape: DiagramNode['shape']): { w: number; h: number } {

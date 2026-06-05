@@ -74,7 +74,7 @@ export function strokeDasharrayFor(lineStyle: EdgeStyle['lineStyle']): string {
 
 export function lineJoinFor(cornerStyle: EdgeStyle['cornerStyle']): 'miter' | 'round' {
 
-  return cornerStyle === 'rounded' ? 'round' : 'miter';
+  return cornerStyle === 'sharp' ? 'miter' : 'round';
 
 }
 
@@ -82,7 +82,7 @@ export function lineJoinFor(cornerStyle: EdgeStyle['cornerStyle']): 'miter' | 'r
 
 export function lineCapFor(cornerStyle: EdgeStyle['cornerStyle']): 'butt' | 'round' {
 
-  return cornerStyle === 'rounded' ? 'round' : 'butt';
+  return cornerStyle === 'sharp' ? 'butt' : 'round';
 
 }
 
@@ -93,6 +93,14 @@ export function lineCapFor(cornerStyle: EdgeStyle['cornerStyle']): 'butt' | 'rou
 export function cornerRadiusFor(strokeWidth: number): number {
 
   return Math.max(10, 6 + strokeWidth * 3);
+
+}
+
+
+
+export function sketchWaveAmplitude(strokeWidth: number): number {
+
+  return Math.min(9, 3.2 + strokeWidth * 0.95);
 
 }
 

@@ -27,16 +27,6 @@
       <p-button label="Add swim lane" icon="pi pi-plus" [outlined]="true" (onClick)="addSwimLane()" />
 
       <p-button
-        label="Reset path"
-        icon="pi pi-replay"
-        [outlined]="true"
-        [disabled]="!selectedEdgeId() || activeTool() !== 'select'"
-        (onClick)="clearSelectedEdgePath()"
-        pTooltip="Clear all bends (draw.io Clear Waypoints)"
-        tooltipPosition="bottom"
-      />
-
-      <p-button
 
         label="Delete"
 
@@ -100,7 +90,7 @@
 
         <strong>Connect:</strong> click a port (top/right/bottom/left) on source, then on target.<br />
 
-        <strong>Select:</strong> drag orange/green endpoints along shape edges · Shift+click line to add bend.
+        <strong>Select:</strong> drag shapes · resize with handles · connector endpoints & bends in Line style.
 
       </p>
 
@@ -207,6 +197,9 @@
           </button>
           @if (lineStylePanelExpanded()) {
             <div class="wf-page__style-panel-body">
+              @if (!selectedEdgeId()) {
+                <p class="wf-page__style-panel-note">Select a connector line to edit style and bends.</p>
+              } @else {
               <label class="wf-page__style-panel-row">
                 <span>Color</span>
                 <input
@@ -240,7 +233,8 @@
                 />
               </div>
               <div class="wf-page__style-panel-row">
-                <span>Corners</span>
+                <span>Path</span>
+                <p class="wf-page__style-panel-note">Sketch adds automatic pencil-style waves.</p>
                 <p-selectButton
                   [options]="cornerStyleOptions"
                   optionLabel="label"
@@ -250,18 +244,43 @@
                   [allowEmpty]="false"
                 />
               </div>
-              <div class="wf-page__style-panel-actions">
-                <p-button
-                  label="Add bend"
-                  icon="pi pi-plus-circle"
-                  [outlined]="true"
-                  severity="warn"
-                  size="small"
-                  [disabled]="activeTool() !== 'select'"
-                  (onClick)="addBendOnSelectedEdge()"
-                  [style]="{ width: '100%' }"
-                />
+              <div class="wf-page__style-panel-row wf-page__style-panel-row--bends">
+                <span>Bends @if (selectedEdgeBendCount() > 0) { ({{ selectedEdgeBendCount() }}) }</span>
+                <div class="wf-page__style-panel-actions">
+                  <p-button
+                    label="Add bend"
+                    icon="pi pi-plus-circle"
+                    [outlined]="true"
+                    severity="warn"
+                    size="small"
+                    [disabled]="activeTool() !== 'select'"
+                    (onClick)="addBendOnSelectedEdge()"
+                    [style]="{ width: '100%' }"
+                  />
+                  <p-button
+                    label="Remove bend"
+                    icon="pi pi-minus-circle"
+                    [outlined]="true"
+                    severity="secondary"
+                    size="small"
+                    [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
+                    (onClick)="removeBendOnSelectedEdge()"
+                    [style]="{ width: '100%' }"
+                  />
+                  <p-button
+                    label="Clear all bends"
+                    icon="pi pi-replay"
+                    [outlined]="true"
+                    severity="contrast"
+                    size="small"
+                    [disabled]="activeTool() !== 'select' || selectedEdgeBendCount() === 0"
+                    (onClick)="clearSelectedEdgePath()"
+                    [style]="{ width: '100%' }"
+                  />
+                </div>
+                <p class="wf-page__style-panel-note">Alt+click a blue handle to remove one bend.</p>
               </div>
+              }
             </div>
           }
         </div>
@@ -465,6 +484,7 @@
               >
                 <path
                   class="wf-page__edge-path"
+                  [class.wf-page__edge-path--sketch]="path.cornerStyle === 'sketch'"
                   [class.wf-page__edge-path--selected]="selectedEdgeId() === path.id"
                   [attr.d]="path.d"
                   [attr.marker-end]="'url(#wf-arrow-' + path.id + ')'"
@@ -724,11 +744,37 @@
 
                 [attr.fill]="style.text"
 
+                pointer-events="none"
+
               >
 
                 {{ node.label }}
 
               </text>
+
+              @if (selectedNodeId() === node.id && activeTool() === 'select') {
+                <rect
+                  class="wf-page__node-selection"
+                  x="0"
+                  y="0"
+                  [attr.width]="node.w"
+                  [attr.height]="node.h"
+                  rx="6"
+                  fill="none"
+                  pointer-events="none"
+                />
+                @for (rh of nodeResizeHandles; track rh.handle) {
+                  <rect
+                    class="wf-page__resize-handle"
+                    [attr.x]="rh.cx * node.w - resizeHandleSize / 2"
+                    [attr.y]="rh.cy * node.h - resizeHandleSize / 2"
+                    [attr.width]="resizeHandleSize"
+                    [attr.height]="resizeHandleSize"
+                    [attr.data-cursor]="rh.cursor"
+                    (mousedown)="onResizeHandleMouseDown($event, node.id, rh.handle)"
+                  />
+                }
+              }
 
             </g>
 
