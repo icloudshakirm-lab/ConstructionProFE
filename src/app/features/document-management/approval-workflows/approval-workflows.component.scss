@@ -484,6 +484,50 @@
 
 
 
+.wf-page__canvas-height-line {
+
+  stroke: var(--p-primary-color);
+
+  stroke-width: 2;
+
+  stroke-dasharray: 6 4;
+
+  opacity: 0.65;
+
+}
+
+
+
+.wf-page__canvas-height-handle {
+
+  fill: transparent;
+
+  cursor: ns-resize;
+
+}
+
+
+
+.wf-page__canvas-height-resize:hover .wf-page__canvas-height-line {
+
+  opacity: 1;
+
+}
+
+
+
+.wf-page__canvas-height-label {
+
+  fill: var(--p-text-muted-color);
+
+  font-size: 10px;
+
+  user-select: none;
+
+}
+
+
+
 .wf-page__alert-body {
 
   stroke-width: 1.5;

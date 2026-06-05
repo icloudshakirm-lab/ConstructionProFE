@@ -151,9 +151,9 @@
 
           [attr.width]="canvasWidth()"
 
-          [attr.height]="canvasHeight"
+          [attr.height]="canvasHeight()"
 
-          [attr.viewBox]="'0 0 ' + canvasWidth() + ' ' + canvasHeight"
+          [attr.viewBox]="'0 0 ' + canvasWidth() + ' ' + canvasHeight()"
 
           (click)="onCanvasClick($event)"
 
@@ -252,7 +252,7 @@
 
                 [attr.width]="lane.width"
 
-                [attr.height]="canvasHeight"
+                [attr.height]="canvasHeight()"
 
               />
 
@@ -328,13 +328,41 @@
 
                 [attr.x2]="lane.width"
 
-                [attr.y2]="canvasHeight"
+                [attr.y2]="canvasHeight()"
 
               />
 
             </g>
 
           }
+
+          <g class="wf-page__canvas-height-resize">
+            <line
+              class="wf-page__canvas-height-line"
+              x1="0"
+              [attr.y1]="canvasHeight() - 1"
+              [attr.x2]="canvasWidth()"
+              [attr.y2]="canvasHeight() - 1"
+              pointer-events="none"
+            />
+            <rect
+              class="wf-page__canvas-height-handle"
+              x="0"
+              [attr.y]="canvasHeight() - 6"
+              [attr.width]="canvasWidth()"
+              height="12"
+              (mousedown)="onCanvasHeightResizeMouseDown($event)"
+            />
+            <text
+              class="wf-page__canvas-height-label"
+              [attr.x]="canvasWidth() / 2"
+              [attr.y]="canvasHeight() - 10"
+              text-anchor="middle"
+              pointer-events="none"
+            >
+              Drag to expand lanes
+            </text>
+          </g>
 
 
 
@@ -794,6 +822,20 @@
           </button>
           @if (lineStylePanelExpanded()) {
             <div class="wf-page__style-panel-body">
+              <div class="wf-page__style-panel-row">
+                <span>Angle lock</span>
+                <p class="wf-page__style-panel-note">
+                  Snap connector preview and bend dragging to 15° increments.
+                </p>
+                <p-selectButton
+                  [options]="angleLockOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [ngModel]="angleLockEnabled()"
+                  (ngModelChange)="angleLockEnabled.set($event)"
+                  [allowEmpty]="false"
+                />
+              </div>
               @if (!selectedEdgeId()) {
                 <p class="wf-page__style-panel-note">Select a connector line to edit style and bends.</p>
               } @else {

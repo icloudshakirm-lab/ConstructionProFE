@@ -158,6 +158,10 @@ export interface WorkflowDiagram {
 
   laneHeaderHeight: number;
 
+  /** Shared vertical extent for every swim lane column */
+
+  canvasHeight: number;
+
   lanes: SwimLane[];
 
   nodes: DiagramNode[];

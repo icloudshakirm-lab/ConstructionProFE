@@ -27,7 +27,53 @@ import {
 export const LANE_HEADER_HEIGHT = 52;
 export const DEFAULT_LANE_WIDTH = 300;
 export const CANVAS_HEIGHT = 520;
+export const MIN_CANVAS_HEIGHT = 320;
+export const MAX_CANVAS_HEIGHT = 2400;
+
+export function laneContentHeight(diagram: WorkflowDiagram): number {
+  return (diagram.canvasHeight ?? CANVAS_HEIGHT) - diagram.laneHeaderHeight;
+}
+
+export function minCanvasHeightForDiagram(diagram: WorkflowDiagram): number {
+  const header = diagram.laneHeaderHeight;
+  if (!diagram.nodes.length) {
+    return MIN_CANVAS_HEIGHT;
+  }
+  const maxNodeBottom = Math.max(...diagram.nodes.map((n) => n.y + n.h));
+  return Math.max(MIN_CANVAS_HEIGHT, header + maxNodeBottom + 40);
+}
 export const GRID_STEP = 24;
+export const ANGLE_SNAP_STEP_DEG = 15;
+
+/** Snap target onto a ray from origin using fixed degree steps (default 15°). */
+export function snapPointToAngle(
+  origin: Point,
+  target: Point,
+  stepDeg = ANGLE_SNAP_STEP_DEG
+): Point {
+  const dx = target.x - origin.x;
+  const dy = target.y - origin.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.001) {
+    return { x: target.x, y: target.y };
+  }
+  const stepRad = (stepDeg * Math.PI) / 180;
+  const angle = Math.atan2(dy, dx);
+  const snapped = Math.round(angle / stepRad) * stepRad;
+  return {
+    x: origin.x + dist * Math.cos(snapped),
+    y: origin.y + dist * Math.sin(snapped)
+  };
+}
+
+/** Snap a drag delta vector to the nearest angle step. */
+export function snapDeltaToAngle(delta: Point, stepDeg = ANGLE_SNAP_STEP_DEG): Point {
+  const dist = Math.hypot(delta.x, delta.y);
+  if (dist < 0.001) {
+    return { x: delta.x, y: delta.y };
+  }
+  return snapPointToAngle({ x: 0, y: 0 }, delta, stepDeg);
+}
 
 export function newId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
@@ -390,7 +436,8 @@ export function addWaypointOnEdge(
   start: Point,
   end: Point,
   waypoints: Point[],
-  click: Point
+  click: Point,
+  options?: { angleLock?: boolean }
 ): Point[] {
   const poly = polylinePoints(start, end, waypoints);
   let bestI = 0;
@@ -404,7 +451,8 @@ export function addWaypointOnEdge(
   }
   const a = poly[bestI];
   const b = poly[bestI + 1];
-  const bend = visibleBendPoint(a, b, click);
+  const target = options?.angleLock ? snapPointToAngle(a, click) : click;
+  const bend = visibleBendPoint(a, b, target);
   const next = waypoints.map((p) => ({ ...p }));
   next.splice(bestI, 0, bend);
   return next;
@@ -446,14 +494,16 @@ export function dragSegmentWaypoints(
   end: Point,
   startWaypoints: Point[],
   segmentIndex: number,
-  delta: Point
+  delta: Point,
+  options?: { angleLock?: boolean }
 ): Point[] {
+  const applied = options?.angleLock ? snapDeltaToAngle(delta) : delta;
   const poly = polylinePoints(start, end, startWaypoints);
 
-  if (startWaypoints.length === 0 && (Math.abs(delta.x) > 1 || Math.abs(delta.y) > 1)) {
+  if (startWaypoints.length === 0 && (Math.abs(applied.x) > 1 || Math.abs(applied.y) > 1)) {
     const a = poly[segmentIndex];
     const b = poly[segmentIndex + 1];
-    const mid = { x: (a.x + b.x) / 2 + delta.x, y: (a.y + b.y) / 2 + delta.y };
+    const mid = { x: (a.x + b.x) / 2 + applied.x, y: (a.y + b.y) / 2 + applied.y };
     return [visibleBendPoint(a, b, mid)];
   }
 
@@ -461,8 +511,8 @@ export function dragSegmentWaypoints(
   const moveWp = (polyIndex: number) => {
     const wi = polyIndex - 1;
     if (wi >= 0 && wi < result.length) {
-      result[wi].x += delta.x;
-      result[wi].y += delta.y;
+      result[wi].x += applied.x;
+      result[wi].y += applied.y;
     }
   };
 
@@ -472,11 +522,24 @@ export function dragSegmentWaypoints(
   return result;
 }
 
-export function dragWaypointTo(waypoints: Point[], index: number, point: Point): Point[] {
+export function dragWaypointTo(
+  start: Point,
+  end: Point,
+  waypoints: Point[],
+  index: number,
+  point: Point,
+  options?: { angleLock?: boolean }
+): Point[] {
   const next = waypoints.map((p) => ({ ...p }));
-  if (index >= 0 && index < next.length) {
-    next[index] = { x: point.x, y: point.y };
+  if (index < 0 || index >= next.length) {
+    return next;
   }
+  let placed = point;
+  if (options?.angleLock) {
+    const anchor = polylinePoints(start, end, waypoints)[index];
+    placed = snapPointToAngle(anchor, point);
+  }
+  next[index] = placed;
   return next;
 }
 
@@ -566,7 +629,7 @@ export function nodePositionFromDrag(
   const hit = laneAtX(diagram.lanes, left + nodeW / 2);
   if (!hit) return null;
   const headerH = diagram.laneHeaderHeight;
-  const maxY = CANVAS_HEIGHT - headerH - nodeH - 8;
+  const maxY = laneContentHeight(diagram) - nodeH - 8;
   const maxX = hit.lane.width - nodeW - 8;
   return {
     laneId: hit.lane.id,
@@ -700,7 +763,7 @@ export function initialDiagram(): WorkflowDiagram {
     { id: 'e1', fromId: 'n1', toId: 'n2' },
     { id: 'e2', fromId: 'n2', toId: 'n3', label: 'Yes' }
   ];
-  return { laneHeaderHeight: LANE_HEADER_HEIGHT, lanes, nodes, edges };
+  return { laneHeaderHeight: LANE_HEADER_HEIGHT, canvasHeight: CANVAS_HEIGHT, lanes, nodes, edges };
 }
 
 export function variantForNewShape(shape: DiagramNode['shape']): DiagramNode['variant'] {

@@ -58,6 +58,7 @@ import type {
 import {
   CANVAS_HEIGHT,
   DEFAULT_LANE_WIDTH,
+  MAX_CANVAS_HEIGHT,
   GRID_STEP,
   allNodeBounds,
   anchorPoint,
@@ -70,13 +71,16 @@ import {
   dragSegmentWaypoints,
   dragWaypointTo,
   initialDiagram,
+  laneContentHeight,
   laneOffsets,
+  minCanvasHeightForDiagram,
   newId,
   nodeBounds,
   nodePositionFromDrag,
   resizeNodeBounds,
   polylinePoints,
   portFromPoint,
+  snapPointToAngle,
   removeWaypointAt,
   resolveEdgeEndpoints,
   resolveEdgeWaypoints,
@@ -155,6 +159,11 @@ export class ApprovalWorkflowsComponent {
   readonly labelDraft = signal('');
   readonly lineStylePanelExpanded = signal(true);
   readonly shapeStylePanelExpanded = signal(true);
+  readonly angleLockEnabled = signal(false);
+  readonly angleLockOptions = [
+    { label: 'Off', value: false },
+    { label: '15°', value: true }
+  ];
 
   private dragNodeId: string | null = null;
   private dragResize: {
@@ -179,8 +188,9 @@ export class ApprovalWorkflowsComponent {
     endAnchor: Point;
   } | null = null;
   private dragEndpoint: { edgeId: string; end: 'from' | 'to'; nodeId: string } | null = null;
+  private dragCanvasHeight: { startPointerY: number; startHeight: number } | null = null;
 
-  readonly canvasHeight = CANVAS_HEIGHT;
+  readonly canvasHeight = computed(() => this.diagram().canvasHeight ?? CANVAS_HEIGHT);
   readonly canvasWidth = computed(() => canvasWidth(this.diagram().lanes));
   readonly laneOffsetMap = computed(() => laneOffsets(this.diagram().lanes));
   readonly edgePaths = computed(() => buildEdgePaths(this.diagram()));
@@ -254,7 +264,7 @@ export class ApprovalWorkflowsComponent {
   }
 
   laneContentHeight(): number {
-    return this.canvasHeight - this.diagram().laneHeaderHeight;
+    return laneContentHeight(this.diagram());
   }
 
   shapeStyle(node: DiagramNode): ResolvedNodeStyle {
@@ -497,6 +507,21 @@ export class ApprovalWorkflowsComponent {
     this.selectedNodeId.set(node.id);
   }
 
+  onCanvasHeightResizeMouseDown(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const pt = this.svgPoint(event);
+    if (!pt) {
+      return;
+    }
+    this.dragCanvasHeight = {
+      startPointerY: pt.y,
+      startHeight: this.canvasHeight()
+    };
+    this.suppressCanvasClick = true;
+    this.statusHint.set('Drag to resize swim lane height (all lanes stay equal).');
+  }
+
   onResizeHandleMouseDown(event: MouseEvent, nodeId: string, handle: NodeResizeHandle): void {
     event.stopPropagation();
     event.preventDefault();
@@ -650,7 +675,8 @@ export class ApprovalWorkflowsComponent {
       ctx.start,
       ctx.end,
       resolveEdgeWaypoints(edge, ctx.start, ctx.end),
-      { x: mid.x, y: mid.y }
+      { x: mid.x, y: mid.y },
+      { angleLock: this.angleLockEnabled() }
     );
     this.persistEdgeWaypoints(edgeId, wps);
     this.selectedEdgeId.set(edgeId);
@@ -694,7 +720,8 @@ export class ApprovalWorkflowsComponent {
       ctx.start,
       ctx.end,
       resolveEdgeWaypoints(edge, ctx.start, ctx.end),
-      pt
+      pt,
+      { angleLock: this.angleLockEnabled() }
     );
     this.persistEdgeWaypoints(edgeId, wps);
     this.selectedEdgeId.set(edgeId);
@@ -862,6 +889,10 @@ export class ApprovalWorkflowsComponent {
       this.moveResize(event);
       return;
     }
+    if (this.dragCanvasHeight) {
+      this.moveCanvasHeight(event);
+      return;
+    }
     if (
       this.activeTool() === 'connector' &&
       this.connectorFromId() &&
@@ -917,6 +948,27 @@ export class ApprovalWorkflowsComponent {
     this.dragSegment = null;
     this.dragWaypoint = null;
     this.dragEndpoint = null;
+    this.dragCanvasHeight = null;
+  }
+
+  private moveCanvasHeight(event: MouseEvent): void {
+    const drag = this.dragCanvasHeight;
+    if (!drag) {
+      return;
+    }
+    const pt = this.svgPoint(event);
+    if (!pt) {
+      return;
+    }
+    const delta = pt.y - drag.startPointerY;
+    const minH = minCanvasHeightForDiagram(this.diagram());
+    const next = Math.round(
+      Math.min(MAX_CANVAS_HEIGHT, Math.max(minH, drag.startHeight + delta))
+    );
+    if (next === this.canvasHeight()) {
+      return;
+    }
+    this.diagram.set({ ...this.diagram(), canvasHeight: next });
   }
 
   private moveResize(event: MouseEvent): void {
@@ -985,7 +1037,8 @@ export class ApprovalWorkflowsComponent {
       ctx.end,
       drag.startWaypoints,
       drag.segmentIndex,
-      delta
+      delta,
+      { angleLock: this.angleLockEnabled() }
     );
     this.persistEdgeWaypoints(drag.edgeId, wps);
   }
@@ -996,7 +1049,18 @@ export class ApprovalWorkflowsComponent {
     const pt = this.svgPoint(event);
     if (!pt) return;
 
-    const wps = dragWaypointTo(drag.startWaypoints, drag.index, pt);
+    const ctx = this.edgeContext(drag.edgeId);
+    if (!ctx) {
+      return;
+    }
+    const wps = dragWaypointTo(
+      ctx.start,
+      ctx.end,
+      drag.startWaypoints,
+      drag.index,
+      pt,
+      { angleLock: this.angleLockEnabled() }
+    );
     this.persistEdgeWaypoints(drag.edgeId, wps);
   }
 
@@ -1153,6 +1217,11 @@ export class ApprovalWorkflowsComponent {
       ) {
         return anchorPoint(box, defaultPortToward(box, fromBox));
       }
+    }
+
+    const fromPort = this.connectorFromPort();
+    if (this.angleLockEnabled() && fromPort) {
+      return snapPointToAngle(anchorPoint(fromBox, fromPort), cursor);
     }
     return cursor;
   }
