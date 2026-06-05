@@ -98,6 +98,8 @@ export type EdgeLineStyle = 'solid' | 'dashed';
 
 export type EdgeCornerStyle = 'sharp' | 'rounded' | 'sketch';
 
+export type EdgeRouteStyle = 'direct' | 'orthogonal';
+
 /** Marker at the target end of the connector (marker-end) */
 
 export type ArrowMarkerType = 'none' | 'arrow' | 'openArrow' | 'diamond' | 'circle' | 'square' | 'bar';
@@ -113,6 +115,10 @@ export interface EdgeStyle {
   lineStyle: EdgeLineStyle;
 
   cornerStyle: EdgeCornerStyle;
+
+  /** Direct straight/curved path vs right-angle orthogonal routing */
+
+  routeStyle: EdgeRouteStyle;
 
   /** Marker at target / head end */
 

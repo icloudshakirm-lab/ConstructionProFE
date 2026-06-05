@@ -45,6 +45,7 @@ import type {
   NodeBounds,
   EdgeCornerStyle,
   EdgeLineStyle,
+  EdgeRouteStyle,
   EdgePort,
   EdgeStyle,
   NodeResizeHandle,
@@ -85,13 +86,14 @@ import {
   resolveEdgeEndpoints,
   resolveEdgeWaypoints,
   snapToLaneContent,
-  variantForNewShape,
-  waypointsForNewEdge
+  variantForNewShape
 } from './workflow-diagram.utils';
 
 interface EdgeDragContext {
   start: Point;
   end: Point;
+  fromPort: EdgePort;
+  toPort: EdgePort;
   poly: Point[];
 }
 
@@ -145,6 +147,10 @@ export class ApprovalWorkflowsComponent {
     { label: 'Sharp', value: 'sharp' as EdgeCornerStyle },
     { label: 'Rounded', value: 'rounded' as EdgeCornerStyle },
     { label: 'Sketch', value: 'sketch' as EdgeCornerStyle }
+  ];
+  readonly routeStyleOptions = [
+    { label: 'Direct', value: 'direct' as EdgeRouteStyle },
+    { label: 'Orthogonal', value: 'orthogonal' as EdgeRouteStyle }
   ];
   readonly diagram = signal<WorkflowDiagram>(initialDiagram());
   readonly activeTool = signal<DiagramTool>('select');
@@ -655,6 +661,20 @@ export class ApprovalWorkflowsComponent {
     this.updateSelectedEdgeStyle({ cornerStyle });
   }
 
+  onEdgeRouteStyleChange(routeStyle: EdgeRouteStyle): void {
+    this.updateSelectedEdgeStyle({ routeStyle });
+    const edgeId = this.selectedEdgeId();
+    if (!edgeId) {
+      return;
+    }
+    this.persistEdgeWaypoints(edgeId, []);
+    this.statusHint.set(
+      routeStyle === 'orthogonal'
+        ? 'Orthogonal routing — horizontal/vertical segments with right angles.'
+        : 'Direct routing — straight line unless you add bends.'
+    );
+  }
+
   onArrowHeadChange(type: ArrowMarkerType): void {
     this.updateSelectedEdgeStyle({ arrowHead: type });
   }
@@ -674,7 +694,7 @@ export class ApprovalWorkflowsComponent {
     const wps = addWaypointOnEdge(
       ctx.start,
       ctx.end,
-      resolveEdgeWaypoints(edge, ctx.start, ctx.end),
+      resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort),
       { x: mid.x, y: mid.y },
       { angleLock: this.angleLockEnabled() }
     );
@@ -693,7 +713,7 @@ export class ApprovalWorkflowsComponent {
     if (!ctx || !edge) {
       return;
     }
-    const wps = resolveEdgeWaypoints(edge, ctx.start, ctx.end);
+    const wps = resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort);
     if (!wps.length) {
       this.messages.add({
         severity: 'warn',
@@ -719,7 +739,7 @@ export class ApprovalWorkflowsComponent {
     const wps = addWaypointOnEdge(
       ctx.start,
       ctx.end,
-      resolveEdgeWaypoints(edge, ctx.start, ctx.end),
+      resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort),
       pt,
       { angleLock: this.angleLockEnabled() }
     );
@@ -790,7 +810,9 @@ export class ApprovalWorkflowsComponent {
     this.selectedNodeId.set(null);
     const edge = this.diagram().edges.find((e) => e.id === edgeId);
     const startWaypoints = edge
-      ? resolveEdgeWaypoints(edge, ctx.start, ctx.end).map((p) => ({ ...p }))
+      ? resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort).map((p) => ({
+          ...p
+        }))
       : [];
     this.dragSegment = {
       edgeId,
@@ -814,7 +836,10 @@ export class ApprovalWorkflowsComponent {
       if (!ctx) return;
       const edge = this.diagram().edges.find((e) => e.id === edgeId);
       if (!edge) return;
-      const wps = removeWaypointAt(resolveEdgeWaypoints(edge, ctx.start, ctx.end), index);
+      const wps = removeWaypointAt(
+        resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort),
+        index
+      );
       this.persistEdgeWaypoints(edgeId, wps);
       this.selectedEdgeId.set(edgeId);
       return;
@@ -825,7 +850,9 @@ export class ApprovalWorkflowsComponent {
 
     const edge = this.diagram().edges.find((e) => e.id === edgeId);
     const startWaypoints = edge
-      ? resolveEdgeWaypoints(edge, ctx.start, ctx.end).map((p) => ({ ...p }))
+      ? resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort).map((p) => ({
+          ...p
+        }))
       : [];
     this.dragWaypoint = { edgeId, index, startWaypoints };
     this.selectedEdgeId.set(edgeId);
@@ -1072,11 +1099,13 @@ export class ApprovalWorkflowsComponent {
     const from = bounds.get(edge.fromId);
     const to = bounds.get(edge.toId);
     if (!from || !to) return null;
-    const { start, end } = resolveEdgeEndpoints(edge, from, to);
-    const waypoints = resolveEdgeWaypoints(edge, start, end);
+    const { start, end, fromPort, toPort } = resolveEdgeEndpoints(edge, from, to);
+    const waypoints = resolveEdgeWaypoints(edge, start, end, fromPort, toPort);
     return {
       start,
       end,
+      fromPort,
+      toPort,
       poly: polylinePoints(start, end, waypoints)
     };
   }
@@ -1155,12 +1184,9 @@ export class ApprovalWorkflowsComponent {
         e.toPort?.side === resolvedTo.side
     );
     if (!exists) {
-      const { start, end } = resolveEdgeEndpoints(
-        { id: '', fromId: from, toId: nodeId, fromPort: resolvedFrom, toPort: resolvedTo },
-        fromBox,
-        toBox
-      );
-      const waypoints = waypointsForNewEdge(start, end);
+      const routeStyle = this.selectedEdge()
+        ? resolveEdgeStyle(this.selectedEdge()!).routeStyle
+        : DEFAULT_EDGE_STYLE.routeStyle;
       this.diagram.set({
         ...d,
         edges: [
@@ -1171,8 +1197,7 @@ export class ApprovalWorkflowsComponent {
             toId: nodeId,
             fromPort: resolvedFrom,
             toPort: resolvedTo,
-            waypoints,
-            style: { ...DEFAULT_EDGE_STYLE }
+            style: { ...DEFAULT_EDGE_STYLE, routeStyle }
           }
         ]
       });

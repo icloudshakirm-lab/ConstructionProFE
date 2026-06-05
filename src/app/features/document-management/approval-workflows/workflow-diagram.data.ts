@@ -22,6 +22,8 @@ export const DEFAULT_EDGE_STYLE: EdgeStyle = {
 
   cornerStyle: 'sharp',
 
+  routeStyle: 'direct',
+
   arrowHead: 'arrow',
 
   arrowTail: 'none'

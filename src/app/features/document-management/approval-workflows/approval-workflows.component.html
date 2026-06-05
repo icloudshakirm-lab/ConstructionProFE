@@ -872,6 +872,20 @@
                   />
                 </div>
                 <div class="wf-page__style-panel-row">
+                  <span>Route</span>
+                  <p class="wf-page__style-panel-note">
+                    Orthogonal uses horizontal and vertical segments with right angles.
+                  </p>
+                  <p-selectButton
+                    [options]="routeStyleOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="selectedEdgeStyle().routeStyle"
+                    (ngModelChange)="onEdgeRouteStyleChange($event)"
+                    [allowEmpty]="false"
+                  />
+                </div>
+                <div class="wf-page__style-panel-row">
                   <span>Path</span>
                   <p class="wf-page__style-panel-note">Sketch adds automatic pencil-style waves.</p>
                   <p-selectButton

@@ -5,6 +5,7 @@ import type {
   NodeResizeHandle,
   EdgeCornerStyle,
   EdgePath,
+  EdgeRouteStyle,
   EdgePort,
   EdgeSegmentHit,
   NodeBounds,
@@ -43,6 +44,7 @@ export function minCanvasHeightForDiagram(diagram: WorkflowDiagram): number {
   return Math.max(MIN_CANVAS_HEIGHT, header + maxNodeBottom + 40);
 }
 export const GRID_STEP = 24;
+export const ORTHOGONAL_STUB_LENGTH = 28;
 export const ANGLE_SNAP_STEP_DEG = 15;
 
 /** Snap target onto a ray from origin using fixed degree steps (default 15°). */
@@ -208,6 +210,75 @@ export function edgeAnchors(from: NodeBounds, to: NodeBounds): { start: Point; e
 /** Straight line until user adds bends */
 export function defaultWaypoints(_start: Point, _end: Point): Point[] {
   return [];
+}
+
+function portIsHorizontal(side: PortSide): boolean {
+  return side === 'left' || side === 'right';
+}
+
+function orthogonalStubPoint(anchor: Point, port: EdgePort, length: number): Point {
+  switch (port.side) {
+    case 'top':
+      return { x: anchor.x, y: anchor.y - length };
+    case 'bottom':
+      return { x: anchor.x, y: anchor.y + length };
+    case 'left':
+      return { x: anchor.x - length, y: anchor.y };
+    case 'right':
+      return { x: anchor.x + length, y: anchor.y };
+  }
+}
+
+function orthogonalCornersBetween(
+  stubStart: Point,
+  stubEnd: Point,
+  fromSide: PortSide,
+  toSide: PortSide
+): Point[] {
+  const fromH = portIsHorizontal(fromSide);
+  const toH = portIsHorizontal(toSide);
+
+  if (fromH && toH) {
+    if (Math.abs(stubStart.y - stubEnd.y) < 1) {
+      return [];
+    }
+    const midX = (stubStart.x + stubEnd.x) / 2;
+    return [
+      { x: midX, y: stubStart.y },
+      { x: midX, y: stubEnd.y }
+    ];
+  }
+
+  if (!fromH && !toH) {
+    if (Math.abs(stubStart.x - stubEnd.x) < 1) {
+      return [];
+    }
+    const midY = (stubStart.y + stubEnd.y) / 2;
+    return [
+      { x: stubStart.x, y: midY },
+      { x: stubEnd.x, y: midY }
+    ];
+  }
+
+  if (fromH) {
+    return [{ x: stubEnd.x, y: stubStart.y }];
+  }
+
+  return [{ x: stubStart.x, y: stubEnd.y }];
+}
+
+/** Right-angle H/V routing with short stubs leaving each port */
+export function orthogonalRouteWaypoints(
+  start: Point,
+  end: Point,
+  fromPort: EdgePort,
+  toPort: EdgePort,
+  stub = ORTHOGONAL_STUB_LENGTH
+): Point[] {
+  const stubStart = orthogonalStubPoint(start, fromPort, stub);
+  const stubEnd = orthogonalStubPoint(end, toPort, stub);
+  const corners = orthogonalCornersBetween(stubStart, stubEnd, fromPort.side, toPort.side);
+  return [stubStart, ...corners, stubEnd];
 }
 
 export function polylinePoints(start: Point, end: Point, waypoints: Point[]): Point[] {
@@ -378,15 +449,30 @@ export function labelAtPolyline(points: Point[]): { x: number; y: number } {
 export function resolveEdgeWaypoints(
   edge: DiagramEdge,
   start: Point,
-  end: Point
+  end: Point,
+  fromPort?: EdgePort,
+  toPort?: EdgePort
 ): Point[] {
   if (edge.waypoints?.length) {
     return edge.waypoints.map((p) => ({ ...p }));
   }
+  const style = resolveEdgeStyle(edge);
+  if (style.routeStyle === 'orthogonal' && fromPort && toPort) {
+    return orthogonalRouteWaypoints(start, end, fromPort, toPort);
+  }
   return defaultWaypoints(start, end);
 }
 
-export function waypointsForNewEdge(_start: Point, _end: Point): Point[] {
+export function waypointsForNewEdge(
+  start: Point,
+  end: Point,
+  fromPort: EdgePort,
+  toPort: EdgePort,
+  routeStyle: EdgeRouteStyle = 'direct'
+): Point[] {
+  if (routeStyle === 'orthogonal') {
+    return orthogonalRouteWaypoints(start, end, fromPort, toPort);
+  }
   return [];
 }
 
@@ -551,7 +637,7 @@ export function buildEdgePaths(diagram: WorkflowDiagram): EdgePath[] {
     const to = bounds.get(edge.toId);
     if (!from || !to) continue;
     const { start, end, fromPort, toPort } = resolveEdgeEndpoints(edge, from, to);
-    const waypoints = resolveEdgeWaypoints(edge, start, end);
+    const waypoints = resolveEdgeWaypoints(edge, start, end, fromPort, toPort);
     const poly = polylinePoints(start, end, waypoints);
     const labelPos = labelAtPolyline(poly);
     const style = resolveEdgeStyle(edge);
