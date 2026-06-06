@@ -22,7 +22,7 @@ export const DEFAULT_EDGE_STYLE: EdgeStyle = {
 
   cornerStyle: 'sharp',
 
-  routeStyle: 'direct',
+  routeStyle: 'orthogonal',
 
   arrowHead: 'arrow',
 

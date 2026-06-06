@@ -444,6 +444,8 @@
 
   fill: #e9ecef;
 
+  cursor: text;
+
 }
 
 
@@ -458,6 +460,10 @@
 
   letter-spacing: 0.02em;
 
+  cursor: text;
+
+  pointer-events: all;
+
 }
 
 
@@ -469,6 +475,32 @@
   stroke: #adb5bd;
 
   stroke-width: 1.5;
+
+}
+
+
+
+.wf-page__lane-width-handle {
+
+  fill: transparent;
+
+  cursor: ew-resize;
+
+}
+
+
+
+.wf-page__lane:hover .wf-page__lane-width-handle {
+
+  fill: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+
+}
+
+
+
+.wf-page__lane-width-handle:hover {
+
+  fill: color-mix(in srgb, var(--p-primary-color) 22%, transparent);
 
 }
 

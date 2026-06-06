@@ -40,6 +40,7 @@ import type {
   AlertVariant,
   ArrowMarkerType,
   ConnectionPortHit,
+  DiagramEdge,
   DiagramNode,
   DiagramTool,
   NodeBounds,
@@ -59,7 +60,9 @@ import type {
 import {
   CANVAS_HEIGHT,
   DEFAULT_LANE_WIDTH,
+  MAX_LANE_WIDTH,
   MAX_CANVAS_HEIGHT,
+  MIN_LANE_WIDTH,
   GRID_STEP,
   allNodeBounds,
   anchorPoint,
@@ -163,6 +166,10 @@ export class ApprovalWorkflowsComponent {
 
   readonly labelDialogVisible = signal(false);
   readonly labelDraft = signal('');
+  readonly laneNameDialogVisible = signal(false);
+  readonly laneNameDraft = signal('');
+  /** null = add lane; otherwise rename this lane id */
+  readonly laneNameEditId = signal<string | null>(null);
   readonly lineStylePanelExpanded = signal(true);
   readonly shapeStylePanelExpanded = signal(true);
   readonly angleLockEnabled = signal(false);
@@ -195,6 +202,8 @@ export class ApprovalWorkflowsComponent {
   } | null = null;
   private dragEndpoint: { edgeId: string; end: 'from' | 'to'; nodeId: string } | null = null;
   private dragCanvasHeight: { startPointerY: number; startHeight: number } | null = null;
+  private dragLaneWidth: { laneId: string; startPointerX: number; startWidth: number } | null =
+    null;
 
   readonly canvasHeight = computed(() => this.diagram().canvasHeight ?? CANVAS_HEIGHT);
   readonly canvasWidth = computed(() => canvasWidth(this.diagram().lanes));
@@ -426,10 +435,40 @@ export class ApprovalWorkflowsComponent {
   }
 
   addSwimLane(): void {
+    this.laneNameEditId.set(null);
+    this.laneNameDraft.set('New lane');
+    this.laneNameDialogVisible.set(true);
+  }
+
+  onLaneHeaderDoubleClick(event: MouseEvent, laneId: string): void {
+    event.stopPropagation();
+    const lane = this.diagram().lanes.find((l) => l.id === laneId);
+    if (!lane) return;
+    this.laneNameEditId.set(laneId);
+    this.laneNameDraft.set(lane.title);
+    this.laneNameDialogVisible.set(true);
+  }
+
+  saveLaneName(): void {
+    const title = this.laneNameDraft().trim() || 'New lane';
+    const editId = this.laneNameEditId();
     const d = this.diagram();
-    const lane = { id: newId('lane'), title: 'New lane', width: DEFAULT_LANE_WIDTH };
-    this.diagram.set({ ...d, lanes: [...d.lanes, lane] });
-    this.messages.add({ severity: 'success', summary: 'Swim lane added', life: 2000 });
+    if (editId) {
+      this.diagram.set({
+        ...d,
+        lanes: d.lanes.map((l) => (l.id === editId ? { ...l, title } : l))
+      });
+      this.messages.add({ severity: 'success', summary: 'Swim lane renamed', life: 2000 });
+    } else {
+      const lane = { id: newId('lane'), title, width: DEFAULT_LANE_WIDTH };
+      this.diagram.set({ ...d, lanes: [...d.lanes, lane] });
+      this.messages.add({ severity: 'success', summary: 'Swim lane added', life: 2000 });
+    }
+    this.laneNameDialogVisible.set(false);
+    this.laneNameEditId.set(null);
+    if (this.activeTool() === 'swimlane') {
+      this.setTool('select');
+    }
   }
 
   clearSelectedEdgePath(): void {
@@ -511,6 +550,24 @@ export class ApprovalWorkflowsComponent {
     const d = this.diagram();
     this.diagram.set({ ...d, nodes: [...d.nodes, node] });
     this.selectedNodeId.set(node.id);
+    this.setTool('select');
+  }
+
+  onLaneWidthResizeMouseDown(event: MouseEvent, laneId: string): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const lane = this.diagram().lanes.find((l) => l.id === laneId);
+    const pt = this.svgPoint(event);
+    if (!lane || !pt) {
+      return;
+    }
+    this.dragLaneWidth = {
+      laneId,
+      startPointerX: pt.x,
+      startWidth: lane.width
+    };
+    this.suppressCanvasClick = true;
+    this.statusHint.set('Drag to resize this swim lane width.');
   }
 
   onCanvasHeightResizeMouseDown(event: MouseEvent): void {
@@ -670,7 +727,7 @@ export class ApprovalWorkflowsComponent {
     this.persistEdgeWaypoints(edgeId, []);
     this.statusHint.set(
       routeStyle === 'orthogonal'
-        ? 'Orthogonal routing — horizontal/vertical segments with right angles.'
+        ? 'Orthogonal routing — add bends or drag segments; path stays H/V until you switch to Direct.'
         : 'Direct routing — straight line unless you add bends.'
     );
   }
@@ -688,7 +745,7 @@ export class ApprovalWorkflowsComponent {
     if (!edgeId) return;
     const path = this.edgePaths().find((p) => p.id === edgeId);
     const ctx = this.edgeContext(edgeId);
-    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    const edge = this.materializeOrthogonalWaypoints(edgeId);
     if (!path?.virtualBends.length || !ctx || !edge) return;
     const mid = path.virtualBends[Math.floor(path.virtualBends.length / 2)];
     const wps = addWaypointOnEdge(
@@ -696,7 +753,7 @@ export class ApprovalWorkflowsComponent {
       ctx.end,
       resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort),
       { x: mid.x, y: mid.y },
-      { angleLock: this.angleLockEnabled() }
+      this.edgeWaypointOptions(edge)
     );
     this.persistEdgeWaypoints(edgeId, wps);
     this.selectedEdgeId.set(edgeId);
@@ -734,14 +791,14 @@ export class ApprovalWorkflowsComponent {
     const pt = this.svgPoint(event);
     const ctx = this.edgeContext(edgeId);
     if (!pt || !ctx) return;
-    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    const edge = this.materializeOrthogonalWaypoints(edgeId);
     if (!edge) return;
     const wps = addWaypointOnEdge(
       ctx.start,
       ctx.end,
       resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort),
       pt,
-      { angleLock: this.angleLockEnabled() }
+      this.edgeWaypointOptions(edge)
     );
     this.persistEdgeWaypoints(edgeId, wps);
     this.selectedEdgeId.set(edgeId);
@@ -808,7 +865,7 @@ export class ApprovalWorkflowsComponent {
 
     this.selectedEdgeId.set(edgeId);
     this.selectedNodeId.set(null);
-    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    const edge = this.materializeOrthogonalWaypoints(edgeId);
     const startWaypoints = edge
       ? resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort).map((p) => ({
           ...p
@@ -823,7 +880,11 @@ export class ApprovalWorkflowsComponent {
       endAnchor: { ...ctx.end }
     };
     this.suppressCanvasClick = true;
-    this.statusHint.set('Drag to move this section of the connector.');
+    this.statusHint.set(
+      edge && this.isOrthogonalEdge(edge)
+        ? 'Drag to move this segment — other bends stay fixed (orthogonal).'
+        : 'Drag to move this section of the connector.'
+    );
   }
 
   onWaypointMouseDown(event: MouseEvent, edgeId: string, index: number): void {
@@ -848,7 +909,7 @@ export class ApprovalWorkflowsComponent {
     const ctx = this.edgeContext(edgeId);
     if (!ctx) return;
 
-    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    const edge = this.materializeOrthogonalWaypoints(edgeId);
     const startWaypoints = edge
       ? resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort).map((p) => ({
           ...p
@@ -920,6 +981,10 @@ export class ApprovalWorkflowsComponent {
       this.moveCanvasHeight(event);
       return;
     }
+    if (this.dragLaneWidth) {
+      this.moveLaneWidth(event);
+      return;
+    }
     if (
       this.activeTool() === 'connector' &&
       this.connectorFromId() &&
@@ -976,6 +1041,41 @@ export class ApprovalWorkflowsComponent {
     this.dragWaypoint = null;
     this.dragEndpoint = null;
     this.dragCanvasHeight = null;
+    this.dragLaneWidth = null;
+  }
+
+  private moveLaneWidth(event: MouseEvent): void {
+    const drag = this.dragLaneWidth;
+    if (!drag) {
+      return;
+    }
+    const pt = this.svgPoint(event);
+    if (!pt) {
+      return;
+    }
+    const delta = pt.x - drag.startPointerX;
+    const nextWidth = Math.round(
+      Math.min(MAX_LANE_WIDTH, Math.max(MIN_LANE_WIDTH, drag.startWidth + delta))
+    );
+    if (nextWidth === this.diagram().lanes.find((l) => l.id === drag.laneId)?.width) {
+      return;
+    }
+    this.persistLaneWidth(drag.laneId, nextWidth);
+  }
+
+  private persistLaneWidth(laneId: string, width: number): void {
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      lanes: d.lanes.map((l) => (l.id === laneId ? { ...l, width } : l)),
+      nodes: d.nodes.map((n) => {
+        if (n.laneId !== laneId) {
+          return n;
+        }
+        const maxX = Math.max(4, width - n.w - 4);
+        return { ...n, x: Math.min(n.x, maxX) };
+      })
+    });
   }
 
   private moveCanvasHeight(event: MouseEvent): void {
@@ -1059,13 +1159,14 @@ export class ApprovalWorkflowsComponent {
       x: pt.x - drag.startPointer.x,
       y: pt.y - drag.startPointer.y
     };
+    const edge = this.diagram().edges.find((e) => e.id === drag.edgeId);
     const wps = dragSegmentWaypoints(
       ctx.start,
       ctx.end,
       drag.startWaypoints,
       drag.segmentIndex,
       delta,
-      { angleLock: this.angleLockEnabled() }
+      this.edgeWaypointOptions(edge)
     );
     this.persistEdgeWaypoints(drag.edgeId, wps);
   }
@@ -1080,13 +1181,14 @@ export class ApprovalWorkflowsComponent {
     if (!ctx) {
       return;
     }
+    const edge = this.diagram().edges.find((e) => e.id === drag.edgeId);
     const wps = dragWaypointTo(
       ctx.start,
       ctx.end,
       drag.startWaypoints,
       drag.index,
       pt,
-      { angleLock: this.angleLockEnabled() }
+      this.edgeWaypointOptions(edge)
     );
     this.persistEdgeWaypoints(drag.edgeId, wps);
   }
@@ -1203,12 +1305,33 @@ export class ApprovalWorkflowsComponent {
       });
       this.messages.add({ severity: 'info', summary: 'Connected', life: 1500 });
     }
-    this.connectorFromPort.set(resolvedFrom);
     this.selectedNodeId.set(nodeId);
     this.selectedEdgeId.set(null);
-    this.statusHint.set(
-      'Source locked — click another target point or shape, or click the source shape to reset.'
-    );
+    this.setTool('select');
+  }
+
+  private isOrthogonalEdge(edge: DiagramEdge): boolean {
+    return resolveEdgeStyle(edge).routeStyle === 'orthogonal';
+  }
+
+  private edgeWaypointOptions(edge: DiagramEdge | null | undefined): {
+    angleLock: boolean;
+    orthogonal: boolean;
+  } {
+    const orth = edge ? this.isOrthogonalEdge(edge) : false;
+    return { angleLock: !orth && this.angleLockEnabled(), orthogonal: orth };
+  }
+
+  /** Snapshot auto-generated orthogonal path before the user edits bends */
+  private materializeOrthogonalWaypoints(edgeId: string): DiagramEdge | null {
+    const edge = this.diagram().edges.find((e) => e.id === edgeId);
+    const ctx = this.edgeContext(edgeId);
+    if (!edge || !ctx || !this.isOrthogonalEdge(edge) || edge.waypoints?.length) {
+      return edge ?? null;
+    }
+    const wps = resolveEdgeWaypoints(edge, ctx.start, ctx.end, ctx.fromPort, ctx.toPort);
+    this.persistEdgeWaypoints(edgeId, wps);
+    return this.diagram().edges.find((e) => e.id === edgeId) ?? null;
   }
 
   private resolveConnectorPreviewEnd(cursor: Point, fromId: string, fromBox: NodeBounds): Point {

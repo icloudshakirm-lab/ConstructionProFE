@@ -27,6 +27,8 @@ import {
 
 export const LANE_HEADER_HEIGHT = 52;
 export const DEFAULT_LANE_WIDTH = 300;
+export const MIN_LANE_WIDTH = 140;
+export const MAX_LANE_WIDTH = 640;
 export const CANVAS_HEIGHT = 520;
 export const MIN_CANVAS_HEIGHT = 320;
 export const MAX_CANVAS_HEIGHT = 2400;
@@ -502,6 +504,159 @@ function projectOnSegment(p: Point, a: Point, b: Point): Point {
   return { x: a.x + t * dx, y: a.y + t * dy };
 }
 
+function isSegmentHorizontal(a: Point, b: Point): boolean {
+  return Math.abs(a.y - b.y) <= Math.abs(a.x - b.x);
+}
+
+function pointsDiffer(a: Point, b: Point): boolean {
+  return Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
+}
+
+/** Remove colinear corners so only true orthogonal bends remain */
+export function simplifyOrthogonalWaypoints(
+  start: Point,
+  end: Point,
+  waypoints: Point[]
+): Point[] {
+  const poly = polylinePoints(start, end, waypoints);
+  const kept: Point[] = [];
+  for (let i = 1; i < poly.length - 1; i++) {
+    const prev = poly[i - 1];
+    const cur = poly[i];
+    const next = poly[i + 1];
+    const colinearH =
+      Math.abs(prev.y - cur.y) < 0.5 && Math.abs(cur.y - next.y) < 0.5;
+    const colinearV =
+      Math.abs(prev.x - cur.x) < 0.5 && Math.abs(cur.x - next.x) < 0.5;
+    if (!colinearH && !colinearV) {
+      kept.push({ ...cur });
+    }
+  }
+  return kept;
+}
+
+/** Insert a right-angle jog on the nearest segment */
+export function addOrthogonalWaypointOnEdge(
+  start: Point,
+  end: Point,
+  waypoints: Point[],
+  click: Point,
+  minOffset = 24
+): Point[] {
+  const poly = polylinePoints(start, end, waypoints);
+  let bestI = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < poly.length - 1; i++) {
+    const d = distToSegment(click, poly[i], poly[i + 1]);
+    if (d < bestDist) {
+      bestDist = d;
+      bestI = i;
+    }
+  }
+  const a = poly[bestI];
+  const b = poly[bestI + 1];
+  const horiz = isSegmentHorizontal(a, b);
+  const proj = projectOnSegment(click, a, b);
+  const next = waypoints.map((p) => ({ ...p }));
+
+  let inserts: Point[] = [];
+  if (horiz) {
+    let offY = click.y - a.y;
+    if (Math.abs(offY) < minOffset * 0.5) {
+      offY = offY >= 0 ? minOffset : -minOffset;
+    }
+    const mx = proj.x;
+    const my = a.y + offY;
+    inserts = [
+      { x: mx, y: a.y },
+      { x: mx, y: my },
+      { x: b.x, y: my }
+    ];
+  } else {
+    let offX = click.x - a.x;
+    if (Math.abs(offX) < minOffset * 0.5) {
+      offX = offX >= 0 ? minOffset : -minOffset;
+    }
+    const my = proj.y;
+    const mx = a.x + offX;
+    inserts = [
+      { x: a.x, y: my },
+      { x: mx, y: my },
+      { x: mx, y: b.y }
+    ];
+  }
+
+  inserts = inserts.filter((p, idx) => idx === 0 || pointsDiffer(p, inserts[idx - 1]));
+  inserts = inserts.filter((p) => pointsDiffer(p, a));
+  inserts = inserts.filter((p) => pointsDiffer(p, b));
+
+  next.splice(bestI, 0, ...inserts);
+  return simplifyOrthogonalWaypoints(start, end, next);
+}
+
+/** Drag one H/V segment perpendicular to itself without moving other corners */
+export function dragOrthogonalSegmentWaypoints(
+  start: Point,
+  end: Point,
+  startWaypoints: Point[],
+  segmentIndex: number,
+  delta: Point
+): Point[] {
+  const result = startWaypoints.map((p) => ({ ...p }));
+  const poly = polylinePoints(start, end, result);
+  const a = poly[segmentIndex];
+  const b = poly[segmentIndex + 1];
+  const horiz = isSegmentHorizontal(a, b);
+  const applied = horiz ? { x: 0, y: delta.y } : { x: delta.x, y: 0 };
+  const lastPolyIndex = poly.length - 1;
+
+  const wiStart = segmentIndex > 0 ? segmentIndex - 1 : null;
+  const wiEnd = segmentIndex + 1 < lastPolyIndex ? segmentIndex : null;
+
+  if (wiStart != null && wiStart >= 0 && wiStart < result.length) {
+    result[wiStart].x += applied.x;
+    result[wiStart].y += applied.y;
+  }
+  if (wiEnd != null && wiEnd >= 0 && wiEnd < result.length) {
+    result[wiEnd].x += applied.x;
+    result[wiEnd].y += applied.y;
+  }
+
+  return simplifyOrthogonalWaypoints(start, end, result);
+}
+
+export function dragOrthogonalWaypointTo(
+  start: Point,
+  end: Point,
+  waypoints: Point[],
+  index: number,
+  point: Point
+): Point[] {
+  const next = waypoints.map((p) => ({ ...p }));
+  if (index < 0 || index >= next.length) {
+    return next;
+  }
+  const poly = polylinePoints(start, end, waypoints);
+  const polyIndex = index + 1;
+  const prev = poly[polyIndex - 1];
+  const cur = poly[polyIndex];
+  const nxt = poly[polyIndex + 1];
+  const inHoriz = isSegmentHorizontal(prev, cur);
+  const outHoriz = isSegmentHorizontal(cur, nxt);
+
+  if (inHoriz && !outHoriz) {
+    next[index] = { x: point.x, y: prev.y };
+  } else if (!inHoriz && outHoriz) {
+    next[index] = { x: prev.x, y: point.y };
+  } else if (!inHoriz && !outHoriz) {
+    next[index] = { x: prev.x, y: point.y };
+  } else {
+    next[index] = { x: point.x, y: point.y };
+  }
+
+  return simplifyOrthogonalWaypoints(start, end, next);
+}
+
 /** Offset perpendicular to segment so bends are visible (not colinear with the line) */
 function visibleBendPoint(a: Point, b: Point, near: Point, minOffset = 24): Point {
   const dx = b.x - a.x;
@@ -523,8 +678,11 @@ export function addWaypointOnEdge(
   end: Point,
   waypoints: Point[],
   click: Point,
-  options?: { angleLock?: boolean }
+  options?: { angleLock?: boolean; orthogonal?: boolean }
 ): Point[] {
+  if (options?.orthogonal) {
+    return addOrthogonalWaypointOnEdge(start, end, waypoints, click);
+  }
   const poly = polylinePoints(start, end, waypoints);
   let bestI = 0;
   let bestDist = Infinity;
@@ -581,8 +739,12 @@ export function dragSegmentWaypoints(
   startWaypoints: Point[],
   segmentIndex: number,
   delta: Point,
-  options?: { angleLock?: boolean }
+  options?: { angleLock?: boolean; orthogonal?: boolean }
 ): Point[] {
+  if (options?.orthogonal && startWaypoints.length > 0) {
+    return dragOrthogonalSegmentWaypoints(start, end, startWaypoints, segmentIndex, delta);
+  }
+
   const applied = options?.angleLock ? snapDeltaToAngle(delta) : delta;
   const poly = polylinePoints(start, end, startWaypoints);
 
@@ -614,8 +776,11 @@ export function dragWaypointTo(
   waypoints: Point[],
   index: number,
   point: Point,
-  options?: { angleLock?: boolean }
+  options?: { angleLock?: boolean; orthogonal?: boolean }
 ): Point[] {
+  if (options?.orthogonal) {
+    return dragOrthogonalWaypointTo(start, end, waypoints, index, point);
+  }
   const next = waypoints.map((p) => ({ ...p }));
   if (index < 0 || index >= next.length) {
     return next;
