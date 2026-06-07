@@ -5,6 +5,7 @@ import type {
   DiagramEdge,
   DiagramNode,
   EdgeStyle,
+  NodeShape,
   NodeStyle,
   ResolvedNodeStyle,
   ToolboxItem
@@ -161,6 +162,13 @@ export function sketchWaveAmplitude(strokeWidth: number): number {
 }
 
 
+
+export const QUICK_ADD_SHAPE_OPTIONS: { shape: NodeShape; label: string; icon: string }[] = [
+  { shape: 'rectangle', label: 'Rectangle', icon: 'pi pi-stop' },
+  { shape: 'circle', label: 'Circle', icon: 'pi pi-circle' },
+  { shape: 'diamond', label: 'Diamond', icon: 'pi pi-star' },
+  { shape: 'text', label: 'Text', icon: 'pi pi-font' }
+];
 
 export const DIAGRAM_TOOLBOX: ToolboxItem[] = [
 

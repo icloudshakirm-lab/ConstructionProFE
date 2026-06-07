@@ -506,6 +506,10 @@
 
               (dblclick)="onNodeDoubleClick($event, node.id)"
 
+              (mouseenter)="onNodeMouseEnter(node.id)"
+
+              (mouseleave)="onNodeMouseLeave(node.id)"
+
             >
 
               @switch (node.shape) {
@@ -719,6 +723,8 @@
                     [attr.cy]="port.y"
                     r="5"
                     [attr.data-side]="port.side"
+                    (mouseenter)="onPortMouseEnter($event, node.id, port.side, port.ratio, port.x, port.y)"
+                    (mouseleave)="onPortMouseLeave()"
                     (mousedown)="onConnectionPortMouseDown($event, node.id, port.side, port.ratio)"
                   />
                 }
@@ -727,6 +733,33 @@
           </g>
 
         </svg>
+
+        @if (portShapePicker(); as picker) {
+          <div
+            class="wf-page__port-picker"
+            [class.wf-page__port-picker--top]="picker.side === 'top'"
+            [class.wf-page__port-picker--right]="picker.side === 'right'"
+            [class.wf-page__port-picker--bottom]="picker.side === 'bottom'"
+            [class.wf-page__port-picker--left]="picker.side === 'left'"
+            [style.left.px]="picker.x"
+            [style.top.px]="picker.y"
+            (mouseenter)="onPortPickerMouseEnter()"
+            (mouseleave)="onPortPickerMouseLeave()"
+          >
+            @for (item of quickAddShapes; track item.shape) {
+              <button
+                type="button"
+                class="wf-page__port-picker-btn"
+                [pTooltip]="item.label"
+                tooltipPosition="top"
+                (mousedown)="$event.stopPropagation()"
+                (click)="addConnectedShapeFromPort(item.shape)"
+              >
+                <i [class]="item.icon" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+        }
 
       </div>
 

@@ -24,6 +24,7 @@ import {
   ARROW_MARKER_OPTIONS,
   DEFAULT_EDGE_STYLE,
   DIAGRAM_TOOLBOX,
+  QUICK_ADD_SHAPE_OPTIONS,
   EDGE_STROKE_WIDTH_OPTIONS,
   NODE_BORDER_WIDTH_OPTIONS,
   arrowMarkerFilled,
@@ -81,6 +82,7 @@ import {
   newId,
   nodeBounds,
   nodePositionFromDrag,
+  placementForConnectedShape,
   resizeNodeBounds,
   polylinePoints,
   portFromPoint,
@@ -117,6 +119,7 @@ export class ApprovalWorkflowsComponent {
   readonly fullscreen = signal(false);
 
   readonly toolbox = DIAGRAM_TOOLBOX;
+  readonly quickAddShapes = QUICK_ADD_SHAPE_OPTIONS;
   readonly gridStep = GRID_STEP;
   readonly edgeStrokeWidthOptions = EDGE_STROKE_WIDTH_OPTIONS;
   readonly arrowMarkerOptions = ARROW_MARKER_OPTIONS;
@@ -170,6 +173,14 @@ export class ApprovalWorkflowsComponent {
   readonly laneNameDraft = signal('');
   /** null = add lane; otherwise rename this lane id */
   readonly laneNameEditId = signal<string | null>(null);
+  readonly hoveredNodeId = signal<string | null>(null);
+  readonly portShapePicker = signal<{
+    nodeId: string;
+    side: PortSide;
+    ratio: number;
+    x: number;
+    y: number;
+  } | null>(null);
   readonly lineStylePanelExpanded = signal(true);
   readonly shapeStylePanelExpanded = signal(true);
   readonly angleLockEnabled = signal(false);
@@ -190,6 +201,7 @@ export class ApprovalWorkflowsComponent {
   private dragPointerStartX = 0;
   private dragPointerStartY = 0;
   private suppressCanvasClick = false;
+  private portPickerHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private dragWaypoint: { edgeId: string; index: number; startWaypoints: Point[] } | null = null;
   private dragSegment: {
@@ -295,6 +307,13 @@ export class ApprovalWorkflowsComponent {
       return false;
     }
     if (this.selectedNodeId() === nodeId) {
+      return true;
+    }
+    if (this.hoveredNodeId() === nodeId) {
+      return true;
+    }
+    const picker = this.portShapePicker();
+    if (picker?.nodeId === nodeId) {
       return true;
     }
     const edgeId = this.selectedEdgeId();
@@ -416,6 +435,8 @@ export class ApprovalWorkflowsComponent {
 
   setTool(tool: DiagramTool): void {
     this.activeTool.set(tool);
+    this.dismissPortShapePicker();
+    this.hoveredNodeId.set(null);
     this.connectorFromId.set(null);
     this.connectorFromPort.set(null);
     this.connectorPreviewPoint.set(null);
@@ -512,6 +533,8 @@ export class ApprovalWorkflowsComponent {
       this.suppressCanvasClick = false;
       return;
     }
+
+    this.dismissPortShapePicker();
 
     const tool = this.activeTool();
     if (tool === 'select' || tool === 'connector') return;
@@ -805,6 +828,113 @@ export class ApprovalWorkflowsComponent {
     this.statusHint.set(`${wps.length} bend(s) on this connector.`);
   }
 
+  onNodeMouseEnter(nodeId: string): void {
+    if (this.activeTool() !== 'select') {
+      return;
+    }
+    this.hoveredNodeId.set(nodeId);
+  }
+
+  onNodeMouseLeave(nodeId: string): void {
+    const picker = this.portShapePicker();
+    if (picker?.nodeId !== nodeId) {
+      this.hoveredNodeId.set(null);
+    }
+  }
+
+  onPortMouseEnter(
+    event: MouseEvent,
+    nodeId: string,
+    side: PortSide,
+    ratio: number,
+    x: number,
+    y: number
+  ): void {
+    if (this.activeTool() !== 'select') {
+      return;
+    }
+    event.stopPropagation();
+    this.clearPortPickerHideTimer();
+    this.hoveredNodeId.set(nodeId);
+    this.portShapePicker.set({ nodeId, side, ratio, x, y });
+  }
+
+  onPortMouseLeave(): void {
+    this.schedulePortPickerHide();
+  }
+
+  onPortPickerMouseEnter(): void {
+    this.clearPortPickerHideTimer();
+  }
+
+  onPortPickerMouseLeave(): void {
+    this.schedulePortPickerHide();
+  }
+
+  addConnectedShapeFromPort(shape: NodeShape): void {
+    const picker = this.portShapePicker();
+    if (!picker) {
+      return;
+    }
+
+    const sourceBounds = this.boundsForNode(picker.nodeId);
+    if (!sourceBounds) {
+      return;
+    }
+
+    const fromPort: EdgePort = { side: picker.side, ratio: picker.ratio };
+    const placement = placementForConnectedShape(
+      this.diagram(),
+      sourceBounds,
+      fromPort,
+      shape
+    );
+    if (!placement) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'No room',
+        detail: 'Not enough space to place a connected shape here.'
+      });
+      return;
+    }
+
+    const size = defaultShapeSize(shape);
+    const node: DiagramNode = {
+      id: newId('n'),
+      laneId: placement.laneId,
+      shape,
+      variant: variantForNewShape(shape),
+      x: placement.x,
+      y: placement.y,
+      w: size.w,
+      h: size.h,
+      label: shape === 'text' ? 'Label' : 'Step'
+    };
+
+    const d = this.diagram();
+    this.diagram.set({
+      ...d,
+      nodes: [...d.nodes, node],
+      edges: [
+        ...d.edges,
+        {
+          id: newId('e'),
+          fromId: picker.nodeId,
+          toId: node.id,
+          fromPort,
+          toPort: placement.toPort,
+          style: { ...DEFAULT_EDGE_STYLE }
+        }
+      ]
+    });
+
+    this.dismissPortShapePicker();
+    this.selectedNodeId.set(node.id);
+    this.selectedEdgeId.set(null);
+    this.setTool('select');
+    this.messages.add({ severity: 'success', summary: 'Shape connected', life: 1500 });
+  }
+
   onConnectionPortMouseDown(
     event: MouseEvent,
     nodeId: string,
@@ -939,6 +1069,28 @@ export class ApprovalWorkflowsComponent {
     if (this.activeTool() === 'connector' && this.connectorFromId()) {
       this.connectorPreviewPoint.set(null);
     }
+    this.dismissPortShapePicker();
+    this.hoveredNodeId.set(null);
+  }
+
+  private dismissPortShapePicker(): void {
+    this.clearPortPickerHideTimer();
+    this.portShapePicker.set(null);
+  }
+
+  private clearPortPickerHideTimer(): void {
+    if (this.portPickerHideTimer) {
+      clearTimeout(this.portPickerHideTimer);
+      this.portPickerHideTimer = null;
+    }
+  }
+
+  private schedulePortPickerHide(): void {
+    this.clearPortPickerHideTimer();
+    this.portPickerHideTimer = setTimeout(() => {
+      this.portShapePicker.set(null);
+      this.portPickerHideTimer = null;
+    }, 180);
   }
 
   toggleFullscreen(): void {

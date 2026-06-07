@@ -187,6 +187,64 @@ export function connectionPortsForBounds(bounds: NodeBounds, ratio = DEFAULT_POR
   });
 }
 
+const CONNECTED_SHAPE_GAP = 56;
+
+export function oppositePortSide(side: PortSide): PortSide {
+  switch (side) {
+    case 'top':
+      return 'bottom';
+    case 'bottom':
+      return 'top';
+    case 'left':
+      return 'right';
+    case 'right':
+      return 'left';
+  }
+}
+
+/** Place a new shape connected from an existing port on the source bounds */
+export function placementForConnectedShape(
+  diagram: WorkflowDiagram,
+  sourceBounds: NodeBounds,
+  fromPort: EdgePort,
+  shape: DiagramNode['shape']
+): { laneId: string; x: number; y: number; toPort: EdgePort } | null {
+  const size = defaultShapeSize(shape);
+  const anchor = anchorPoint(sourceBounds, fromPort);
+  const headerH = diagram.laneHeaderHeight;
+  const toPort: EdgePort = { side: oppositePortSide(fromPort.side), ratio: DEFAULT_PORT_RATIO };
+
+  let centerX = anchor.x;
+  let centerY = anchor.y;
+
+  switch (fromPort.side) {
+    case 'right':
+      centerX = anchor.x + CONNECTED_SHAPE_GAP + size.w / 2;
+      break;
+    case 'left':
+      centerX = anchor.x - CONNECTED_SHAPE_GAP - size.w / 2;
+      break;
+    case 'bottom':
+      centerY = anchor.y + CONNECTED_SHAPE_GAP + size.h / 2;
+      break;
+    case 'top':
+      centerY = anchor.y - CONNECTED_SHAPE_GAP - size.h / 2;
+      break;
+  }
+
+  const hit = laneAtX(diagram.lanes, centerX);
+  if (!hit) {
+    return null;
+  }
+
+  const maxY = laneContentHeight(diagram) - size.h - 8;
+  const maxX = hit.lane.width - size.w - 8;
+  const x = Math.min(maxX, Math.max(8, centerX - hit.laneX - size.w / 2));
+  const y = Math.min(maxY, Math.max(8, centerY - headerH - size.h / 2));
+
+  return { laneId: hit.lane.id, x, y, toPort };
+}
+
 export function resolveEdgeEndpoints(
   edge: DiagramEdge,
   from: NodeBounds,

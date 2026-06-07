@@ -380,6 +380,8 @@
 
 .wf-page__canvas-scroll {
 
+  position: relative;
+
   flex: 1;
 
   min-height: calc(100dvh - 16rem);
@@ -805,6 +807,104 @@
   opacity: 0.85;
 
   pointer-events: none;
+
+}
+
+
+
+.wf-page__port-picker {
+
+  position: absolute;
+
+  z-index: 6;
+
+  display: flex;
+
+  gap: 4px;
+
+  padding: 4px;
+
+  background: #ffffff;
+
+  border: 1px solid #dee2e6;
+
+  border-radius: 8px;
+
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+
+  pointer-events: auto;
+
+
+
+  &--right {
+
+    transform: translate(10px, -50%);
+
+  }
+
+
+
+  &--left {
+
+    transform: translate(calc(-100% - 10px), -50%);
+
+  }
+
+
+
+  &--top {
+
+    transform: translate(-50%, calc(-100% - 10px));
+
+  }
+
+
+
+  &--bottom {
+
+    transform: translate(-50%, 10px);
+
+  }
+
+}
+
+
+
+.wf-page__port-picker-btn {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 32px;
+
+  height: 32px;
+
+  padding: 0;
+
+  border: 1px solid #dee2e6;
+
+  border-radius: 6px;
+
+  background: #f8f9fa;
+
+  color: #495057;
+
+  cursor: pointer;
+
+
+
+  &:hover {
+
+    border-color: #0d6efd;
+
+    background: #e7f1ff;
+
+    color: #0d6efd;
+
+  }
 
 }
 
