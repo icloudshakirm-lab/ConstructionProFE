@@ -18,7 +18,10 @@ export type FeaturePageComponent =
   | 'vehicle-tracking'
   | 'projects-register'
   | 'sites-management'
-  | 'approval-workflows';
+  | 'approval-workflows'
+  | 'employee-records'
+  | 'hr-attendance'
+  | 'payroll';
 
 export interface FeaturePage {
   id: string;

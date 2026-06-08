@@ -1,0 +1,648 @@
+<div class="employee-records-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="employee-records-page__header">
+    <div>
+      <p-tag value="HR & Payroll" severity="info" />
+      <h1>Employee Records</h1>
+      <p class="employee-records-page__subtitle">
+        Employee master with government ID, assignment, payroll details, education and work history, documents, and
+        approval workflow.
+      </p>
+    </div>
+    <div class="employee-records-page__header-actions">
+      <p-button label="Add employee" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="employee-records-page__toolbar" aria-label="Employee filters">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="departmentFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="departmentFilter()"
+      (ngModelChange)="departmentFilter.set($event)"
+      placeholder="Department"
+      [style]="{ minWidth: 'min(160px, 30vw)' }"
+    />
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 36vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="employee-records-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search name, code, ID, designation…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="employee-records-page__count">{{ filteredEmployees().length }} employee(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredEmployees()"
+    [rows]="10"
+    [paginator]="filteredEmployees().length > 10"
+    dataKey="id"
+    styleClass="employee-records-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Employee</th>
+        <th>Department</th>
+        <th>Designation</th>
+        <th>Grade</th>
+        <th>Assignment</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.employee-records-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ fullName(row) }}</strong>
+          <small>{{ row.employeeCode }} · {{ govIdLabel(row.governmentIdType) }}: {{ row.governmentIdNumber }}</small>
+        </td>
+        <td>{{ row.department }}</td>
+        <td>{{ row.designation }}</td>
+        <td>{{ row.grade }}</td>
+        <td>
+          <span class="employee-records-page__assignment">{{ projectLabel(row.projectId) }}</span>
+          @if (row.siteId) {
+            <small>{{ siteLabel(row.siteId) }}</small>
+          }
+        </td>
+        <td>
+          <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+        </td>
+        <td>
+          <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+        </td>
+        <td>
+          <div class="employee-records-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
+            <p-button
+              icon="pi pi-trash"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              title="Delete"
+              (onClick)="requestDelete(row)"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="8">No employees match the current filters.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(720px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  <form class="emp-form" [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+    @if (formError(); as err) {
+      <p class="emp-form__error">{{ err }}</p>
+    }
+
+    <section class="emp-form__section">
+      <h3>Personal details</h3>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empCode">Employee code <span aria-hidden="true">*</span></label>
+          <input id="empCode" type="text" pInputText formControlName="employeeCode" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empStatus">Status <span aria-hidden="true">*</span></label>
+          <p-select inputId="empStatus" formControlName="status" [options]="formStatusOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+      <div class="emp-form__row emp-form__row--3">
+        <div class="emp-form__field">
+          <label for="empFirst">First name <span aria-hidden="true">*</span></label>
+          <input id="empFirst" type="text" pInputText formControlName="firstName" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empMiddle">Middle name</label>
+          <input id="empMiddle" type="text" pInputText formControlName="middleName" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empLast">Last name <span aria-hidden="true">*</span></label>
+          <input id="empLast" type="text" pInputText formControlName="lastName" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empDob">Date of birth <span aria-hidden="true">*</span></label>
+          <input id="empDob" type="date" class="emp-form__input emp-form__date" formControlName="dateOfBirth" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empGender">Gender</label>
+          <p-select inputId="empGender" formControlName="gender" [options]="genderOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empNationality">Nationality <span aria-hidden="true">*</span></label>
+          <input id="empNationality" type="text" pInputText formControlName="nationality" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empMarital">Marital status</label>
+          <p-select inputId="empMarital" formControlName="maritalStatus" [options]="maritalStatusOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Government ID</h3>
+      <p class="emp-form__hint">One number field for National ID, Passport, or Social Security — select the document type.</p>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empIdType">ID type <span aria-hidden="true">*</span></label>
+          <p-select inputId="empIdType" formControlName="governmentIdType" [options]="governmentIdTypeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field emp-form__field--grow">
+          <label for="empIdNum">ID / Passport / SSN number <span aria-hidden="true">*</span></label>
+          <input id="empIdNum" type="text" pInputText formControlName="governmentIdNumber" class="emp-form__input" placeholder="Enter the number for the selected type" />
+          @if (fieldInvalid('governmentIdNumber')) {
+            <small class="emp-form__invalid">Government ID number is required.</small>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Contact</h3>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empPersonalEmail">Personal email</label>
+          <input id="empPersonalEmail" type="email" pInputText formControlName="personalEmail" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empPersonalPhone">Personal phone <span aria-hidden="true">*</span></label>
+          <input id="empPersonalPhone" type="text" pInputText formControlName="personalPhone" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empWorkEmail">Work email <span aria-hidden="true">*</span></label>
+          <input id="empWorkEmail" type="email" pInputText formControlName="workEmail" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empWorkPhone">Work phone</label>
+          <input id="empWorkPhone" type="text" pInputText formControlName="workPhone" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empEmergName">Emergency contact</label>
+          <input id="empEmergName" type="text" pInputText formControlName="emergencyContactName" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empEmergPhone">Emergency phone</label>
+          <input id="empEmergPhone" type="text" pInputText formControlName="emergencyContactPhone" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empEmergRel">Relation</label>
+          <input id="empEmergRel" type="text" pInputText formControlName="emergencyContactRelation" class="emp-form__input" />
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Employment</h3>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empDesignation">Designation <span aria-hidden="true">*</span></label>
+          <input id="empDesignation" type="text" pInputText formControlName="designation" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empDept">Department <span aria-hidden="true">*</span></label>
+          <p-select inputId="empDept" formControlName="department" [options]="departmentFormOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empGrade">Grade</label>
+          <p-select inputId="empGrade" formControlName="grade" [options]="gradeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empType">Employment type</label>
+          <p-select inputId="empType" formControlName="employmentType" [options]="employmentTypeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empJoin">Join date <span aria-hidden="true">*</span></label>
+          <input id="empJoin" type="date" class="emp-form__input emp-form__date" formControlName="joinDate" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empConfirm">Confirmation date</label>
+          <input id="empConfirm" type="date" class="emp-form__input emp-form__date" formControlName="confirmationDate" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empTerm">Termination date</label>
+          <input id="empTerm" type="date" class="emp-form__input emp-form__date" formControlName="terminationDate" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empManager">Reporting manager</label>
+          <input id="empManager" type="text" pInputText formControlName="reportingManager" class="emp-form__input" />
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Project & site assignment</h3>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empProject">Project</label>
+          <p-select inputId="empProject" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" [showClear]="true" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empSite">Site</label>
+          <p-select inputId="empSite" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" [showClear]="true" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Payroll & bank</h3>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empSalary">Basic salary <span aria-hidden="true">*</span></label>
+          <p-inputNumber inputId="empSalary" formControlName="basicSalary" [min]="0" [useGrouping]="true" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empCurrency">Currency</label>
+          <p-select inputId="empCurrency" formControlName="currency" [options]="currencyOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empBank">Bank name</label>
+          <input id="empBank" type="text" pInputText formControlName="bankName" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empAcct">Account number</label>
+          <input id="empAcct" type="text" pInputText formControlName="bankAccountNumber" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field emp-form__field--grow">
+          <label for="empIban">IBAN</label>
+          <input id="empIban" type="text" pInputText formControlName="iban" class="emp-form__input" />
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-form__section">
+      <h3>Address</h3>
+      <div class="emp-form__field">
+        <label for="empPresent">Present address</label>
+        <textarea id="empPresent" pTextarea formControlName="presentAddress" rows="2" class="emp-form__input"></textarea>
+      </div>
+      <div class="emp-form__field">
+        <label for="empPermanent">Permanent address</label>
+        <textarea id="empPermanent" pTextarea formControlName="permanentAddress" rows="2" class="emp-form__input"></textarea>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="empCity">City</label>
+          <input id="empCity" type="text" pInputText formControlName="city" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="empCountry">Country</label>
+          <input id="empCountry" type="text" pInputText formControlName="country" class="emp-form__input" />
+        </div>
+      </div>
+    </section>
+
+    <div class="emp-form__footer">
+      <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+      <p-button [label]="formMode() === 'create' ? 'Create employee' : 'Save changes'" icon="pi pi-check" type="submit" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Delete employee?"
+  [visible]="deleteConfirmVisible()"
+  (visibleChange)="deleteConfirmVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 92vw)' }"
+>
+  @if (employeeToDelete(); as e) {
+    <p>Remove <strong>{{ fullName(e) }}</strong> ({{ e.employeeCode }}) from the employee register?</p>
+    <div class="emp-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Employee detail"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(860px, 98vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailEmployee(); as e) {
+    <div class="emp-detail">
+      <div class="emp-detail__head">
+        <div>
+          <h2>{{ fullName(e) }}</h2>
+          <span class="emp-detail__meta">{{ e.employeeCode }} · {{ e.designation }} · {{ e.department }}</span>
+        </div>
+        <div class="emp-detail__tags">
+          <p-tag [value]="e.status" [severity]="statusSeverity(e.status)" />
+          <p-tag [value]="approvalLabel(e.approvalStatus)" [severity]="approvalSeverity(e.approvalStatus)" />
+        </div>
+      </div>
+
+      <p-tabs value="0">
+        <p-tablist>
+          <p-tab value="0">Profile</p-tab>
+          <p-tab value="1">Education</p-tab>
+          <p-tab value="2">Work history</p-tab>
+          <p-tab value="3">Documents</p-tab>
+          <p-tab value="4">Audit</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+          <p-tabpanel value="0">
+            <dl class="emp-detail__grid">
+              <div><dt>Date of birth</dt><dd>{{ e.dateOfBirth }}</dd></div>
+              <div><dt>Gender</dt><dd>{{ e.gender }}</dd></div>
+              <div><dt>Nationality</dt><dd>{{ e.nationality }}</dd></div>
+              <div><dt>Marital status</dt><dd>{{ e.maritalStatus }}</dd></div>
+              <div><dt>ID type</dt><dd>{{ govIdLabel(e.governmentIdType) }}</dd></div>
+              <div><dt>ID number</dt><dd>{{ e.governmentIdNumber }}</dd></div>
+              <div><dt>Work email</dt><dd>{{ e.workEmail }}</dd></div>
+              <div><dt>Personal phone</dt><dd>{{ e.personalPhone }}</dd></div>
+              <div><dt>Grade</dt><dd>{{ e.grade }}</dd></div>
+              <div><dt>Employment type</dt><dd>{{ e.employmentType }}</dd></div>
+              <div><dt>Join date</dt><dd>{{ e.joinDate }}</dd></div>
+              <div><dt>Reporting manager</dt><dd>{{ e.reportingManager || '—' }}</dd></div>
+              <div><dt>Project</dt><dd>{{ projectLabel(e.projectId) }}</dd></div>
+              <div><dt>Site</dt><dd>{{ siteLabel(e.siteId) }}</dd></div>
+              <div><dt>Salary</dt><dd>{{ salaryDisplay(e) }}</dd></div>
+              <div><dt>Bank</dt><dd>{{ e.bankName || '—' }}</dd></div>
+              <div class="emp-detail__full"><dt>Present address</dt><dd>{{ e.presentAddress || '—' }}</dd></div>
+              <div class="emp-detail__full"><dt>Emergency contact</dt><dd>{{ e.emergencyContactName || '—' }} {{ e.emergencyContactPhone }}</dd></div>
+            </dl>
+
+            <section class="emp-detail__section">
+              <h3>Role-based actions</h3>
+              <div class="emp-detail__actions">
+                <p-button label="Edit employee" icon="pi pi-pencil" [outlined]="true" size="small" (onClick)="editFromDetail()" />
+                <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" size="small" [disabled]="!canSubmit(e)" (onClick)="submitForApproval(e)" />
+                <p-button label="Approve" icon="pi pi-check" severity="success" [outlined]="true" size="small" [disabled]="!canApprove(e)" (onClick)="approveEmployee(e)" />
+                <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" size="small" [disabled]="!canApprove(e)" (onClick)="rejectEmployee(e)" />
+              </div>
+            </section>
+          </p-tabpanel>
+
+          <p-tabpanel value="1">
+            <div class="emp-detail__tab-toolbar">
+              <p-button label="Add education" icon="pi pi-plus" size="small" (onClick)="openAddEducation()" />
+            </div>
+            <p-table [value]="e.education" styleClass="emp-detail__subtable">
+              <ng-template #header>
+                <tr>
+                  <th>Qualification</th>
+                  <th>Institution</th>
+                  <th>Field</th>
+                  <th>Years</th>
+                  <th>Verified</th>
+                  <th style="width: 6rem">Actions</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
+                <tr>
+                  <td>{{ row.qualification }}</td>
+                  <td>{{ row.institution }}</td>
+                  <td>{{ row.fieldOfStudy || '—' }}</td>
+                  <td>{{ row.startYear }} – {{ row.endYear ?? 'Present' }}</td>
+                  <td>
+                    @if (row.verified) {
+                      <p-tag value="Verified" severity="success" />
+                    } @else {
+                      <p-tag value="Pending" severity="secondary" />
+                    }
+                  </td>
+                  <td>
+                    <div class="employee-records-page__row-actions">
+                      <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditEducation(row)" />
+                      <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteEducation(row)" />
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="6">No education records yet.</td></tr>
+              </ng-template>
+            </p-table>
+          </p-tabpanel>
+
+          <p-tabpanel value="2">
+            <div class="emp-detail__tab-toolbar">
+              <p-button label="Add work history" icon="pi pi-plus" size="small" (onClick)="openAddWorkHistory()" />
+            </div>
+            <p-table [value]="e.workHistory" styleClass="emp-detail__subtable">
+              <ng-template #header>
+                <tr>
+                  <th>Employer</th>
+                  <th>Role</th>
+                  <th>Period</th>
+                  <th>Location</th>
+                  <th style="width: 6rem">Actions</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
+                <tr>
+                  <td>{{ row.employer }}</td>
+                  <td>{{ row.jobTitle }}</td>
+                  <td>{{ row.startDate }} – {{ row.endDate ?? 'Present' }}</td>
+                  <td>{{ row.location || '—' }}</td>
+                  <td>
+                    <div class="employee-records-page__row-actions">
+                      <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditWorkHistory(row)" />
+                      <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteWorkHistory(row)" />
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="5">No work history records yet.</td></tr>
+              </ng-template>
+            </p-table>
+          </p-tabpanel>
+
+          <p-tabpanel value="3">
+            <div class="emp-detail__tab-toolbar">
+              <p-button label="Upload document" icon="pi pi-upload" size="small" [outlined]="true" (onClick)="mockAddAttachment(e)" />
+            </div>
+            @if (e.attachments.length) {
+              <ul class="emp-detail__attachments">
+                @for (att of e.attachments; track att.id) {
+                  <li>
+                    <i class="pi pi-file" aria-hidden="true"></i>
+                    <span>{{ att.name }}</span>
+                    <small>{{ att.type }} · {{ att.uploadedAt }}</small>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="emp-detail__empty">No documents attached. Connect your document API here.</p>
+            }
+          </p-tabpanel>
+
+          <p-tabpanel value="4">
+            <ul class="emp-detail__audit">
+              @for (entry of e.audit; track entry.at + entry.action) {
+                <li>
+                  <time>{{ entry.at }}</time>
+                  <span>{{ entry.action }}</span>
+                  <small>{{ entry.by }}</small>
+                </li>
+              }
+            </ul>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  [header]="childFormHeader()"
+  [visible]="childFormVisible()"
+  (visibleChange)="childFormVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 94vw)' }"
+  (onHide)="closeChildForm()"
+>
+  @if (childFormKind() === 'education') {
+    <form class="emp-form" [formGroup]="educationForm" (ngSubmit)="saveChildRecord()">
+      @if (childFormError(); as err) {
+        <p class="emp-form__error">{{ err }}</p>
+      }
+      <div class="emp-form__field">
+        <label for="eduInst">Institution <span aria-hidden="true">*</span></label>
+        <input id="eduInst" type="text" pInputText formControlName="institution" class="emp-form__input" />
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="eduQual">Qualification <span aria-hidden="true">*</span></label>
+          <input id="eduQual" type="text" pInputText formControlName="qualification" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="eduField">Field of study</label>
+          <input id="eduField" type="text" pInputText formControlName="fieldOfStudy" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="eduStart">Start year</label>
+          <p-inputNumber inputId="eduStart" formControlName="startYear" [useGrouping]="false" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="eduEnd">End year</label>
+          <p-inputNumber inputId="eduEnd" formControlName="endYear" [useGrouping]="false" [style]="{ width: '100%' }" />
+        </div>
+        <div class="emp-form__field">
+          <label for="eduGrade">Grade / GPA</label>
+          <input id="eduGrade" type="text" pInputText formControlName="gradeOrGpa" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__field emp-form__field--inline">
+        <p-checkbox formControlName="verified" [binary]="true" inputId="eduVerified" />
+        <label for="eduVerified">Verified by HR</label>
+      </div>
+      <div class="emp-form__footer">
+        <p-button label="Cancel" [text]="true" type="button" (onClick)="closeChildForm()" />
+        <p-button label="Save" icon="pi pi-check" type="submit" />
+      </div>
+    </form>
+  } @else {
+    <form class="emp-form" [formGroup]="workHistoryForm" (ngSubmit)="saveChildRecord()">
+      @if (childFormError(); as err) {
+        <p class="emp-form__error">{{ err }}</p>
+      }
+      <div class="emp-form__field">
+        <label for="whEmployer">Employer <span aria-hidden="true">*</span></label>
+        <input id="whEmployer" type="text" pInputText formControlName="employer" class="emp-form__input" />
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="whTitle">Job title <span aria-hidden="true">*</span></label>
+          <input id="whTitle" type="text" pInputText formControlName="jobTitle" class="emp-form__input" />
+        </div>
+        <div class="emp-form__field">
+          <label for="whLocation">Location</label>
+          <input id="whLocation" type="text" pInputText formControlName="location" class="emp-form__input" />
+        </div>
+      </div>
+      <div class="emp-form__row">
+        <div class="emp-form__field">
+          <label for="whStart">Start date</label>
+          <input id="whStart" type="date" class="emp-form__input emp-form__date" formControlName="startDate" />
+        </div>
+        <div class="emp-form__field">
+          <label for="whEnd">End date</label>
+          <input id="whEnd" type="date" class="emp-form__input emp-form__date" formControlName="endDate" />
+        </div>
+      </div>
+      <div class="emp-form__field">
+        <label for="whReason">Reason for leaving</label>
+        <input id="whReason" type="text" pInputText formControlName="reasonForLeaving" class="emp-form__input" />
+      </div>
+      <div class="emp-form__field">
+        <label for="whNotes">Notes</label>
+        <textarea id="whNotes" pTextarea formControlName="notes" rows="3" class="emp-form__input"></textarea>
+      </div>
+      <div class="emp-form__footer">
+        <p-button label="Cancel" [text]="true" type="button" (onClick)="closeChildForm()" />
+        <p-button label="Save" icon="pi pi-check" type="submit" />
+      </div>
+    </form>
+  }
+</p-dialog>

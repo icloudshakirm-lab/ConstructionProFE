@@ -1,0 +1,353 @@
+<div class="hr-attendance-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="hr-attendance-page__header">
+    <div>
+      <p-tag value="HR & Payroll" severity="info" />
+      <h1>Attendance</h1>
+      <p class="hr-attendance-page__subtitle">
+        Mark daily attendance, allocate hours to projects, flag exceptions, and sync approved records to payroll.
+      </p>
+    </div>
+    <div class="hr-attendance-page__header-actions">
+      <p-button label="Mark attendance" icon="pi pi-plus" (onClick)="openCreateForEmployee()" />
+      <p-button label="Mark all present" icon="pi pi-check-circle" [outlined]="true" (onClick)="markAllPresent()" />
+      <p-button
+        label="Sync to payroll"
+        icon="pi pi-sync"
+        [outlined]="true"
+        [disabled]="pendingSyncCount() === 0"
+        (onClick)="syncAllApproved()"
+      />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="hr-attendance-page__toolbar" aria-label="Attendance filters">
+    <div class="hr-attendance-page__date">
+      <label for="attDate">Attendance date</label>
+      <input
+        id="attDate"
+        type="date"
+        class="hr-attendance-page__date-input"
+        [ngModel]="selectedDate()"
+        (ngModelChange)="selectedDate.set($event)"
+      />
+    </div>
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(140px, 26vw)' }"
+    />
+    <p-select
+      [options]="syncFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="syncFilter()"
+      (ngModelChange)="syncFilter.set($event)"
+      placeholder="Payroll sync"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(160px, 30vw)' }"
+    />
+    <p-select
+      [options]="departmentFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="departmentFilter()"
+      (ngModelChange)="departmentFilter.set($event)"
+      placeholder="Department"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(180px, 32vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="hr-attendance-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search employee or code…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <label class="hr-attendance-page__exceptions">
+      <input type="checkbox" [ngModel]="exceptionsOnly()" (ngModelChange)="exceptionsOnly.set($event)" />
+      Exceptions only
+    </label>
+    <span class="hr-attendance-page__count">{{ markedCount() }} / {{ attendanceRows().length }} marked</span>
+  </section>
+
+  <p-table
+    [value]="attendanceRows()"
+    [rows]="12"
+    [paginator]="attendanceRows().length > 12"
+    dataKey="employeeId"
+    styleClass="hr-attendance-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Employee</th>
+        <th>Status</th>
+        <th>Time</th>
+        <th>Project allocation</th>
+        <th>Exception</th>
+        <th>Payroll sync</th>
+        <th>Quick mark</th>
+        <th style="width: 9rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr [class.hr-attendance-page__row--exception]="row.record?.exceptionType">
+        <td>
+          <strong>{{ row.employeeName }}</strong>
+          <small>{{ row.employeeCode }} · {{ row.department }} · {{ row.designation }}</small>
+        </td>
+        <td>
+          @if (row.record) {
+            <p-tag [value]="row.record.status" [severity]="statusSeverity(row.record.status)" />
+          } @else {
+            <p-tag value="Not marked" severity="secondary" />
+          }
+        </td>
+        <td>
+          @if (row.record) {
+            <span>{{ row.record.checkIn || '—' }} → {{ row.record.checkOut || '—' }}</span>
+            <small>{{ row.record.workedHours }}h</small>
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @if (row.record?.projectId) {
+            <span>{{ projectName(row.record.projectId) }}</span>
+            <small>{{ row.record.allocationPct }}% · {{ siteName(row.record.siteId) }}</small>
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @if (row.record?.exceptionType) {
+            <p-tag [value]="exceptionLabel(row.record.exceptionType)" severity="warn" />
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @if (row.record) {
+            <p-tag [value]="syncLabel(row.record.payrollSyncStatus)" [severity]="syncSeverity(row.record.payrollSyncStatus)" />
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          <div class="hr-attendance-page__quick" (click)="$event.stopPropagation()">
+            <p-button label="P" size="small" [text]="true" title="Present" (onClick)="quickMark(row, 'Present')" />
+            <p-button label="A" size="small" [text]="true" severity="danger" title="Absent" (onClick)="quickMark(row, 'Absent')" />
+            <p-button label="L" size="small" [text]="true" severity="secondary" title="On leave" (onClick)="quickMark(row, 'On Leave')" />
+            <p-button label="½" size="small" [text]="true" severity="info" title="Half day" (onClick)="quickMark(row, 'Half Day')" />
+          </div>
+        </td>
+        <td>
+          <div class="hr-attendance-page__row-actions" (click)="$event.stopPropagation()">
+            @if (row.record) {
+              <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row.record)" />
+              <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row.record)" />
+              <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" title="Delete" (onClick)="requestDelete(row.record)" />
+            } @else {
+              <p-button icon="pi pi-plus" [rounded]="true" [text]="true" title="Mark" (onClick)="openCreateForEmployee(row.employeeId)" />
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="8">No employees match the current filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(600px, 96vw)' }"
+  (onHide)="closeForm()"
+>
+  <form class="hr-form" [formGroup]="attendanceForm" (ngSubmit)="saveAttendance()">
+    @if (formError(); as err) {
+      <p class="hr-form__error">{{ err }}</p>
+    }
+    <div class="hr-form__row">
+      <div class="hr-form__field">
+        <label for="attEmp">Employee <span aria-hidden="true">*</span></label>
+        <p-select
+          inputId="attEmp"
+          formControlName="employeeId"
+          [options]="employeeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [disabled]="formMode() === 'edit'"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="hr-form__field">
+        <label for="attFormDate">Date <span aria-hidden="true">*</span></label>
+        <input id="attFormDate" type="date" class="hr-form__date" formControlName="attendanceDate" />
+      </div>
+    </div>
+    <div class="hr-form__row">
+      <div class="hr-form__field">
+        <label for="attStatus">Status</label>
+        <p-select
+          inputId="attStatus"
+          formControlName="status"
+          [options]="formStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="onStatusChange($event.value)"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="hr-form__field">
+        <label for="attHours">Worked hours</label>
+        <p-inputNumber inputId="attHours" formControlName="workedHours" [min]="0" [max]="24" [style]="{ width: '100%' }" />
+      </div>
+    </div>
+    <div class="hr-form__row">
+      <div class="hr-form__field">
+        <label for="attIn">Check-in</label>
+        <input id="attIn" type="time" class="hr-form__date" formControlName="checkIn" />
+      </div>
+      <div class="hr-form__field">
+        <label for="attOut">Check-out</label>
+        <input id="attOut" type="time" class="hr-form__date" formControlName="checkOut" />
+      </div>
+    </div>
+    <section class="hr-form__section">
+      <h3>Project allocation</h3>
+      <div class="hr-form__row">
+        <div class="hr-form__field">
+          <label for="attProject">Project</label>
+          <p-select inputId="attProject" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" [showClear]="true" [style]="{ width: '100%' }" />
+        </div>
+        <div class="hr-form__field">
+          <label for="attSite">Site</label>
+          <p-select inputId="attSite" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" [showClear]="true" [style]="{ width: '100%' }" />
+        </div>
+        <div class="hr-form__field">
+          <label for="attAlloc">Allocation %</label>
+          <p-inputNumber inputId="attAlloc" formControlName="allocationPct" [min]="0" [max]="100" suffix="%" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+    </section>
+    <section class="hr-form__section">
+      <h3>Exception</h3>
+      <div class="hr-form__row">
+        <div class="hr-form__field">
+          <label for="attExcType">Exception type</label>
+          <p-select inputId="attExcType" formControlName="exceptionType" [options]="exceptionTypeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+      </div>
+      <div class="hr-form__field">
+        <label for="attExcNotes">Notes</label>
+        <textarea id="attExcNotes" pTextarea formControlName="exceptionNotes" rows="2" class="hr-form__input"></textarea>
+      </div>
+    </section>
+    <div class="hr-form__footer">
+      <p-button label="Cancel" [text]="true" type="button" (onClick)="closeForm()" />
+      <p-button [label]="formMode() === 'create' ? 'Save attendance' : 'Save changes'" icon="pi pi-check" type="submit" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog header="Delete attendance?" [visible]="deleteConfirmVisible()" (visibleChange)="deleteConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(400px, 92vw)' }">
+  @if (recordToDelete(); as r) {
+    <p>Remove attendance for <strong>{{ r.employeeName }}</strong> on {{ r.attendanceDate }}?</p>
+    <div class="hr-form__footer">
+      <p-button label="Cancel" [outlined]="true" (onClick)="deleteConfirmVisible.set(false)" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>
+
+<p-dialog header="Attendance detail" [visible]="detailVisible()" (visibleChange)="detailVisible.set($event)" [modal]="true" [style]="{ width: 'min(720px, 96vw)' }" (onHide)="closeDetail()">
+  @if (detailRecord(); as r) {
+    <div class="hr-detail">
+      <div class="hr-detail__head">
+        <div>
+          <h2>{{ r.employeeName }}</h2>
+          <span class="hr-detail__meta">{{ r.employeeCode }} · {{ r.attendanceDate }} · {{ r.department }}</span>
+        </div>
+        <div class="hr-detail__tags">
+          <p-tag [value]="r.status" [severity]="statusSeverity(r.status)" />
+          <p-tag [value]="approvalLabel(r.approvalStatus)" [severity]="approvalSeverity(r.approvalStatus)" />
+          <p-tag [value]="syncLabel(r.payrollSyncStatus)" [severity]="syncSeverity(r.payrollSyncStatus)" />
+        </div>
+      </div>
+      <dl class="hr-detail__grid">
+        <div><dt>Check-in / out</dt><dd>{{ r.checkIn || '—' }} → {{ r.checkOut || '—' }} ({{ r.workedHours }}h)</dd></div>
+        <div><dt>Project</dt><dd>{{ projectName(r.projectId) }}</dd></div>
+        <div><dt>Site</dt><dd>{{ siteName(r.siteId) }}</dd></div>
+        <div><dt>Allocation</dt><dd>{{ r.allocationPct }}%</dd></div>
+        <div><dt>Exception</dt><dd>{{ exceptionLabel(r.exceptionType) }}</dd></div>
+        @if (r.exceptionNotes) {
+          <div class="hr-detail__full"><dt>Exception notes</dt><dd>{{ r.exceptionNotes }}</dd></div>
+        }
+        @if (r.payrollSyncAt) {
+          <div><dt>Last payroll sync</dt><dd>{{ r.payrollSyncAt }}</dd></div>
+        }
+      </dl>
+      <section class="hr-detail__section">
+        <h3>Role-based actions</h3>
+        <div class="hr-detail__actions">
+          <p-button label="Edit" icon="pi pi-pencil" [outlined]="true" size="small" (onClick)="editFromDetail()" />
+          <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" size="small" [disabled]="!canSubmit(r)" (onClick)="submitForApproval(r)" />
+          <p-button label="Approve" icon="pi pi-check" severity="success" [outlined]="true" size="small" [disabled]="!canApprove(r)" (onClick)="approveRecord(r)" />
+          <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" size="small" [disabled]="!canApprove(r)" (onClick)="rejectRecord(r)" />
+          <p-button label="Sync to payroll" icon="pi pi-sync" [outlined]="true" size="small" [disabled]="!canSync(r)" (onClick)="syncToPayroll(r)" />
+          <p-button label="Attach document" icon="pi pi-upload" [outlined]="true" size="small" (onClick)="mockAddAttachment(r)" />
+        </div>
+      </section>
+      @if (r.attachments.length) {
+        <section class="hr-detail__section">
+          <h3>Documents</h3>
+          <ul class="hr-detail__attachments">
+            @for (att of r.attachments; track att.id) {
+              <li><i class="pi pi-file"></i> {{ att.name }} <small>{{ att.uploadedAt }}</small></li>
+            }
+          </ul>
+        </section>
+      }
+      <section class="hr-detail__section">
+        <h3>Audit trail</h3>
+        <ul class="hr-detail__audit">
+          @for (entry of r.audit; track entry.at + entry.action) {
+            <li><time>{{ entry.at }}</time><span>{{ entry.action }}</span><small>{{ entry.by }}</small></li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</p-dialog>

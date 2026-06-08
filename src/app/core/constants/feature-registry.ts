@@ -384,14 +384,16 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Employee Records',
         description: 'Employee master with documents, grades, and site assignment.',
         icon: 'pi pi-user-edit',
-        highlights: ['Documents', 'Grades', 'Site assignment']
+        highlights: ['Documents', 'Grades', 'Site assignment'],
+        component: 'employee-records'
       },
       {
         id: 'hr-attendance',
         title: 'Attendance',
         description: 'HR attendance integration with payroll and project costing.',
         icon: 'pi pi-clock',
-        highlights: ['Payroll sync', 'Project allocation', 'Exceptions']
+        highlights: ['Payroll sync', 'Project allocation', 'Exceptions'],
+        component: 'hr-attendance'
       },
       {
         id: 'leave-management',
@@ -405,7 +407,8 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Payroll',
         description: 'Monthly payroll processing with statutory deductions.',
         icon: 'pi pi-money-bill',
-        highlights: ['Payslips', 'Statutory', 'Bank file']
+        highlights: ['Payslips', 'Statutory', 'Bank file'],
+        component: 'payroll'
       },
       {
         id: 'overtime',

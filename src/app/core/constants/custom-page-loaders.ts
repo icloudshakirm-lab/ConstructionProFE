@@ -79,5 +79,15 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'approval-workflows': () =>
     import('../../features/document-management/approval-workflows/approval-workflows.component').then(
       (m) => m.ApprovalWorkflowsComponent
-    )
+    ),
+  'employee-records': () =>
+    import('../../features/hr-payroll/employee-records/employee-records.component').then(
+      (m) => m.EmployeeRecordsComponent
+    ),
+  'hr-attendance': () =>
+    import('../../features/hr-payroll/hr-attendance/hr-attendance.component').then(
+      (m) => m.HrAttendanceComponent
+    ),
+  payroll: () =>
+    import('../../features/hr-payroll/payroll/payroll.component').then((m) => m.PayrollComponent)
 };

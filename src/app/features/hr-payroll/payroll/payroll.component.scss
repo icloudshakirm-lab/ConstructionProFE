@@ -1,0 +1,227 @@
+.payroll-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  min-height: min(75vh, 720px);
+}
+
+.payroll-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  h1 {
+    margin: 0.35rem 0 0;
+    font-size: 1.75rem;
+  }
+}
+
+.payroll-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  max-width: 52rem;
+}
+
+.payroll-page__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.payroll-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+}
+
+.payroll-page__search {
+  flex: 1;
+  min-width: min(200px, 100%);
+
+  input {
+    width: 100%;
+  }
+}
+
+.payroll-page__count {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.payroll-page__row-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+:host ::ng-deep {
+  .payroll-page__table {
+    flex: 1;
+
+    .p-datatable-wrapper {
+      max-height: min(58vh, 560px);
+    }
+
+    small {
+      display: block;
+      color: var(--p-text-muted-color);
+      font-size: 0.75rem;
+    }
+  }
+
+  .payroll-page__row--active {
+    background: color-mix(in srgb, var(--p-primary-color) 8%, transparent);
+  }
+}
+
+.payroll-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem 0;
+
+  label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+}
+
+.payroll-form__date {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-border-radius-md);
+}
+
+.payroll-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.payroll-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+}
+
+.payroll-detail__meta {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.payroll-detail__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  div {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 0.5rem;
+    background: var(--cp-panel-bg);
+
+    span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--p-text-muted-color);
+    }
+
+    strong {
+      font-size: 1rem;
+    }
+  }
+}
+
+.payroll-detail__section {
+  margin-top: 1rem;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+.payroll-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.payroll-detail__attachments,
+.payroll-detail__audit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+
+  li {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--p-content-border-color);
+
+    small {
+      color: var(--p-text-muted-color);
+      margin-left: 0.5rem;
+    }
+  }
+}
+
+.payroll-detail__audit li {
+  display: grid;
+  grid-template-columns: 9rem 1fr auto;
+  gap: 0.5rem;
+
+  time {
+    color: var(--p-text-muted-color);
+  }
+}
+
+:host ::ng-deep .payroll-detail__lines small {
+  display: block;
+  color: var(--p-text-muted-color);
+}
+
+.payroll-line-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+
+  dt {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--p-text-muted-color);
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.875rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1rem;
+  }
+}
+
+.payroll-line-detail__full {
+  grid-column: 1 / -1;
+}

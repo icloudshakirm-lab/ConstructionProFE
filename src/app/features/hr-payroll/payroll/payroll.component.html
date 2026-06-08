@@ -1,0 +1,215 @@
+<div class="payroll-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="payroll-page__header">
+    <div>
+      <p-tag value="HR & Payroll" severity="info" />
+      <h1>Payroll</h1>
+      <p class="payroll-page__subtitle">
+        Monthly payroll processing from synced attendance — statutory deductions, project cost allocation, payslips, and bank file export.
+      </p>
+    </div>
+    <div class="payroll-page__header-actions">
+      <p-button label="New payroll run" icon="pi pi-plus" (onClick)="openCreate()" />
+    </div>
+  </header>
+
+  <section class="payroll-page__toolbar" aria-label="Payroll filters">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(160px, 30vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="payroll-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input type="text" pInputText placeholder="Search period…" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" />
+    </p-iconfield>
+    <span class="payroll-page__count">{{ filteredRuns().length }} run(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredRuns()"
+    [rows]="8"
+    [paginator]="filteredRuns().length > 8"
+    dataKey="id"
+    styleClass="payroll-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Period</th>
+        <th>Employees</th>
+        <th>Gross</th>
+        <th>Net pay</th>
+        <th>Deductions</th>
+        <th>Status</th>
+        <th>Bank file</th>
+        <th style="width: 9rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr [class.payroll-page__row--active]="selectedId() === row.id" (click)="selectedId.set(row.id)">
+        <td>
+          <strong>{{ row.periodLabel }}</strong>
+          <small>{{ row.id }}</small>
+        </td>
+        <td>{{ row.employeeCount }}</td>
+        <td>{{ money(row.totalGross, row.currency) }}</td>
+        <td>{{ money(row.totalNet, row.currency) }}</td>
+        <td>{{ money(row.totalDeductions, row.currency) }}</td>
+        <td>
+          <p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)" />
+        </td>
+        <td>
+          @if (row.bankFileGenerated) {
+            <p-tag value="Generated" severity="success" />
+          } @else {
+            <p-tag value="Pending" severity="secondary" />
+          }
+        </td>
+        <td>
+          <div class="payroll-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-download" [rounded]="true" [text]="true" title="Export" (onClick)="exportCsv(row)" />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="8">No payroll runs match the filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog header="Create payroll run" [visible]="createConfirmVisible()" (visibleChange)="createConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(400px, 92vw)' }">
+  <p>Generate a draft payroll run from synced attendance data.</p>
+  <div class="payroll-form__field">
+    <label for="newPeriod">Pay period (month)</label>
+    <input id="newPeriod" type="month" class="payroll-form__date" [ngModel]="newPeriodMonth()" (ngModelChange)="newPeriodMonth.set($event)" />
+  </div>
+  <div class="payroll-form__footer">
+    <p-button label="Cancel" [text]="true" (onClick)="createConfirmVisible.set(false)" />
+    <p-button label="Create run" icon="pi pi-check" (onClick)="confirmCreateRun()" />
+  </div>
+</p-dialog>
+
+<p-dialog header="Payroll run detail" [visible]="detailVisible()" (visibleChange)="detailVisible.set($event)" [modal]="true" [style]="{ width: 'min(900px, 98vw)' }" (onHide)="closeDetail()">
+  @if (detailRun(); as run) {
+    <div class="payroll-detail">
+      <div class="payroll-detail__head">
+        <div>
+          <h2>{{ run.periodLabel }}</h2>
+          <span class="payroll-detail__meta">{{ run.employeeCount }} employees · {{ run.currency }}</span>
+        </div>
+        <p-tag [value]="statusLabel(run.status)" [severity]="statusSeverity(run.status)" />
+      </div>
+
+      <div class="payroll-detail__summary">
+        <div><span>Gross</span><strong>{{ money(run.totalGross, run.currency) }}</strong></div>
+        <div><span>Deductions</span><strong>{{ money(run.totalDeductions, run.currency) }}</strong></div>
+        <div><span>Net pay</span><strong>{{ money(run.totalNet, run.currency) }}</strong></div>
+      </div>
+
+      <section class="payroll-detail__section">
+        <h3>Role-based actions</h3>
+        <div class="payroll-detail__actions">
+          <p-button label="Recalculate" icon="pi pi-refresh" [outlined]="true" size="small" (onClick)="recalculate(run)" />
+          <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" size="small" [disabled]="!canSubmit(run)" (onClick)="submitForApproval(run)" />
+          <p-button label="Approve" icon="pi pi-check" severity="success" [outlined]="true" size="small" [disabled]="!canApprove(run)" (onClick)="approveRun(run)" />
+          <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" size="small" [disabled]="!canApprove(run)" (onClick)="rejectRun(run)" />
+          <p-button label="Bank file" icon="pi pi-file-export" [outlined]="true" size="small" [disabled]="run.status !== 'approved' && run.status !== 'paid'" (onClick)="generateBankFile(run)" />
+          <p-button label="Mark paid" icon="pi pi-money-bill" [outlined]="true" size="small" [disabled]="!canPay(run)" (onClick)="markPaid(run)" />
+          <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" size="small" (onClick)="exportCsv(run)" />
+        </div>
+      </section>
+
+      <p-table [value]="run.lines" styleClass="payroll-detail__lines" [paginator]="run.lines.length > 8" [rows]="8">
+        <ng-template #header>
+          <tr>
+            <th>Employee</th>
+            <th>Days</th>
+            <th>Overtime</th>
+            <th>Gross</th>
+            <th>Net</th>
+            <th>Projects</th>
+            <th style="width: 4rem"></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-line>
+          <tr>
+            <td>
+              <strong>{{ line.employeeName }}</strong>
+              <small>{{ line.employeeCode }} · {{ line.department }}</small>
+            </td>
+            <td>{{ line.daysWorked }} / {{ line.daysInMonth }}</td>
+            <td>{{ line.overtimeHours }}h ({{ money(line.overtimePay, line.currency) }})</td>
+            <td>{{ money(line.grossPay, line.currency) }}</td>
+            <td>{{ money(line.netPay, line.currency) }}</td>
+            <td>
+              @for (alloc of line.projectAllocations; track alloc.projectId) {
+                <small>{{ alloc.projectName }} {{ alloc.allocationPct }}%</small>
+              } @empty {
+                —
+              }
+            </td>
+            <td>
+              <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openLineDetail(line)" />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      @if (run.attachments.length) {
+        <section class="payroll-detail__section">
+          <h3>Documents</h3>
+          <ul class="payroll-detail__attachments">
+            @for (att of run.attachments; track att.id) {
+              <li><i class="pi pi-file"></i> {{ att.name }} <small>{{ att.uploadedAt }}</small></li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="payroll-detail__section">
+        <h3>Audit trail</h3>
+        <ul class="payroll-detail__audit">
+          @for (entry of run.audit; track entry.at + entry.action) {
+            <li><time>{{ entry.at }}</time><span>{{ entry.action }}</span><small>{{ entry.by }}</small></li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog header="Payslip line" [visible]="lineDetailVisible()" (visibleChange)="lineDetailVisible.set($event)" [modal]="true" [style]="{ width: 'min(480px, 94vw)' }">
+  @if (lineDetail(); as line) {
+    <dl class="payroll-line-detail">
+      <div><dt>Employee</dt><dd>{{ line.employeeName }} ({{ line.employeeCode }})</dd></div>
+      <div><dt>Basic salary</dt><dd>{{ money(line.basicSalary, line.currency) }}</dd></div>
+      <div><dt>Days worked</dt><dd>{{ line.daysWorked }} of {{ line.daysInMonth }}</dd></div>
+      <div><dt>Overtime</dt><dd>{{ line.overtimeHours }}h — {{ money(line.overtimePay, line.currency) }}</dd></div>
+      <div><dt>Allowances</dt><dd>{{ money(line.allowances, line.currency) }}</dd></div>
+      <div><dt>Gross pay</dt><dd>{{ money(line.grossPay, line.currency) }}</dd></div>
+      <div><dt>Statutory deductions</dt><dd>{{ money(line.statutoryDeductions, line.currency) }}</dd></div>
+      <div><dt>Net pay</dt><dd><strong>{{ money(line.netPay, line.currency) }}</strong></dd></div>
+      @if (line.projectAllocations.length) {
+        <div class="payroll-line-detail__full">
+          <dt>Project allocation</dt>
+          <dd>
+            <ul>
+              @for (a of line.projectAllocations; track a.projectId) {
+                <li>{{ a.projectName }} — {{ a.allocationPct }}% ({{ money(a.chargedAmount, line.currency) }})</li>
+              }
+            </ul>
+          </dd>
+        </div>
+      }
+    </dl>
+  }
+</p-dialog>
