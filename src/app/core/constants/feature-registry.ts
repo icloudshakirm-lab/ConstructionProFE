@@ -264,6 +264,39 @@ export const FEATURE_MODULES: FeatureModule[] = [
     ]
   },
   {
+    id: 'contractors-vendors',
+    title: 'Contractors & Vendors',
+    description: 'Contractors, sub-contractors, and vendor master register with prequalification and compliance.',
+    icon: 'pi pi-briefcase',
+    routePath: 'partners',
+    pages: [
+      {
+        id: 'contractors',
+        title: 'Contractors',
+        description: 'Main contractor register with trade license, project assignment, and approval workflow.',
+        icon: 'pi pi-building',
+        highlights: ['Trade license', 'Prequalification', 'Project assignment'],
+        component: 'partners-directory'
+      },
+      {
+        id: 'sub-contractors',
+        title: 'Sub-contractors',
+        description: 'Sub-contractor and trade packages linked to main contractors with certifications.',
+        icon: 'pi pi-sitemap',
+        highlights: ['Trade packages', 'Parent contractor', 'Certifications'],
+        component: 'partners-directory'
+      },
+      {
+        id: 'vendors',
+        title: 'Vendors',
+        description: 'Vendor and supplier master for procurement, quotations, and payment terms.',
+        icon: 'pi pi-truck',
+        highlights: ['Supplier master', 'Payment terms', 'Performance'],
+        component: 'partners-directory'
+      }
+    ]
+  },
+  {
     id: 'cost-control',
     title: 'Cost Control',
     description: 'Budget vs actual and profitability analysis across cost heads.',
@@ -492,7 +525,8 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Submit Daily Progress',
         description: 'Mobile DSR with quantities, photos, and weather.',
         icon: 'pi pi-pencil',
-        highlights: ['Quantities', 'Photos', 'Supervisor sign-off']
+        highlights: ['Quantities', 'Photos', 'Supervisor sign-off'],
+        component: 'daily-progress'
       },
       {
         id: 'material-requests',

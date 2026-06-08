@@ -1,0 +1,548 @@
+<div class="daily-progress-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="daily-progress-page__header">
+    <div>
+      <p-tag value="Site Mobile" severity="info" />
+      <h1>Submit Daily Progress</h1>
+      <p class="daily-progress-page__subtitle">
+        Mobile daily site report (DSR) with BOQ quantities, progress photos, weather conditions, and supervisor
+        sign-off — aligned to ConstructPro site operations and BOQ-driven billing.
+      </p>
+    </div>
+    <div class="daily-progress-page__header-actions">
+      <p-button label="Submit DSR" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="daily-progress-page__toolbar" aria-label="DSR filters">
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="signoffFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="signoffFilter()"
+      (ngModelChange)="signoffFilter.set($event)"
+      placeholder="Sign-off"
+      [style]="{ minWidth: 'min(160px, 30vw)' }"
+    />
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 36vw)' }"
+    />
+    <input
+      type="date"
+      pInputText
+      class="daily-progress-page__date-filter"
+      [ngModel]="dateFilter()"
+      (ngModelChange)="dateFilter.set($event)"
+      title="Filter by report date"
+    />
+    <p-iconfield iconPosition="left" class="daily-progress-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search DSR no., engineer, supervisor, site…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="daily-progress-page__count">{{ filteredRecords().length }} DSR(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredRecords()"
+    [rows]="10"
+    [paginator]="filteredRecords().length > 10"
+    dataKey="id"
+    styleClass="daily-progress-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>DSR</th>
+        <th>Project / Site</th>
+        <th>Weather</th>
+        <th>Manpower</th>
+        <th>Quantities</th>
+        <th>Photos</th>
+        <th>Sign-off</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.daily-progress-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ row.dsrNumber }}</strong>
+          <small>{{ row.reportDate }} · {{ row.submittedBy }}</small>
+        </td>
+        <td>
+          <span class="daily-progress-page__assignment">{{ projectName(row.projectId) }}</span>
+          <small>{{ siteName(row.siteId) }}</small>
+        </td>
+        <td>
+          <p-tag [value]="row.weather" [severity]="weatherTagSeverity(row.weather)" />
+          <small>{{ row.temperatureC }}°C · {{ row.windSpeedKmh }} km/h</small>
+        </td>
+        <td>
+          {{ row.manpowerCount }}
+          <small>{{ row.equipmentCount }} plant</small>
+        </td>
+        <td>
+          {{ row.quantities.length }} line(s)
+          <small>{{ qtyTotal(row) | number:'1.0-1' }} units today</small>
+        </td>
+        <td>{{ row.photos.length }}</td>
+        <td>
+          @if (row.supervisorSignOff) {
+            <p-tag value="Signed" severity="success" />
+            <small>{{ row.signOffBy }}</small>
+          } @else {
+            <p-tag value="Pending" severity="warn" />
+          }
+        </td>
+        <td>
+          <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+        </td>
+        <td>
+          <div class="daily-progress-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
+            <p-button
+              icon="pi pi-trash"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              title="Delete"
+              (onClick)="requestDelete(row)"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="9">No daily progress reports match your filters.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(760px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  @if (formError()) {
+    <p class="daily-progress-page__form-error">{{ formError() }}</p>
+  }
+  <form class="daily-progress-page__form" [formGroup]="dsrForm" (ngSubmit)="saveDsr()">
+    <div class="daily-progress-page__form-grid">
+      <div class="daily-progress-page__field">
+        <label for="dsrNumber">DSR number</label>
+        <input id="dsrNumber" pInputText formControlName="dsrNumber" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="reportDate">Report date</label>
+        <input id="reportDate" type="date" pInputText formControlName="reportDate" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="projectId">Project</label>
+        <p-select
+          inputId="projectId"
+          formControlName="projectId"
+          [options]="projectFormOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+          (onChange)="onProjectChange()"
+        />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="siteId">Site</label>
+        <p-select
+          inputId="siteId"
+          formControlName="siteId"
+          [options]="siteFormOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="submittedBy">Submitted by (site engineer)</label>
+        <input id="submittedBy" pInputText formControlName="submittedBy" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="supervisorName">Supervisor</label>
+        <input id="supervisorName" pInputText formControlName="supervisorName" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="weather">Weather</label>
+        <p-select
+          inputId="weather"
+          formControlName="weather"
+          [options]="weatherOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="temperatureC">Temperature (°C)</label>
+        <p-inputnumber inputId="temperatureC" formControlName="temperatureC" [style]="{ width: '100%' }" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="humidityPct">Humidity (%)</label>
+        <p-inputnumber inputId="humidityPct" formControlName="humidityPct" [min]="0" [max]="100" [style]="{ width: '100%' }" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="windSpeedKmh">Wind (km/h)</label>
+        <p-inputnumber inputId="windSpeedKmh" formControlName="windSpeedKmh" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="manpowerCount">Manpower on site</label>
+        <p-inputnumber inputId="manpowerCount" formControlName="manpowerCount" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="daily-progress-page__field">
+        <label for="equipmentCount">Plant / equipment</label>
+        <p-inputnumber inputId="equipmentCount" formControlName="equipmentCount" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="daily-progress-page__field daily-progress-page__field--full">
+        <label for="workSummary">Work summary</label>
+        <textarea id="workSummary" pTextarea formControlName="workSummary" rows="3"></textarea>
+      </div>
+      <div class="daily-progress-page__field daily-progress-page__field--full">
+        <label for="safetyNotes">Safety notes</label>
+        <textarea id="safetyNotes" pTextarea formControlName="safetyNotes" rows="2"></textarea>
+      </div>
+      <div class="daily-progress-page__field daily-progress-page__field--full">
+        <label for="incidents">Incidents / near-misses</label>
+        <textarea id="incidents" pTextarea formControlName="incidents" rows="2"></textarea>
+      </div>
+    </div>
+    <p class="daily-progress-page__form-hint">
+      After saving, open the DSR detail to add BOQ quantity lines and progress photos before submitting for supervisor
+      sign-off.
+    </p>
+    <div class="daily-progress-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+      <p-button type="submit" label="Save DSR" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Daily progress details"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(900px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailRecord(); as r) {
+    <div class="daily-progress-page__detail-header">
+      <div>
+        <h2>{{ r.dsrNumber }}</h2>
+        <p>{{ projectName(r.projectId) }} · {{ siteName(r.siteId) }} · {{ r.reportDate }}</p>
+      </div>
+      <div class="daily-progress-page__detail-badges">
+        <p-tag [value]="r.weather" [severity]="weatherTagSeverity(r.weather)" />
+        <p-tag [value]="approvalLabel(r.approvalStatus)" [severity]="approvalSeverity(r.approvalStatus)" />
+        @if (r.supervisorSignOff) {
+          <p-tag value="Supervisor signed" severity="success" />
+        }
+      </div>
+    </div>
+
+    <div class="daily-progress-page__detail-actions">
+      @if (canSubmit(r)) {
+        <p-button label="Submit for review" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(r)" />
+      }
+      @if (canSignOff(r)) {
+        <p-button
+          label="Supervisor sign-off"
+          icon="pi pi-verified"
+          severity="success"
+          (onClick)="supervisorSignOff(r)"
+        />
+      }
+      @if (canApprove(r)) {
+        <p-button label="Approve DSR" icon="pi pi-check" severity="success" (onClick)="approveDsr(r)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectDsr(r)" />
+      }
+      <p-button label="Edit" icon="pi pi-pencil" [outlined]="true" (onClick)="openEdit(r); closeDetail()" />
+      <p-button label="Capture photo" icon="pi pi-camera" [text]="true" (onClick)="mockCapturePhoto(r)" />
+      <p-button label="Add document" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(r)" />
+    </div>
+
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0">Overview</p-tab>
+        <p-tab value="1">Quantities</p-tab>
+        <p-tab value="2">Photos</p-tab>
+        <p-tab value="3">Weather &amp; site</p-tab>
+        <p-tab value="4">Documents</p-tab>
+        <p-tab value="5">Audit</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="0">
+          <dl class="daily-progress-page__detail-grid">
+            <dt>Submitted by</dt>
+            <dd>{{ r.submittedBy }}</dd>
+            <dt>Supervisor</dt>
+            <dd>{{ r.supervisorName }}</dd>
+            <dt>Manpower</dt>
+            <dd>{{ r.manpowerCount }} workers · {{ r.equipmentCount }} plant items</dd>
+            <dt>Work summary</dt>
+            <dd>{{ r.workSummary }}</dd>
+            <dt>Safety notes</dt>
+            <dd>{{ r.safetyNotes || '—' }}</dd>
+            <dt>Incidents</dt>
+            <dd>{{ r.incidents || 'None reported' }}</dd>
+            <dt>Supervisor sign-off</dt>
+            <dd>
+              @if (r.supervisorSignOff) {
+                {{ r.signOffBy }} · {{ r.signOffAt }}
+              } @else {
+                Awaiting supervisor sign-off
+              }
+            </dd>
+          </dl>
+        </p-tabpanel>
+        <p-tabpanel value="1">
+          <div class="daily-progress-page__tab-toolbar">
+            <p-button label="Add quantity line" icon="pi pi-plus" size="small" (onClick)="openAddQuantity()" />
+          </div>
+          <p-table [value]="r.quantities" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>BOQ item</th>
+                <th>Unit</th>
+                <th>Today</th>
+                <th>Cumulative</th>
+                <th>Planned</th>
+                <th>Remarks</th>
+                <th style="width: 6rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>
+                  <strong>{{ row.itemCode }}</strong>
+                  <small>{{ row.description }}</small>
+                </td>
+                <td>{{ row.unit }}</td>
+                <td>{{ row.reportedQty | number:'1.0-2' }}</td>
+                <td>{{ row.cumulativeQty | number:'1.0-2' }}</td>
+                <td>{{ row.plannedQty | number:'1.0-2' }}</td>
+                <td>{{ row.remarks || '—' }}</td>
+                <td>
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditQuantity(row)" />
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteQuantity(row)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="7">No quantity lines — add BOQ progress before submitting.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="2">
+          <div class="daily-progress-page__tab-toolbar">
+            <p-button label="Add photo" icon="pi pi-plus" size="small" (onClick)="openAddPhoto()" />
+            <p-button label="Capture from mobile" icon="pi pi-camera" size="small" [outlined]="true" (onClick)="mockCapturePhoto(r)" />
+          </div>
+          <p-table [value]="r.photos" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Caption</th>
+                <th>Album</th>
+                <th>Captured</th>
+                <th>GPS</th>
+                <th style="width: 6rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.caption }}</td>
+                <td>{{ row.album }}</td>
+                <td>{{ row.capturedAt }}</td>
+                <td>{{ row.gpsTag }}</td>
+                <td>
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditPhoto(row)" />
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deletePhoto(row)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="5">No progress photos attached.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="3">
+          <dl class="daily-progress-page__detail-grid">
+            <dt>Weather</dt>
+            <dd><p-tag [value]="r.weather" [severity]="weatherTagSeverity(r.weather)" /></dd>
+            <dt>Temperature</dt>
+            <dd>{{ r.temperatureC }}°C</dd>
+            <dt>Humidity</dt>
+            <dd>{{ r.humidityPct }}%</dd>
+            <dt>Wind speed</dt>
+            <dd>{{ r.windSpeedKmh }} km/h</dd>
+            <dt>Project</dt>
+            <dd>{{ projectName(r.projectId) }}</dd>
+            <dt>Site</dt>
+            <dd>{{ siteName(r.siteId) }}</dd>
+          </dl>
+        </p-tabpanel>
+        <p-tabpanel value="4">
+          <p-table [value]="r.attachments" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Uploaded</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.uploadedAt }}</td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="3">No documents attached.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="5">
+          <ul class="daily-progress-page__audit">
+            @for (entry of r.audit; track entry.at + entry.action) {
+              <li>
+                <strong>{{ entry.action }}</strong>
+                <span>{{ entry.by }} · {{ entry.at }}</span>
+              </li>
+            }
+          </ul>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+</p-dialog>
+
+<p-dialog
+  [header]="childFormHeader()"
+  [visible]="childFormVisible()"
+  (visibleChange)="childFormVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeChildForm()"
+>
+  @if (childFormError()) {
+    <p class="daily-progress-page__form-error">{{ childFormError() }}</p>
+  }
+  @if (childFormKind() === 'quantity') {
+    <form class="daily-progress-page__form" [formGroup]="quantityForm" (ngSubmit)="saveChildRecord()">
+      <div class="daily-progress-page__form-grid">
+        <div class="daily-progress-page__field daily-progress-page__field--full">
+          <label for="boqItemId">BOQ item</label>
+          <p-select
+            inputId="boqItemId"
+            formControlName="boqItemId"
+            [options]="boqOptions"
+            optionLabel="label"
+            optionValue="value"
+            [style]="{ width: '100%' }"
+            (onChange)="onBoqItemChange()"
+          />
+        </div>
+        <div class="daily-progress-page__field">
+          <label for="reportedQty">Quantity today</label>
+          <p-inputnumber inputId="reportedQty" formControlName="reportedQty" [min]="0" [style]="{ width: '100%' }" />
+        </div>
+        <div class="daily-progress-page__field">
+          <label for="cumulativeQty">Cumulative to date</label>
+          <p-inputnumber inputId="cumulativeQty" formControlName="cumulativeQty" [min]="0" [style]="{ width: '100%' }" />
+        </div>
+        <div class="daily-progress-page__field daily-progress-page__field--full">
+          <label for="qtyRemarks">Remarks</label>
+          <input id="qtyRemarks" pInputText formControlName="remarks" />
+        </div>
+      </div>
+      <div class="daily-progress-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeChildForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  } @else {
+    <form class="daily-progress-page__form" [formGroup]="photoForm" (ngSubmit)="saveChildRecord()">
+      <div class="daily-progress-page__form-grid">
+        <div class="daily-progress-page__field daily-progress-page__field--full">
+          <label for="caption">Caption</label>
+          <input id="caption" pInputText formControlName="caption" />
+        </div>
+        <div class="daily-progress-page__field">
+          <label for="album">Album</label>
+          <input id="album" pInputText formControlName="album" />
+        </div>
+        <div class="daily-progress-page__field">
+          <label for="capturedAt">Captured at</label>
+          <input id="capturedAt" type="datetime-local" pInputText formControlName="capturedAt" />
+        </div>
+        <div class="daily-progress-page__field daily-progress-page__field--full">
+          <label for="gpsTag">GPS tag</label>
+          <input id="gpsTag" pInputText formControlName="gpsTag" />
+        </div>
+      </div>
+      <div class="daily-progress-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeChildForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Delete DSR"
+  [visible]="deleteConfirmVisible()"
+  (visibleChange)="deleteConfirmVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 96vw)' }"
+  [draggable]="false"
+>
+  @if (recordToDelete(); as target) {
+    <p>Delete <strong>{{ target.dsrNumber }}</strong> ({{ target.reportDate }})? This cannot be undone.</p>
+    <div class="daily-progress-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>

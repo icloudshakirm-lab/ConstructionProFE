@@ -388,10 +388,13 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
   private async loadDrawing(url: string, label: string): Promise<void> {
     this.loading.set(true);
     try {
+      await this.waitForCadHost();
       await this.cadViewer.mount(this.cadHost.nativeElement);
       const ok = await this.cadViewer.openUrl(url);
       if (!ok) {
-        throw new Error(`Failed to load "${label}".`);
+        throw new Error(
+          `The CAD parser could not open "${label}". Try Open DWG/DXF with another file, or check /cad-workers in the network tab.`
+        );
       }
       this.cadViewer.zoomExtents();
     } catch (err) {
@@ -405,6 +408,19 @@ export class DrawingViewerComponent implements AfterViewInit, OnDestroy {
       if (this.viewerMode() === '2d') {
         this.scheduleLayoutRefresh();
       }
+    }
+  }
+
+  private async waitForCadHost(): Promise<void> {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    for (let i = 0; i < 20; i++) {
+      const el = this.cadHost?.nativeElement;
+      if (el && el.getBoundingClientRect().width > 0) {
+        return;
+      }
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
   }
 

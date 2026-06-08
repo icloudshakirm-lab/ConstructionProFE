@@ -1,0 +1,562 @@
+<div class="partners-directory-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="partners-directory-page__header">
+    <div>
+      <p-tag value="Contractors & Vendors" severity="info" />
+      <h1>{{ pageTitle }}</h1>
+      <p class="partners-directory-page__subtitle">{{ pageSubtitle }}</p>
+    </div>
+    <div class="partners-directory-page__header-actions">
+      <p-button [label]="addButtonLabel()" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="partners-directory-page__toolbar" aria-label="Partner filters">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 36vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="partners-directory-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search name, code, license, contact, specialty…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="partners-directory-page__count">{{ filteredPartners().length }} record(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredPartners()"
+    [rows]="10"
+    [paginator]="filteredPartners().length > 10"
+    dataKey="id"
+    styleClass="partners-directory-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Company</th>
+        <th>Specialties</th>
+        @if (showParentContractor()) {
+          <th>Main contractor</th>
+        }
+        <th>Projects</th>
+        <th>Contact</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.partners-directory-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ displayName(row) }}</strong>
+          <small>{{ row.companyCode }} · {{ row.tradeLicense }}</small>
+        </td>
+        <td>
+          @for (spec of row.specialties.slice(0, 2); track spec) {
+            <p-tag [value]="spec" severity="secondary" styleClass="partners-directory-page__spec-tag" />
+          }
+          @if (row.specialties.length > 2) {
+            <small>+{{ row.specialties.length - 2 }} more</small>
+          }
+        </td>
+        @if (showParentContractor()) {
+          <td>{{ parentLabel(row.parentContractorId) }}</td>
+        }
+        <td>
+          <span class="partners-directory-page__projects">{{ projectsLabel(row.assignedProjectIds) }}</span>
+        </td>
+        <td>
+          <span>{{ row.primaryContactName }}</span>
+          <small>{{ row.primaryPhone }}</small>
+        </td>
+        <td>
+          <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+        </td>
+        <td>
+          <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
+        </td>
+        <td>
+          <div class="partners-directory-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
+            <p-button
+              icon="pi pi-trash"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              title="Delete"
+              (onClick)="requestDelete(row)"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td [attr.colspan]="showParentContractor() ? 8 : 7">No records match your filters.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(720px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  @if (formError()) {
+    <p class="partners-directory-page__form-error">{{ formError() }}</p>
+  }
+  <form class="partners-directory-page__form" [formGroup]="partnerForm" (ngSubmit)="savePartner()">
+    <div class="partners-directory-page__form-grid">
+      <div class="partners-directory-page__field">
+        <label for="companyCode">Company code</label>
+        <input id="companyCode" pInputText formControlName="companyCode" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="status">Status</label>
+        <p-select
+          inputId="status"
+          formControlName="status"
+          [options]="formStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="legalName">Legal name</label>
+        <input id="legalName" pInputText formControlName="legalName" />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="tradeName">Trade name</label>
+        <input id="tradeName" pInputText formControlName="tradeName" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="tradeLicense">Trade license</label>
+        <input id="tradeLicense" pInputText formControlName="tradeLicense" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="taxRegistration">Tax registration (TRN)</label>
+        <input id="taxRegistration" pInputText formControlName="taxRegistration" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="commercialRegistration">Commercial registration</label>
+        <input id="commercialRegistration" pInputText formControlName="commercialRegistration" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="prequalificationExpiry">Prequalification expiry</label>
+        <input id="prequalificationExpiry" type="date" pInputText formControlName="prequalificationExpiry" />
+      </div>
+      @if (showParentContractor()) {
+        <div class="partners-directory-page__field partners-directory-page__field--full">
+          <label for="parentContractorId">Main contractor</label>
+          <p-select
+            inputId="parentContractorId"
+            formControlName="parentContractorId"
+            [options]="contractorFormOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [style]="{ width: '100%' }"
+          />
+        </div>
+      }
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="specialties">Specialties / trades</label>
+        <p-multiselect
+          inputId="specialties"
+          formControlName="specialties"
+          [options]="specialtyOptions"
+          optionLabel="label"
+          optionValue="value"
+          display="chip"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="assignedProjectIds">Assigned projects</label>
+        <p-multiselect
+          inputId="assignedProjectIds"
+          formControlName="assignedProjectIds"
+          [options]="projectFormOptions"
+          optionLabel="label"
+          optionValue="value"
+          display="chip"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="primaryContactName">Primary contact</label>
+        <input id="primaryContactName" pInputText formControlName="primaryContactName" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="primaryPhone">Phone</label>
+        <input id="primaryPhone" pInputText formControlName="primaryPhone" />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="primaryEmail">Email</label>
+        <input id="primaryEmail" pInputText formControlName="primaryEmail" />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="address">Address</label>
+        <input id="address" pInputText formControlName="address" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="city">City</label>
+        <input id="city" pInputText formControlName="city" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="country">Country</label>
+        <input id="country" pInputText formControlName="country" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="paymentTerms">Payment terms</label>
+        <p-select
+          inputId="paymentTerms"
+          formControlName="paymentTerms"
+          [options]="paymentTermsOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="currency">Currency</label>
+        <p-select
+          inputId="currency"
+          formControlName="currency"
+          [options]="currencyOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+        />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="creditLimit">Credit limit</label>
+        <p-inputnumber inputId="creditLimit" formControlName="creditLimit" [min]="0" mode="decimal" [style]="{ width: '100%' }" />
+      </div>
+      <div class="partners-directory-page__field">
+        <label for="bankName">Bank name</label>
+        <input id="bankName" pInputText formControlName="bankName" />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="iban">IBAN</label>
+        <input id="iban" pInputText formControlName="iban" />
+      </div>
+      <div class="partners-directory-page__field partners-directory-page__field--full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" pTextarea formControlName="notes" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="partners-directory-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+      <p-button type="submit" label="Save" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Partner details"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(860px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailPartner(); as p) {
+    <div class="partners-directory-page__detail-header">
+      <div>
+        <h2>{{ displayName(p) }}</h2>
+        <p>{{ p.legalName }} · {{ p.companyCode }}</p>
+      </div>
+      <div class="partners-directory-page__detail-badges">
+        <p-tag [value]="p.status" [severity]="statusSeverity(p.status)" />
+        <p-tag [value]="approvalLabel(p.approvalStatus)" [severity]="approvalSeverity(p.approvalStatus)" />
+      </div>
+    </div>
+
+    <div class="partners-directory-page__detail-actions">
+      @if (canSubmit(p)) {
+        <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(p)" />
+      }
+      @if (canApprove(p)) {
+        <p-button label="Approve" icon="pi pi-check" severity="success" (onClick)="approvePartner(p)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectPartner(p)" />
+      }
+      <p-button label="Edit" icon="pi pi-pencil" [outlined]="true" (onClick)="openEdit(p); closeDetail()" />
+      <p-button label="Add document" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(p)" />
+    </div>
+
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0">Overview</p-tab>
+        <p-tab value="1">Contacts</p-tab>
+        <p-tab value="2">Certifications</p-tab>
+        <p-tab value="3">Documents</p-tab>
+        <p-tab value="4">Audit</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="0">
+          <dl class="partners-directory-page__detail-grid">
+            <dt>Type</dt>
+            <dd>{{ typeLabel(p.companyType) }}</dd>
+            <dt>Trade license</dt>
+            <dd>{{ p.tradeLicense }}</dd>
+            <dt>Tax registration</dt>
+            <dd>{{ p.taxRegistration || '—' }}</dd>
+            <dt>Commercial registration</dt>
+            <dd>{{ p.commercialRegistration || '—' }}</dd>
+            @if (showParentContractor()) {
+              <dt>Main contractor</dt>
+              <dd>{{ parentLabel(p.parentContractorId) }}</dd>
+            }
+            <dt>Specialties</dt>
+            <dd>
+              @for (spec of p.specialties; track spec) {
+                <p-tag [value]="spec" severity="secondary" styleClass="partners-directory-page__spec-tag" />
+              }
+              @empty {
+                —
+              }
+            </dd>
+            <dt>Projects</dt>
+            <dd>{{ projectsLabel(p.assignedProjectIds) }}</dd>
+            <dt>Payment terms</dt>
+            <dd>{{ p.paymentTerms }}</dd>
+            <dt>Credit limit</dt>
+            <dd>{{ p.currency }} {{ p.creditLimit | number }}</dd>
+            <dt>Bank</dt>
+            <dd>{{ p.bankName || '—' }} · {{ p.iban || '—' }}</dd>
+            <dt>Prequalification expiry</dt>
+            <dd>{{ p.prequalificationExpiry || '—' }}</dd>
+            <dt>Address</dt>
+            <dd>{{ p.address }}, {{ p.city }}, {{ p.country }}</dd>
+            <dt>Notes</dt>
+            <dd>{{ p.notes || '—' }}</dd>
+          </dl>
+        </p-tabpanel>
+        <p-tabpanel value="1">
+          <div class="partners-directory-page__tab-toolbar">
+            <p-button label="Add contact" icon="pi pi-plus" size="small" (onClick)="openAddContact()" />
+          </div>
+          <p-table [value]="p.contacts" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th style="width: 6rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.role }}</td>
+                <td>{{ row.email }}</td>
+                <td>{{ row.phone }}</td>
+                <td>
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditContact(row)" />
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteContact(row)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="5">No contacts recorded.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="2">
+          <div class="partners-directory-page__tab-toolbar">
+            <p-button label="Add certification" icon="pi pi-plus" size="small" (onClick)="openAddCertification()" />
+          </div>
+          <p-table [value]="p.certifications" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Certification</th>
+                <th>Issuer</th>
+                <th>Valid until</th>
+                <th>Verified</th>
+                <th style="width: 6rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.issuer }}</td>
+                <td>{{ row.validUntil }}</td>
+                <td>
+                  @if (row.verified) {
+                    <p-tag value="Verified" severity="success" />
+                  } @else {
+                    <p-tag value="Pending" severity="warn" />
+                  }
+                </td>
+                <td>
+                  <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditCertification(row)" />
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteCertification(row)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="5">No certifications on file.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="3">
+          <p-table [value]="p.attachments" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Uploaded</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.uploadedAt }}</td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="3">No documents attached.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="4">
+          <ul class="partners-directory-page__audit">
+            @for (entry of p.audit; track entry.at + entry.action) {
+              <li>
+                <strong>{{ entry.action }}</strong>
+                <span>{{ entry.by }} · {{ entry.at }}</span>
+              </li>
+            }
+          </ul>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+</p-dialog>
+
+<p-dialog
+  [header]="childFormHeader()"
+  [visible]="childFormVisible()"
+  (visibleChange)="childFormVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeChildForm()"
+>
+  @if (childFormError()) {
+    <p class="partners-directory-page__form-error">{{ childFormError() }}</p>
+  }
+  @if (childFormKind() === 'contact') {
+    <form class="partners-directory-page__form" [formGroup]="contactForm" (ngSubmit)="saveChildRecord()">
+      <div class="partners-directory-page__form-grid">
+        <div class="partners-directory-page__field partners-directory-page__field--full">
+          <label for="contactName">Name</label>
+          <input id="contactName" pInputText formControlName="name" />
+        </div>
+        <div class="partners-directory-page__field partners-directory-page__field--full">
+          <label for="contactRole">Role</label>
+          <input id="contactRole" pInputText formControlName="role" />
+        </div>
+        <div class="partners-directory-page__field">
+          <label for="contactEmail">Email</label>
+          <input id="contactEmail" pInputText formControlName="email" />
+        </div>
+        <div class="partners-directory-page__field">
+          <label for="contactPhone">Phone</label>
+          <input id="contactPhone" pInputText formControlName="phone" />
+        </div>
+      </div>
+      <div class="partners-directory-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeChildForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  } @else {
+    <form class="partners-directory-page__form" [formGroup]="certificationForm" (ngSubmit)="saveChildRecord()">
+      <div class="partners-directory-page__form-grid">
+        <div class="partners-directory-page__field partners-directory-page__field--full">
+          <label for="certName">Certification</label>
+          <input id="certName" pInputText formControlName="name" />
+        </div>
+        <div class="partners-directory-page__field partners-directory-page__field--full">
+          <label for="certIssuer">Issuer</label>
+          <input id="certIssuer" pInputText formControlName="issuer" />
+        </div>
+        <div class="partners-directory-page__field">
+          <label for="certValidUntil">Valid until</label>
+          <input id="certValidUntil" type="date" pInputText formControlName="validUntil" />
+        </div>
+        <div class="partners-directory-page__field partners-directory-page__field--check">
+          <p-checkbox inputId="certVerified" formControlName="verified" [binary]="true" />
+          <label for="certVerified">Verified</label>
+        </div>
+      </div>
+      <div class="partners-directory-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeChildForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Delete record"
+  [visible]="deleteConfirmVisible()"
+  (visibleChange)="deleteConfirmVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(420px, 96vw)' }"
+  [draggable]="false"
+>
+  @if (partnerToDelete(); as target) {
+    <p>Delete <strong>{{ displayName(target) }}</strong> ({{ target.companyCode }})? This cannot be undone.</p>
+    <div class="partners-directory-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>

@@ -21,7 +21,9 @@ export type FeaturePageComponent =
   | 'approval-workflows'
   | 'employee-records'
   | 'hr-attendance'
-  | 'payroll';
+  | 'payroll'
+  | 'partners-directory'
+  | 'daily-progress';
 
 export interface FeaturePage {
   id: string;

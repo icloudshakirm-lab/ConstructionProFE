@@ -39,11 +39,11 @@ export const DEMO_DRAWINGS: DrawingRecord[] = [
   {
     id: 'drw-003',
     sheet: 'A-102',
-    title: 'Sample DWG — Anteen',
+    title: 'Sample DWG — Map of UAE',
     discipline: 'Architectural',
     revision: '01',
     format: 'dwg',
-    fileUrl: 'https://cdn.jsdelivr.net/gh/mlightcad/cad-data/data/anteen.dwg',
+    fileUrl: 'https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/map-of-uae.dwg',
     project: 'Tower Block A',
     updated: '2026-04-01'
   }

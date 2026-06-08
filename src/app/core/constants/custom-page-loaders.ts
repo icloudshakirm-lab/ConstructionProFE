@@ -89,5 +89,13 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
       (m) => m.HrAttendanceComponent
     ),
   payroll: () =>
-    import('../../features/hr-payroll/payroll/payroll.component').then((m) => m.PayrollComponent)
+    import('../../features/hr-payroll/payroll/payroll.component').then((m) => m.PayrollComponent),
+  'partners-directory': () =>
+    import('../../features/contractors-vendors/partners-directory/partners-directory.component').then(
+      (m) => m.PartnersDirectoryComponent
+    ),
+  'daily-progress': () =>
+    import('../../features/site-mobile/daily-progress/daily-progress.component').then(
+      (m) => m.DailyProgressComponent
+    )
 };

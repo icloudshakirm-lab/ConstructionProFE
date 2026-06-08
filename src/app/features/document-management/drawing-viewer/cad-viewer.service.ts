@@ -1,9 +1,35 @@
 import { Injectable } from '@angular/core';
 import type { AcApDocManager } from '@mlightcad/cad-simple-viewer';
 
-const WORKER_BASE = '/cad-workers';
-
 type CadModule = typeof import('@mlightcad/cad-simple-viewer');
+
+function workerUrl(file: string): string {
+  if (typeof window === 'undefined') {
+    return `/cad-workers/${file}`;
+  }
+  return new URL(`/cad-workers/${file}`, window.location.origin).href;
+}
+
+function resolveDrawingUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (typeof window === 'undefined') {
+    return url;
+  }
+  return new URL(url.startsWith('/') ? url : `/${url}`, window.location.origin).href;
+}
+
+function fileNameFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    const name = path.split('/').pop();
+    return name && name.length > 0 ? name : 'drawing.dxf';
+  } catch {
+    const parts = url.split('/');
+    return parts[parts.length - 1] || 'drawing.dxf';
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class CadViewerService {
@@ -12,6 +38,8 @@ export class CadViewerService {
   private host?: HTMLElement;
 
   async mount(host: HTMLElement): Promise<void> {
+    await this.waitForHostSize(host);
+
     if (this.manager && this.host === host) {
       return;
     }
@@ -27,11 +55,11 @@ export class CadViewerService {
     const manager = cad.AcApDocManager.createInstance({
       container: host,
       autoResize: true,
-      useMainThreadDraw: false,
+      useMainThreadDraw: true,
       webworkerFileUrls: {
-        dwgParser: `${WORKER_BASE}/libredwg-parser-worker.js`,
-        dxfParser: `${WORKER_BASE}/dxf-parser-worker.js`,
-        mtextRender: `${WORKER_BASE}/mtext-renderer-worker.js`
+        dwgParser: workerUrl('libredwg-parser-worker.js'),
+        dxfParser: workerUrl('dxf-parser-worker.js'),
+        mtextRender: workerUrl('mtext-renderer-worker.js')
       }
     });
 
@@ -51,7 +79,18 @@ export class CadViewerService {
 
   async openUrl(url: string): Promise<boolean> {
     const { AcEdOpenMode } = await this.loadCad();
-    return this.requireManager().openUrl(url, { mode: AcEdOpenMode.Read });
+    const resolved = resolveDrawingUrl(url);
+    const response = await fetch(resolved);
+    if (!response.ok) {
+      throw new Error(`Drawing file not found (${response.status}): ${resolved}`);
+    }
+    const content = await response.arrayBuffer();
+    if (!content.byteLength) {
+      throw new Error(`Drawing file is empty: ${resolved}`);
+    }
+    return this.requireManager().openDocument(fileNameFromUrl(resolved), content, {
+      mode: AcEdOpenMode.Read
+    });
   }
 
   async openFile(file: File): Promise<boolean> {
@@ -81,6 +120,16 @@ export class CadViewerService {
       this.host = undefined;
     }
     this.cad = undefined;
+  }
+
+  private async waitForHostSize(host: HTMLElement, attempts = 12): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      const { width, height } = host.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        return;
+      }
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
   }
 
   private async loadCad(): Promise<CadModule> {
