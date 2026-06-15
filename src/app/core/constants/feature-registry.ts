@@ -172,7 +172,8 @@ export const FEATURE_MODULES: FeatureModule[] = [
         title: 'Material Consumption by Project',
         description: 'Consumption analytics tied to BOQ items and project cost codes.',
         icon: 'pi pi-chart-bar',
-        highlights: ['BOQ linkage', 'Variance', 'Project P&L']
+        highlights: ['BOQ linkage', 'Variance', 'Project P&L'],
+        component: 'material-consumption'
       }
     ]
   },

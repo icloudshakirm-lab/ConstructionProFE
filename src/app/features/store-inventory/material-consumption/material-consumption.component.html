@@ -1,0 +1,337 @@
+<div class="material-consumption-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="material-consumption-page__header">
+    <div>
+      <p-tag value="Store & Inventory" severity="info" />
+      <h1>Material Consumption by Project</h1>
+      <p class="material-consumption-page__subtitle">
+        Consumption analytics tied to BOQ items and project cost codes — rolled up from material issuances with
+        budget variance and project P&amp;L impact.
+      </p>
+    </div>
+    <div class="material-consumption-page__header-actions">
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="material-consumption-page__kpis" aria-label="Project consumption summary">
+    <article class="material-consumption-page__kpi">
+      <span class="material-consumption-page__kpi-label">BOQ budget (AED)</span>
+      <strong>{{ summary().budget | number:'1.0-0' }}</strong>
+    </article>
+    <article class="material-consumption-page__kpi">
+      <span class="material-consumption-page__kpi-label">Consumed (AED)</span>
+      <strong>{{ summary().consumed | number:'1.0-0' }}</strong>
+    </article>
+    <article class="material-consumption-page__kpi">
+      <span class="material-consumption-page__kpi-label">Remaining (AED)</span>
+      <strong [class.material-consumption-page__negative]="summary().remaining < 0">
+        {{ summary().remaining | number:'1.0-0' }}
+      </strong>
+    </article>
+    <article class="material-consumption-page__kpi">
+      <span class="material-consumption-page__kpi-label">Utilization</span>
+      <strong>{{ summary().variancePct }}%</strong>
+    </article>
+    <article class="material-consumption-page__kpi">
+      <span class="material-consumption-page__kpi-label">BOQ lines / over budget</span>
+      <strong>{{ summary().lineCount }} / {{ summary().overBudgetLines }}</strong>
+    </article>
+  </section>
+
+  <section class="material-consumption-page__toolbar">
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 36vw)' }"
+    />
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Variance"
+      [style]="{ minWidth: 'min(160px, 30vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="costCodeFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="costCodeFilter()"
+      (ngModelChange)="costCodeFilter.set($event)"
+      placeholder="Cost code"
+      [style]="{ minWidth: 'min(180px, 34vw)' }"
+    />
+    <p-select
+      [options]="sectionFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="sectionFilter()"
+      (ngModelChange)="sectionFilter.set($event)"
+      placeholder="BOQ section"
+      [style]="{ minWidth: 'min(180px, 34vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="material-consumption-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search BOQ code, description, cost code…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="material-consumption-page__count">{{ filteredRecords().length }} line(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredRecords()"
+    [rows]="12"
+    [paginator]="filteredRecords().length > 12"
+    dataKey="id"
+    styleClass="material-consumption-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>BOQ item</th>
+        <th>Project / Site</th>
+        <th>Cost code</th>
+        <th>Qty (BOQ / used)</th>
+        <th>Amount (BOQ / used)</th>
+        <th>Variance</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 8rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.material-consumption-page__row--active]="selectedId() === row.id"
+        [class.material-consumption-page__row--over]="row.status === 'over_budget'"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ row.boqItemCode }}</strong>
+          <small>{{ row.boqDescription }} · {{ row.boqSection }}</small>
+        </td>
+        <td>
+          <span class="material-consumption-page__assignment">{{ projectName(row.projectId) }}</span>
+          <small>{{ siteName(row.siteId) }}</small>
+        </td>
+        <td>{{ row.costCode }}</td>
+        <td>
+          {{ row.consumedQty | number:'1.0-1' }} / {{ row.budgetQty | number:'1.0-1' }} {{ row.unit }}
+          <small>{{ row.varianceQtyPct }}% used</small>
+        </td>
+        <td>
+          {{ row.consumedAmount | number:'1.0-0' }} / {{ row.budgetAmount | number:'1.0-0' }}
+          <small>AED</small>
+        </td>
+        <td>
+          <p-tag [value]="row.varianceAmountPct + '%'" [severity]="statusSeverity(row.status)" />
+        </td>
+        <td><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)" /></td>
+        <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
+        <td>
+          <div class="material-consumption-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Adjust" (onClick)="openAdjust(row)" />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="9">No consumption lines match your filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  header="Consumption detail"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(900px, 96vw)' }"
+  [contentStyle]="{ overflow: 'auto', maxHeight: '85vh' }"
+  (onHide)="closeDetail()"
+>
+  @if (detailRecord(); as r) {
+    <div class="material-consumption-page__detail-header">
+      <div>
+        <h2>{{ r.boqItemCode }} — {{ r.boqDescription }}</h2>
+        <p>{{ projectName(r.projectId) }} · {{ siteName(r.siteId) }} · {{ r.costCode }}</p>
+      </div>
+      <div class="material-consumption-page__detail-badges">
+        <p-tag [value]="statusLabel(r.status)" [severity]="statusSeverity(r.status)" />
+        <p-tag [value]="approvalLabel(r.approvalStatus)" [severity]="approvalSeverity(r.approvalStatus)" />
+        <p-tag [value]="r.varianceAmountPct + '% utilized'" [severity]="statusSeverity(r.status)" />
+      </div>
+    </div>
+
+    <div class="material-consumption-page__detail-actions">
+      @if (canSubmit(r)) {
+        <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(r)" />
+      }
+      @if (canApprove(r)) {
+        <p-button label="Approve" icon="pi pi-check" severity="success" (onClick)="approveRecord(r)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectRecord(r)" />
+      }
+      <p-button label="Adjust consumption" icon="pi pi-pencil" [outlined]="true" (onClick)="openAdjust(r)" />
+      <p-button label="Add report" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(r)" />
+    </div>
+
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0">BOQ vs consumption</p-tab>
+        <p-tab value="1">Issuance breakdown</p-tab>
+        <p-tab value="2">Project P&amp;L impact</p-tab>
+        <p-tab value="3">Documents</p-tab>
+        <p-tab value="4">Audit</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="0">
+          <dl class="material-consumption-page__detail-grid">
+            <dt>BOQ section</dt><dd>{{ r.boqSection }}</dd>
+            <dt>Unit</dt><dd>{{ r.unit }}</dd>
+            <dt>BOQ budget qty</dt><dd>{{ r.budgetQty | number:'1.0-2' }}</dd>
+            <dt>Consumed qty</dt><dd>{{ r.consumedQty | number:'1.0-2' }}</dd>
+            <dt>Remaining qty</dt>
+            <dd [class.material-consumption-page__negative]="r.remainingQty < 0">{{ r.remainingQty | number:'1.0-2' }}</dd>
+            <dt>BOQ budget (AED)</dt><dd>{{ r.budgetAmount | number:'1.0-0' }}</dd>
+            <dt>Consumed (AED)</dt><dd>{{ r.consumedAmount | number:'1.0-0' }}</dd>
+            <dt>Remaining (AED)</dt>
+            <dd [class.material-consumption-page__negative]="r.remainingAmount < 0">{{ r.remainingAmount | number:'1.0-0' }}</dd>
+            <dt>Qty variance</dt><dd>{{ r.varianceQtyPct }}%</dd>
+            <dt>Amount variance</dt><dd>{{ r.varianceAmountPct }}%</dd>
+            <dt>Last updated</dt><dd>{{ r.lastUpdated }}</dd>
+            <dt>Notes</dt><dd>{{ r.notes || '—' }}</dd>
+          </dl>
+        </p-tabpanel>
+        <p-tabpanel value="1">
+          <p class="material-consumption-page__tab-intro">
+            Material issuances tagged to this BOQ item and cost code — source of consumption data.
+          </p>
+          <p-table [value]="r.issuanceRefs" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Issuance</th>
+                <th>Material</th>
+                <th>Qty</th>
+                <th>Amount (AED)</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-ref>
+              <tr>
+                <td>
+                  <strong>{{ ref.issueNumber }}</strong>
+                  <small>{{ ref.issueDate }} · {{ siteName(ref.siteId) }}</small>
+                </td>
+                <td>
+                  {{ ref.materialName }}
+                  <small>{{ ref.materialCode }}</small>
+                </td>
+                <td>{{ ref.qty | number:'1.0-2' }} {{ ref.unit }}</td>
+                <td>{{ ref.amount | number:'1.0-0' }}</td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="4">No linked issuances — consumption entered manually or pending sync.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="2">
+          <dl class="material-consumption-page__detail-grid">
+            <dt>BOQ contract value</dt><dd>AED {{ r.budgetAmount | number:'1.0-0' }}</dd>
+            <dt>Material cost to date</dt><dd>AED {{ r.consumedAmount | number:'1.0-0' }}</dd>
+            <dt>Cost variance</dt>
+            <dd [class.material-consumption-page__negative]="r.remainingAmount < 0">
+              AED {{ (r.budgetAmount - r.consumedAmount) | number:'1.0-0' }}
+              ({{ r.varianceAmountPct }}% of budget)
+            </dd>
+            <dt>P&amp;L impact</dt>
+            <dd>
+              @if (r.status === 'over_budget') {
+                Material overrun — review BOQ qty, wastage, and issuance tags.
+              } @else if (r.status === 'warning') {
+                Approaching budget ceiling — monitor weekly consumption.
+              } @else {
+                Within BOQ material budget — favorable for project margin.
+              }
+            </dd>
+          </dl>
+        </p-tabpanel>
+        <p-tabpanel value="3">
+          <p-table [value]="r.attachments" dataKey="id">
+            <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
+            <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
+            <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="4">
+          <ul class="material-consumption-page__audit">
+            @for (entry of r.audit; track entry.at + entry.action) {
+              <li><strong>{{ entry.action }}</strong><span>{{ entry.by }} · {{ entry.at }}</span></li>
+            }
+          </ul>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Adjust consumption"
+  [visible]="adjustVisible()"
+  (visibleChange)="adjustVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(480px, 96vw)' }"
+  [contentStyle]="{ overflow: 'visible' }"
+  styleClass="material-consumption-dialog"
+  (onHide)="closeAdjust()"
+>
+  @if (adjustError()) {
+    <p class="material-consumption-page__form-error">{{ adjustError() }}</p>
+  }
+  @if (detailRecord(); as r) {
+    <p class="material-consumption-page__adjust-context">
+      {{ r.boqItemCode }} · {{ projectName(r.projectId) }} · BOQ budget {{ r.budgetQty }} {{ r.unit }} / AED {{ r.budgetAmount | number:'1.0-0' }}
+    </p>
+  }
+  <form class="material-consumption-page__form" [formGroup]="adjustForm" (ngSubmit)="saveAdjustment()">
+    <div class="material-consumption-page__form-grid">
+      <div class="material-consumption-page__field">
+        <label for="consumedQty">Consumed quantity</label>
+        <p-inputnumber inputId="consumedQty" formControlName="consumedQty" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="material-consumption-page__field">
+        <label for="consumedAmount">Consumed amount (AED)</label>
+        <p-inputnumber inputId="consumedAmount" formControlName="consumedAmount" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="material-consumption-page__field material-consumption-page__field--full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" pTextarea formControlName="notes" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="material-consumption-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeAdjust()" />
+      <p-button type="submit" label="Save adjustment" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>

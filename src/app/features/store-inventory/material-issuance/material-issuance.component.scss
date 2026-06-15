@@ -64,6 +64,35 @@
 .material-issuance-page__negative { color: var(--p-red-500); font-weight: 600; }
 
 .material-issuance-page__form-error { color: var(--p-red-500); margin: 0 0 0.75rem; }
+
+.material-issuance-page__boq-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-red-500) 8%, transparent);
+  color: var(--p-red-500);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  .pi { margin-top: 0.1rem; flex-shrink: 0; }
+
+  &--mismatch {
+    border-color: var(--p-red-500);
+    background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
+  }
+}
+
+.material-issuance-page__qty-warning {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--p-orange-500);
+}
+
 .material-issuance-page__form-hint,
 .material-issuance-page__field-hint,
 .material-issuance-page__boq-intro {
@@ -72,11 +101,22 @@
   color: var(--p-text-muted-color);
 }
 
+.material-issuance-page__field-hint--boq strong {
+  color: var(--p-red-500);
+}
+
 .material-issuance-page__boq-intro { margin-bottom: 0.75rem; }
 
 .material-issuance-page__form { display: flex; flex-direction: column; gap: 1rem; }
 
 .material-issuance-page__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.material-issuance-page__field-row {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem 1rem;
@@ -125,6 +165,17 @@
 }
 
 :host ::ng-deep {
+  .material-issuance-dialog .p-dialog-content {
+    overflow: visible;
+  }
+
+  .material-issuance-page__table th small {
+    display: block;
+    font-weight: 400;
+    color: var(--p-text-muted-color);
+    font-size: 0.7rem;
+  }
+
   .material-issuance-page__table {
     flex: 1;
     min-height: 0;
@@ -139,5 +190,6 @@
 
 @media (max-width: 640px) {
   .material-issuance-page__form-grid,
-  .material-issuance-page__detail-grid { grid-template-columns: 1fr; }
+  .material-issuance-page__detail-grid,
+  .material-issuance-page__field-row { grid-template-columns: 1fr; }
 }

@@ -36,6 +36,9 @@ import {
   canSubmitForApproval,
   initialMaterialIssuances,
   issuanceStatusSeverity,
+  expectedBoqForMaterial,
+  materialBoqMismatchDetail,
+  materialMatchesBoqItem,
   lineAmount,
   newAttachmentId,
   newIssuanceId,
@@ -114,6 +117,10 @@ export class MaterialIssuanceComponent {
   readonly lineFormMode = signal<'create' | 'edit'>('create');
   readonly lineEditingId = signal<string | null>(null);
   readonly lineFormError = signal<string | null>(null);
+  readonly lineBoqMismatchMsg = signal<string | null>(null);
+  readonly lineQtyWarning = signal<string | null>(null);
+
+  readonly dialogContentStyle = { overflow: 'visible' } as const;
 
   readonly issuanceForm = this.fb.nonNullable.group({
     issueNumber: ['', Validators.required],
@@ -231,6 +238,12 @@ export class MaterialIssuanceComponent {
 
   linesPreview(lines: MaterialIssueLine[]): MaterialIssueLine[] {
     return lines.slice(0, 2);
+  }
+
+  expectedBoqItemCode(): string {
+    const code = this.lineForm.controls.materialCode.value;
+    const expected = expectedBoqForMaterial(code);
+    return expected?.itemCode ?? '—';
   }
 
   openCreate(): void {
@@ -424,6 +437,8 @@ export class MaterialIssuanceComponent {
     this.lineFormMode.set('create');
     this.lineEditingId.set(null);
     this.lineFormError.set(null);
+    this.lineBoqMismatchMsg.set(null);
+    this.lineQtyWarning.set(null);
     this.lineForm.reset({ materialCode: '', boqItemId: '', issuedQty: 0, unitRate: 0 });
     this.lineFormVisible.set(true);
   }
@@ -440,12 +455,15 @@ export class MaterialIssuanceComponent {
       issuedQty: row.issuedQty,
       unitRate: row.unitRate
     });
+    this.validateLineBoqMatch();
     this.lineFormVisible.set(true);
   }
 
   closeLineForm(): void {
     this.lineFormVisible.set(false);
     this.lineFormError.set(null);
+    this.lineBoqMismatchMsg.set(null);
+    this.lineQtyWarning.set(null);
   }
 
   onMaterialChange(): void {
@@ -456,17 +474,21 @@ export class MaterialIssuanceComponent {
     if (this.lineFormMode() === 'create') {
       this.lineForm.controls.boqItemId.setValue(mat.boqItemId);
     }
+    this.validateLineBoqMatch();
   }
 
   onBoqChange(): void {
-    const boqId = this.lineForm.controls.boqItemId.value;
-    const boq = this.boqOptions.find((o) => o.value === boqId);
-    if (!boq) return;
-    const qty = this.lineForm.controls.issuedQty.value;
-    if (qty > boq.budgetQty) {
-      this.lineFormError.set(`Warning: issued qty exceeds BOQ budget qty (${boq.budgetQty} ${boq.unit})`);
+    this.validateLineBoqMatch();
+  }
+
+  private validateLineBoqMatch(): void {
+    const raw = this.lineForm.getRawValue();
+    this.lineBoqMismatchMsg.set(materialBoqMismatchDetail(raw.materialCode, raw.boqItemId));
+    const boq = this.boqOptions.find((o) => o.value === raw.boqItemId);
+    if (boq && raw.issuedQty > boq.budgetQty) {
+      this.lineQtyWarning.set(`Issued qty exceeds BOQ budget qty (${boq.budgetQty} ${boq.unit}).`);
     } else {
-      this.lineFormError.set(null);
+      this.lineQtyWarning.set(null);
     }
   }
 
@@ -480,6 +502,12 @@ export class MaterialIssuanceComponent {
     }
 
     const raw = this.lineForm.getRawValue();
+    if (!materialMatchesBoqItem(raw.materialCode, raw.boqItemId)) {
+      this.validateLineBoqMatch();
+      this.lineFormError.set('Cannot save — material item code must match the BOQ item code.');
+      return;
+    }
+
     const mat = MATERIAL_CATALOG.find((m) => m.code === raw.materialCode);
     const boq = this.boqOptions.find((o) => o.value === raw.boqItemId);
     if (!mat || !boq) return;

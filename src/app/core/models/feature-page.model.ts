@@ -26,7 +26,8 @@ export type FeaturePageComponent =
   | 'daily-progress'
   | 'bid-planning'
   | 'bids-register'
-  | 'material-issuance';
+  | 'material-issuance'
+  | 'material-consumption';
 
 export interface FeaturePage {
   id: string;

@@ -109,5 +109,9 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'material-issuance': () =>
     import('../../features/store-inventory/material-issuance/material-issuance.component').then(
       (m) => m.MaterialIssuanceComponent
+    ),
+  'material-consumption': () =>
+    import('../../features/store-inventory/material-consumption/material-consumption.component').then(
+      (m) => m.MaterialConsumptionComponent
     )
 };

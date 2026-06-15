@@ -1,0 +1,163 @@
+.material-consumption-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  min-height: min(75vh, 720px);
+}
+
+.material-consumption-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  h1 { margin: 0.35rem 0 0; font-size: 1.75rem; }
+}
+
+.material-consumption-page__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  max-width: 52rem;
+}
+
+.material-consumption-page__header-actions,
+.material-consumption-page__detail-actions,
+.material-consumption-page__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.material-consumption-page__form-actions { justify-content: flex-end; }
+
+.material-consumption-page__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.65rem;
+}
+
+.material-consumption-page__kpi {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  strong { font-size: 1.125rem; }
+}
+
+.material-consumption-page__kpi-label {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.material-consumption-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+}
+
+.material-consumption-page__search {
+  flex: 1;
+  min-width: min(220px, 100%);
+  input { width: 100%; }
+}
+
+.material-consumption-page__count {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.material-consumption-page__assignment { display: block; font-size: 0.8125rem; }
+.material-consumption-page__row-actions { display: flex; gap: 0.15rem; }
+.material-consumption-page__row--active { background: color-mix(in srgb, var(--p-primary-color) 6%, transparent); }
+.material-consumption-page__row--over { background: color-mix(in srgb, var(--p-red-500) 5%, transparent); }
+.material-consumption-page__negative { color: var(--p-red-500); font-weight: 600; }
+.material-consumption-page__form-error { color: var(--p-red-500); margin: 0 0 0.75rem; }
+
+.material-consumption-page__adjust-context,
+.material-consumption-page__tab-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.material-consumption-page__form { display: flex; flex-direction: column; gap: 1rem; }
+
+.material-consumption-page__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.material-consumption-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  label { font-size: 0.8125rem; font-weight: 600; }
+  &--full { grid-column: 1 / -1; }
+}
+
+.material-consumption-page__detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  h2 { margin: 0; font-size: 1.25rem; }
+  p { margin: 0.25rem 0 0; color: var(--p-text-muted-color); }
+}
+
+.material-consumption-page__detail-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.material-consumption-page__detail-actions { margin-bottom: 1rem; }
+
+.material-consumption-page__detail-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 11rem) 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  dt { font-weight: 600; color: var(--p-text-muted-color); }
+  dd { margin: 0; }
+}
+
+.material-consumption-page__audit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--p-content-border-color);
+    strong { display: block; }
+    span { font-size: 0.8125rem; color: var(--p-text-muted-color); }
+  }
+}
+
+:host ::ng-deep {
+  .material-consumption-dialog .p-dialog-content { overflow: visible; }
+
+  .material-consumption-page__table {
+    flex: 1;
+    min-height: 0;
+    .p-datatable-wrapper { max-height: min(58vh, 560px); }
+  }
+
+  .material-consumption-page__table small {
+    display: block;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .material-consumption-page__form-grid,
+  .material-consumption-page__detail-grid { grid-template-columns: 1fr; }
+}

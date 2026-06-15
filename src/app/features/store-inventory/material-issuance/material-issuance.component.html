@@ -131,6 +131,8 @@
   (visibleChange)="formVisible.set($event)"
   [modal]="true"
   [style]="{ width: 'min(720px, 96vw)' }"
+  [contentStyle]="dialogContentStyle"
+  styleClass="material-issuance-dialog"
   [draggable]="false"
   (onHide)="closeForm()"
 >
@@ -147,21 +149,23 @@
         <label for="issueDate">Issue date</label>
         <input id="issueDate" type="date" pInputText formControlName="issueDate" />
       </div>
-      <div class="material-issuance-page__field">
-        <label for="projectId">Project</label>
-        <p-select inputId="projectId" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" (onChange)="onProjectChange()" />
-      </div>
-      <div class="material-issuance-page__field">
-        <label for="siteId">Site</label>
-        <p-select inputId="siteId" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      <div class="material-issuance-page__field-row">
+        <div class="material-issuance-page__field">
+          <label for="projectId">Project</label>
+          <p-select inputId="projectId" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" appendTo="body" [style]="{ width: '100%' }" (onChange)="onProjectChange()" />
+        </div>
+        <div class="material-issuance-page__field">
+          <label for="siteId">Site</label>
+          <p-select inputId="siteId" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" appendTo="body" [style]="{ width: '100%' }" />
+        </div>
       </div>
       <div class="material-issuance-page__field">
         <label for="warehouse">Warehouse / store</label>
-        <p-select inputId="warehouse" formControlName="warehouse" [options]="warehouseOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        <p-select inputId="warehouse" formControlName="warehouse" [options]="warehouseOptions" optionLabel="label" optionValue="value" appendTo="body" [style]="{ width: '100%' }" />
       </div>
       <div class="material-issuance-page__field">
         <label for="costCode">Cost code</label>
-        <p-select inputId="costCode" formControlName="costCode" [options]="costCodeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        <p-select inputId="costCode" formControlName="costCode" [options]="costCodeOptions" optionLabel="label" optionValue="value" appendTo="body" [style]="{ width: '100%' }" />
       </div>
       <div class="material-issuance-page__field">
         <label for="requisitionRef">Site requisition ref</label>
@@ -233,6 +237,10 @@
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel value="0">
+          <div class="material-issuance-page__boq-alert" role="alert">
+            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+            <span>Tag each material line to a BOQ item — material item code must match the BOQ item code for budget and consumption tracking.</span>
+          </div>
           @if (r.status !== 'issued') {
             <div class="material-issuance-page__tab-toolbar">
               <p-button label="Add material line (BOQ tag)" icon="pi pi-plus" size="small" (onClick)="openAddLine()" />
@@ -241,8 +249,14 @@
           <p-table [value]="r.lines" dataKey="id">
             <ng-template #header>
               <tr>
-                <th>Material</th>
-                <th>BOQ tag</th>
+                <th>
+                  Material
+                  <small>Item code</small>
+                </th>
+                <th>
+                  BOQ tag
+                  <small>BOQ item code</small>
+                </th>
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Amount</th>
@@ -360,39 +374,58 @@
   [visible]="lineFormVisible()"
   (visibleChange)="lineFormVisible.set($event)"
   [modal]="true"
-  [style]="{ width: 'min(520px, 96vw)' }"
+  [style]="{ width: 'min(560px, 96vw)' }"
+  [contentStyle]="dialogContentStyle"
+  styleClass="material-issuance-dialog"
   [draggable]="false"
   (onHide)="closeLineForm()"
 >
+  <div class="material-issuance-page__boq-alert" role="alert">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+    <span>Material item code must match the BOQ item code. Each material maps to one BOQ line for budget tracking.</span>
+  </div>
+  @if (lineBoqMismatchMsg()) {
+    <div class="material-issuance-page__boq-alert material-issuance-page__boq-alert--mismatch" role="alert">
+      <i class="pi pi-times-circle" aria-hidden="true"></i>
+      <span>{{ lineBoqMismatchMsg() }}</span>
+    </div>
+  }
   @if (lineFormError()) {
     <p class="material-issuance-page__form-error">{{ lineFormError() }}</p>
+  }
+  @if (lineQtyWarning()) {
+    <p class="material-issuance-page__qty-warning">{{ lineQtyWarning() }}</p>
   }
   <form class="material-issuance-page__form" [formGroup]="lineForm" (ngSubmit)="saveLine()">
     <div class="material-issuance-page__form-grid">
       <div class="material-issuance-page__field material-issuance-page__field--full">
-        <label for="materialCode">Material</label>
+        <label for="materialCode">Material (item code)</label>
         <p-select
           inputId="materialCode"
           formControlName="materialCode"
           [options]="materialOptions"
           optionLabel="label"
           optionValue="value"
+          appendTo="body"
           [style]="{ width: '100%' }"
           (onChange)="onMaterialChange()"
         />
       </div>
       <div class="material-issuance-page__field material-issuance-page__field--full">
-        <label for="boqItemId">BOQ tag (budget line)</label>
+        <label for="boqItemId">BOQ tag — BOQ item</label>
         <p-select
           inputId="boqItemId"
           formControlName="boqItemId"
           [options]="boqOptions"
           optionLabel="label"
           optionValue="value"
+          appendTo="body"
           [style]="{ width: '100%' }"
           (onChange)="onBoqChange()"
         />
-        <small class="material-issuance-page__field-hint">Issuance is charged to this BOQ line for budget tracking.</small>
+        <small class="material-issuance-page__field-hint material-issuance-page__field-hint--boq">
+          Required BOQ item code for this material: <strong>{{ expectedBoqItemCode() }}</strong>
+        </small>
       </div>
       <div class="material-issuance-page__field">
         <label for="issuedQty">Issued quantity</label>
@@ -405,7 +438,7 @@
     </div>
     <div class="material-issuance-page__form-actions">
       <p-button label="Cancel" [text]="true" (onClick)="closeLineForm()" />
-      <p-button type="submit" label="Save line" icon="pi pi-check" />
+      <p-button type="submit" label="Save line" icon="pi pi-check" [disabled]="!!lineBoqMismatchMsg()" />
     </div>
   </form>
 </p-dialog>

@@ -177,6 +177,26 @@ export function siteLabel(siteId: string | null): string {
   return siteId;
 }
 
+export function expectedBoqForMaterial(materialCode: string): BoqLineOption | undefined {
+  const mat = MATERIAL_CATALOG.find((m) => m.code === materialCode);
+  if (!mat) return undefined;
+  return boqLineOptions().find((o) => o.value === mat.boqItemId);
+}
+
+export function materialMatchesBoqItem(materialCode: string, boqItemId: string): boolean {
+  const mat = MATERIAL_CATALOG.find((m) => m.code === materialCode);
+  return !!mat && mat.boqItemId === boqItemId;
+}
+
+export function materialBoqMismatchDetail(materialCode: string, boqItemId: string): string | null {
+  if (!materialCode || !boqItemId) return null;
+  if (materialMatchesBoqItem(materialCode, boqItemId)) return null;
+  const expected = expectedBoqForMaterial(materialCode);
+  const selected = boqLineOptions().find((o) => o.value === boqItemId);
+  if (!expected || !selected) return null;
+  return `Material item code (${materialCode}) must match BOQ item code ${expected.itemCode}. You selected ${selected.itemCode}.`;
+}
+
 export function lineAmount(line: MaterialIssueLine): number {
   return Math.round(line.issuedQty * line.unitRate * 100) / 100;
 }
