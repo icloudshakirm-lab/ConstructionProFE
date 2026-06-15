@@ -8,6 +8,7 @@ import { StockBatchesByItemReportPageComponent } from './pages/stock-batches-by-
 import { LedgerClosingBalanceReportPageComponent } from './pages/ledger-closing-balance-report-page.component';
 import { LedgerTransactionsReportPageComponent } from './pages/ledger-transactions-report-page.component';
 import { DailySalesReportPageComponent } from './pages/daily-sales-report-page.component';
+import { JobCostMatrixReportPageComponent } from './pages/job-cost-matrix-report-page.component';
 
 @NgModule({
   imports: [
@@ -19,6 +20,7 @@ import { DailySalesReportPageComponent } from './pages/daily-sales-report-page.c
     LedgerClosingBalanceReportPageComponent,
     LedgerTransactionsReportPageComponent,
     DailySalesReportPageComponent,
+    JobCostMatrixReportPageComponent,
   ],
 })
 export class ReportsModule {}

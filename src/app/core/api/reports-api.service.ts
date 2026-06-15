@@ -11,6 +11,8 @@ import type {
   LedgerClosingBalanceDto,
   PagedResponse,
   ProfitAndLossReportDto,
+  JobCostMatrixReportDto,
+  JobCostMatrixView,
   TransactionDTO,
   TrialBalanceReportDto,
 } from './erp-api.models';
@@ -68,6 +70,24 @@ export class ReportsApiService {
   getBalanceSheet(fromDateIso: string, toDateIso: string): Observable<BalanceSheetReportDto> {
     const params = new HttpParams().set('fromDate', fromDateIso).set('toDate', toDateIso);
     return this.http.get<BalanceSheetReportDto>(`${this.baseUrl}/reports/financial/balance-sheet`, {
+      params,
+    });
+  }
+
+  /**
+   * Job mileage / project cost matrix — spend vs earn by cost center or cost category.
+   * `GET /reports/financial/job-cost-matrix?fromDate=&toDate=&view=cost-center|cost-category`
+   */
+  getJobCostMatrix(
+    fromDateIso: string,
+    toDateIso: string,
+    view: JobCostMatrixView,
+  ): Observable<JobCostMatrixReportDto> {
+    const params = new HttpParams()
+      .set('fromDate', fromDateIso)
+      .set('toDate', toDateIso)
+      .set('view', view);
+    return this.http.get<JobCostMatrixReportDto>(`${this.baseUrl}/reports/financial/job-cost-matrix`, {
       params,
     });
   }

@@ -1,0 +1,138 @@
+<div class="erp-list-page erp-list-page--full">
+  <header class="erp-list-page__header">
+    <div>
+      <p-tag value="Job mileage · Project costing" severity="info" />
+      <h1>Job cost matrix</h1>
+      <p class="erp-list-page__subtitle">
+        Compare spend vs earnings by project (cost center) or cost category for the selected period.
+      </p>
+    </div>
+  </header>
+
+  <div class="erp-list-page__toolbar">
+    <div class="erp-list-page__field">
+      <label for="jcm-from">From</label>
+      <input
+        id="jcm-from"
+        type="datetime-local"
+        class="erp-doc__input"
+        [value]="fromDateLocal()"
+        (input)="onFromDateInput($event)"
+      />
+    </div>
+    <div class="erp-list-page__field">
+      <label for="jcm-to">To</label>
+      <input
+        id="jcm-to"
+        type="datetime-local"
+        class="erp-doc__input"
+        [value]="toDateLocal()"
+        (input)="onToDateInput($event)"
+      />
+    </div>
+    <div class="erp-list-page__tabs">
+      <p-button
+        label="Cost center wise"
+        [outlined]="viewMode() !== 'cost-center'"
+        [severity]="viewMode() === 'cost-center' ? 'primary' : 'secondary'"
+        size="small"
+        (onClick)="setView('cost-center')"
+      />
+      <p-button
+        label="Cost category wise"
+        [outlined]="viewMode() !== 'cost-category'"
+        [severity]="viewMode() === 'cost-category' ? 'primary' : 'secondary'"
+        size="small"
+        (onClick)="setView('cost-category')"
+      />
+    </div>
+    <p-button label="Refresh" icon="pi pi-refresh" (onClick)="load()" [loading]="loading()" />
+  </div>
+
+  @if (report(); as r) {
+    @if (r.fromDate && r.toDate) {
+      <p class="erp-list-page__subtitle">
+        Period: {{ r.fromDate | date: 'medium' }} — {{ r.toDate | date: 'medium' }}
+        @if (r.dataSource === 'estimated') {
+          <p-tag value="Estimated project split" severity="warn" style="margin-left: 0.5rem; vertical-align: middle" />
+        } @else if (r.dataSource === 'api') {
+          <p-tag value="Live allocation" severity="success" style="margin-left: 0.5rem; vertical-align: middle" />
+        }
+      </p>
+    }
+    @if (r.note) {
+      <p class="erp-list-page__alert" style="border-color: color-mix(in srgb, var(--p-orange-500) 35%, transparent); background: color-mix(in srgb, var(--p-orange-500) 8%, var(--cp-panel-bg))">
+        {{ r.note }}
+      </p>
+    }
+  }
+
+  @if (error()) {
+    <p class="erp-list-page__alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="erp-list-page__loading">Loading job cost matrix…</p>
+  } @else if (report(); as r) {
+    <div class="job-matrix__wrap">
+      <table class="job-matrix">
+        <thead>
+          @if (showCategorySubHeaders()) {
+            <tr>
+              <th class="job-matrix__sticky-col" rowspan="2">Line item</th>
+              <th class="job-matrix__num job-matrix__period-col" rowspan="2">Period total</th>
+              @for (group of headerGroups(); track group.costCenterId) {
+                <th class="job-matrix__group-head" [attr.colspan]="group.colspan">
+                  {{ group.costCenterName }}
+                </th>
+              }
+            </tr>
+            <tr>
+              @for (col of projectCols(); track col.key) {
+                <th class="job-matrix__sub-head">{{ col.label }}</th>
+              }
+            </tr>
+          } @else {
+            <tr>
+              <th class="job-matrix__sticky-col">Line item</th>
+              <th class="job-matrix__num job-matrix__period-col">Period total</th>
+              @for (col of projectCols(); track col.key) {
+                <th class="job-matrix__sub-head">{{ col.label }}</th>
+              }
+            </tr>
+          }
+        </thead>
+        <tbody>
+          @for (row of r.rows; track row.key) {
+            @if (isSection(row)) {
+              <tr [class]="rowClass(row)">
+                <td class="job-matrix__sticky-col" [attr.colspan]="r.columns.length">
+                  {{ row.label }}
+                </td>
+              </tr>
+            } @else {
+              <tr [class]="rowClass(row)">
+                <td class="job-matrix__sticky-col">
+                  @if (row.ledgerCode) {
+                    <span class="job-matrix__code">{{ row.ledgerCode }}</span>
+                  }
+                  {{ row.label }}
+                </td>
+                @for (col of r.columns; track col.key) {
+                  <td [class]="cellClasses(row, col.key)">
+                    {{ amountFor(row, col.key) | number: '1.2-2' }}
+                  </td>
+                }
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="job-matrix__legend">
+      <span><span class="job-matrix__legend-swatch job-matrix__earn"></span> Earnings / income</span>
+      <span><span class="job-matrix__legend-swatch job-matrix__spend"></span> Spend / expense</span>
+    </div>
+  }
+</div>

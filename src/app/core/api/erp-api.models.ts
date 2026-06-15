@@ -359,6 +359,52 @@ export interface ProfitAndLossLineDto {
   amount: number;
 }
 
+/** `GET /reports/financial/job-cost-matrix?fromDate=&toDate=&view=` */
+export type JobCostMatrixView = 'cost-center' | 'cost-category';
+
+export type JobCostColumnKind = 'period-total' | 'cost-center' | 'cost-category';
+
+export interface JobCostMatrixColumnDto {
+  key: string;
+  label: string;
+  kind: JobCostColumnKind;
+  costCenterId?: number | null;
+  costCenterName?: string | null;
+  costCategoryId?: number | null;
+  costCategoryName?: string | null;
+}
+
+export type JobCostRowKind =
+  | 'section'
+  | 'material-total'
+  | 'labour-total'
+  | 'overhead-total'
+  | 'expense-ledger'
+  | 'income-ledger'
+  | 'subtotal-expense'
+  | 'subtotal-income'
+  | 'net-project';
+
+export interface JobCostMatrixRowDto {
+  key: string;
+  label: string;
+  kind: JobCostRowKind;
+  ledgerId?: number | null;
+  ledgerCode?: string | null;
+  amounts: Record<string, number>;
+}
+
+export interface JobCostMatrixReportDto {
+  fromDate?: string;
+  toDate?: string;
+  viewMode: JobCostMatrixView;
+  columns: JobCostMatrixColumnDto[];
+  rows: JobCostMatrixRowDto[];
+  /** `api` when served by backend; `estimated` when built from P&L + master data. */
+  dataSource?: 'api' | 'estimated';
+  note?: string | null;
+}
+
 /** `GET /reports/financial/balance-sheet?fromDate=&toDate=` */
 export interface BalanceSheetReportDto {
   fromDate?: string;

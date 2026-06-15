@@ -6,6 +6,7 @@ import { StockBatchesByItemReportPageComponent } from './pages/stock-batches-by-
 import { LedgerClosingBalanceReportPageComponent } from './pages/ledger-closing-balance-report-page.component';
 import { LedgerTransactionsReportPageComponent } from './pages/ledger-transactions-report-page.component';
 import { DailySalesReportPageComponent } from './pages/daily-sales-report-page.component';
+import { JobCostMatrixReportPageComponent } from './pages/job-cost-matrix-report-page.component';
 
 export const reportsRoutes: Routes = [
   { path: '', component: ReportsHomePageComponent },
@@ -15,5 +16,6 @@ export const reportsRoutes: Routes = [
   { path: 'ledgers/closing-balance', component: LedgerClosingBalanceReportPageComponent },
   { path: 'ledgers/transactions', component: LedgerTransactionsReportPageComponent },
   { path: 'sales/daily', component: DailySalesReportPageComponent },
+  { path: 'job-cost-matrix', component: JobCostMatrixReportPageComponent },
 ];
 

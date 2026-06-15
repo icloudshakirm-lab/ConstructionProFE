@@ -69,6 +69,12 @@ export class ReportsHomePageComponent {
       icon: 'pi pi-list',
     },
     {
+      title: 'Job cost matrix',
+      description: 'Project spend vs earnings — material, labour, overhead, and all income/expense ledgers by cost center.',
+      route: ['/erp', 'reports', 'job-cost-matrix'],
+      icon: 'pi pi-compass',
+    },
+    {
       title: 'Sales · Daily sales report',
       description: 'Daily POS / sales totals for a chosen date.',
       route: ['/erp', 'reports', 'sales', 'daily'],

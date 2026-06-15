@@ -82,6 +82,11 @@ export const ERP_NAV_ITEMS: ErpNavItem[] = [
         label: 'Ledger Transactions',
         route: '/erp/reports/ledgers/transactions',
         icon: 'pi pi-list'
+      },
+      {
+        label: 'Job Cost Matrix',
+        route: '/erp/reports/job-cost-matrix',
+        icon: 'pi pi-compass'
       }
     ]
   },
