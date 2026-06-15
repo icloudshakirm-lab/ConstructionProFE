@@ -8,22 +8,21 @@
   [style]="{ width: 'min(calc(100vw - 2rem), 52rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert mb-3">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
     <div class="mb-4 flex flex-wrap justify-end gap-2">
-      <a
-        [routerLink]="['/app/inventory-transactions/quotations', r.id, 'edit']"
-        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 no-underline dark:border-slate-600 dark:text-slate-200"
-        (click)="onVisibilityChange(false)"
-      >
-        Edit
-      </a>
+      <p-button
+        label="Edit"
+        icon="pi pi-pencil"
+        size="small"
+        [outlined]="true"
+        [routerLink]="['/erp/inventory-transactions/quotations', r.id, 'edit']"
+        (onClick)="onVisibilityChange(false)"
+      />
       @if (canDelete()) {
         <p-button
           label="Delete"

@@ -259,7 +259,7 @@ export class PoFormPageComponent implements OnInit {
   }
 
   cancel(): void {
-    void this.router.navigateByUrl('/app/inventory-transactions/po');
+    void this.router.navigateByUrl('/erp/inventory-transactions/po');
   }
 
   submit(): void {
@@ -303,7 +303,7 @@ export class PoFormPageComponent implements OnInit {
           lines,
         })
         .subscribe({
-          next: () => void this.router.navigateByUrl('/app/inventory-transactions/po'),
+          next: () => void this.router.navigateByUrl('/erp/inventory-transactions/po'),
           error: (e) => {
             this.error.set(apiErrorMessage(e));
             this.saving.set(false);
@@ -331,7 +331,7 @@ export class PoFormPageComponent implements OnInit {
           lines,
         })
         .subscribe({
-          next: () => void this.router.navigateByUrl('/app/inventory-transactions/po'),
+          next: () => void this.router.navigateByUrl('/erp/inventory-transactions/po'),
           error: (e) => {
             this.error.set(apiErrorMessage(e));
             this.saving.set(false);

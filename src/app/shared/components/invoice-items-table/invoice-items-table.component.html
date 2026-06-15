@@ -1,84 +1,57 @@
-<div class="invoice-items flex flex-col gap-3">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Line items</h3>
-    <div class="flex flex-wrap items-center gap-3">
+<div class="erp-lines">
+  <div class="erp-lines__toolbar">
+    <h3>Line items</h3>
+    <div class="erp-lines__toolbar-actions">
       <button
         type="button"
-        class="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
-        [class.border-rose-300]="salesReturnMode"
-        [class.bg-rose-50]="salesReturnMode"
-        [class.dark:border-rose-800]="salesReturnMode"
-        [class.dark:bg-rose-950/40]="salesReturnMode"
-        [class.border-slate-300]="!salesReturnMode"
-        [class.bg-white]="!salesReturnMode"
-        [class.dark:border-slate-600]="!salesReturnMode"
-        [class.dark:bg-slate-900]="!salesReturnMode"
+        class="erp-doc__chip-btn"
+        [class.erp-doc__chip-btn--active]="salesReturnMode"
         [attr.aria-pressed]="salesReturnMode"
         (click)="toggleSalesReturnMode()"
       >
-        <span
-          class="inline-block h-2 w-2 rounded-full"
-          [class.bg-rose-500]="salesReturnMode"
-          [class.bg-slate-300]="!salesReturnMode"
-          aria-hidden="true"
-        ></span>
-        <span class="text-slate-800 dark:text-slate-100">Sales return</span>
+        <span class="erp-doc__chip-dot" aria-hidden="true"></span>
+        Sales return
       </button>
-      <button
-        type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        (click)="addRow()"
-      >
-        <i class="pi pi-plus mr-1" aria-hidden="true"></i>
-        Add line
-      </button>
+      <p-button label="Add line" icon="pi pi-plus" size="small" (onClick)="addRow()" />
     </div>
   </div>
+
   @if (salesReturnMode) {
-    <p class="text-xs text-rose-800 dark:text-rose-200/90">
-      Sales return mode: new lines are returns and return rows stay at the bottom. Turn off to restore the
-      previous row order.
+    <p class="erp-doc__hint-alert">
+      Sales return mode: new lines are returns and stay at the bottom. Turn off to restore row order.
     </p>
   }
 
-  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="min-w-full border-collapse text-left text-sm">
+  <div class="cp-data-grid">
+    <table class="cp-data-grid__table erp-lines__table">
       <thead>
-        <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/80">
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Type</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Item name</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Batch</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Qty</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Rate</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Amount</th>
-          <th class="px-3 py-2 font-medium text-slate-700 dark:text-slate-300">Actions</th>
+        <tr>
+          <th>Type</th>
+          <th>Item name</th>
+          <th>Batch</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th class="cp-data-grid__num">Amount</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         @for (line of lineGroups; track trackByLineId($index, line); let i = $index) {
           <tr
-            class="border-b border-slate-100 dark:border-slate-800"
-            [class.bg-rose-50/70]="isReturnLine(line)"
-            [class.dark:bg-rose-950/25]="isReturnLine(line)"
+            [class.erp-lines__row--return]="isReturnLine(line)"
+            [class.erp-lines__row--edit]="isEditing(line)"
             [formGroup]="line"
           >
             @if (isEditing(line)) {
-              <td class="px-3 py-2 align-middle">
+              <td>
                 <span
-                  class="inline-flex rounded px-2 py-0.5 text-xs font-medium"
-                  [class.bg-slate-200]="!isReturnLine(line)"
-                  [class.text-slate-800]="!isReturnLine(line)"
-                  [class.dark:bg-slate-700]="!isReturnLine(line)"
-                  [class.dark:text-slate-100]="!isReturnLine(line)"
-                  [class.bg-rose-200]="isReturnLine(line)"
-                  [class.text-rose-900]="isReturnLine(line)"
-                  [class.dark:bg-rose-900]="isReturnLine(line)"
-                  [class.dark:text-rose-100]="isReturnLine(line)"
+                  class="erp-lines__type"
+                  [class.erp-lines__type--return]="isReturnLine(line)"
                 >
                   {{ isReturnLine(line) ? 'Return' : 'Sale' }}
                 </span>
               </td>
-              <td class="px-3 py-2 align-top">
+              <td>
                 <p-select
                   formControlName="itemId"
                   [options]="itemOptions()"
@@ -89,14 +62,14 @@
                   filterBy="label"
                   filterPlaceholder="Search item..."
                   [showClear]="true"
-                  [appendTo]="'body'"
+                  appendTo="body"
                   size="small"
-                  styleClass="w-full min-w-[12rem] invoice-item-p-select"
+                  styleClass="erp-lines__select"
                   (onFilter)="onItemFilter($event)"
                   (onChange)="onItemChanged(line)"
                 />
               </td>
-              <td class="px-3 py-2 align-top">
+              <td>
                 <p-select
                   formControlName="batchId"
                   [options]="getLineBatchOptions(line)"
@@ -107,99 +80,58 @@
                   filterBy="label,value"
                   filterPlaceholder="Search week…"
                   [showClear]="true"
-                  [appendTo]="'body'"
+                  appendTo="body"
                   size="small"
-                  styleClass="w-full min-w-[9rem] invoice-batch-p-select"
+                  styleClass="erp-lines__select"
                   (onChange)="onBatchChanged(line)"
                 />
               </td>
-              <td class="px-3 py-2 align-top">
+              <td>
                 <input
                   type="number"
                   formControlName="qty"
                   min="0"
                   step="0.01"
-                  class="w-24 rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950"
+                  class="erp-doc__input erp-doc__input--cell"
                   (input)="recalcAmount(line)"
                 />
               </td>
-              <td class="px-3 py-2 align-top">
+              <td>
                 <input
                   type="number"
                   formControlName="rate"
                   min="0"
                   step="0.01"
-                  class="w-28 rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950"
+                  class="erp-doc__input erp-doc__input--cell erp-doc__input--amount"
                   (input)="recalcAmount(line)"
                 />
               </td>
-              <td class="px-3 py-2 align-middle text-slate-800 dark:text-slate-100">
-                {{ line.get('amount')?.value | number: '1.2-2' }}
-              </td>
-              <td class="px-3 py-2 align-top">
-                <div class="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    class="rounded bg-[var(--p-primary-color)] px-2 py-1 text-xs font-medium text-[var(--p-primary-contrast-color)]"
-                    (click)="saveEdit(line)"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-600"
-                    (click)="cancelEdit(line)"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded border border-red-200 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:text-red-400"
-                    (click)="removeRow(i)"
-                  >
-                    Remove
-                  </button>
+              <td class="cp-data-grid__num">{{ line.get('amount')?.value | number: '1.2-2' }}</td>
+              <td class="erp-lines__cell-actions">
+                <div class="cp-data-grid__row-actions">
+                  <p-button label="Save" size="small" (onClick)="saveEdit(line)" />
+                  <p-button label="Cancel" size="small" [text]="true" (onClick)="cancelEdit(line)" />
+                  <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeRow(i)" />
                 </div>
               </td>
             } @else {
-              <td class="px-3 py-2 align-middle">
+              <td>
                 <span
-                  class="inline-flex rounded px-2 py-0.5 text-xs font-medium"
-                  [class.bg-slate-100]="!isReturnLine(line)"
-                  [class.text-slate-800]="!isReturnLine(line)"
-                  [class.dark:bg-slate-800]="!isReturnLine(line)"
-                  [class.dark:text-slate-100]="!isReturnLine(line)"
-                  [class.bg-rose-100]="isReturnLine(line)"
-                  [class.text-rose-900]="isReturnLine(line)"
-                  [class.dark:bg-rose-900/60]="isReturnLine(line)"
-                  [class.dark:text-rose-100]="isReturnLine(line)"
+                  class="erp-lines__type"
+                  [class.erp-lines__type--return]="isReturnLine(line)"
                 >
                   {{ isReturnLine(line) ? 'Return' : 'Sale' }}
                 </span>
               </td>
-              <td class="px-3 py-2 text-slate-800 dark:text-slate-100">{{ line.get('itemName')?.value }}</td>
-              <td class="px-3 py-2 text-slate-700 dark:text-slate-300">
-                {{ batchLabel(line) }}
-              </td>
-              <td class="px-3 py-2">{{ line.get('qty')?.value }}</td>
-              <td class="px-3 py-2">{{ line.get('rate')?.value }}</td>
-              <td class="px-3 py-2">{{ line.get('amount')?.value | number: '1.2-2' }}</td>
-              <td class="px-3 py-2">
-                <div class="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    class="rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-600"
-                    (click)="startEdit(line)"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded border border-red-200 px-2 py-1 text-xs text-red-700 dark:border-red-900 dark:text-red-400"
-                    (click)="removeRow(i)"
-                  >
-                    Remove
-                  </button>
+              <td>{{ line.get('itemName')?.value }}</td>
+              <td>{{ batchLabel(line) }}</td>
+              <td>{{ line.get('qty')?.value }}</td>
+              <td class="cp-data-grid__num">{{ line.get('rate')?.value }}</td>
+              <td class="cp-data-grid__num">{{ line.get('amount')?.value | number: '1.2-2' }}</td>
+              <td class="erp-lines__cell-actions">
+                <div class="cp-data-grid__row-actions">
+                  <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="startEdit(line)" />
+                  <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeRow(i)" />
                 </div>
               </td>
             }

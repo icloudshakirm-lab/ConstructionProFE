@@ -8,35 +8,34 @@
   [style]="{ width: 'min(calc(100vw - 2rem), 52rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert mb-3">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
     <div class="mb-4 flex flex-wrap justify-end gap-2">
-      <a
-        [routerLink]="['/app/inventory-transactions/po', r.id, 'edit']"
-        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 no-underline dark:border-slate-600 dark:text-slate-200"
-        (click)="onVisibilityChange(false)"
-      >
-        Edit
-      </a>
+      <p-button
+        label="Edit"
+        icon="pi pi-pencil"
+        size="small"
+        [outlined]="true"
+        [routerLink]="['/erp/inventory-transactions/po', r.id, 'edit']"
+        (onClick)="onVisibilityChange(false)"
+      />
     </div>
 
-    <dl class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+    <dl class="erp-doc__grid-2 mb-4 text-sm">
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">Vendor</dt>
-        <dd class="font-medium">{{ r.vendorName }} <span class="font-mono text-xs text-slate-400">({{ r.vendorCode }})</span></dd>
+        <dt class="erp-doc__label">Vendor</dt>
+        <dd>{{ r.vendorName }} <span class="erp-doc__subtitle">({{ r.vendorCode }})</span></dd>
       </div>
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">Status</dt>
+        <dt class="erp-doc__label">Status</dt>
         <dd><app-document-status-badge [status]="r.status" /></dd>
       </div>
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">Order date</dt>
+        <dt class="erp-doc__label">Order date</dt>
         <dd>{{ r.orderDate | date: 'medium' }}</dd>
       </div>
       <div>
@@ -63,10 +62,10 @@
       }
     </dl>
 
-    <div class="overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
+    <div class="cp-data-grid">
       <table class="cp-data-grid__table">
         <thead>
-          <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+          <tr>
             <th>#</th>
             <th>Item</th>
             <th>Qty</th>

@@ -2,6 +2,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { FormsModule } from '@angular/forms';
 import { DeliveryNotesApiService } from '../../../../core/api/delivery-notes-api.service';
 import type { DeliveryNoteListItemDto } from '../../../../core/api/erp-api.models';
@@ -25,6 +28,9 @@ import { DocumentStatusBadgeComponent } from '../../../../shared/components/docu
     RouterLink,
     Select,
     FormsModule,
+    Button,
+    TableModule,
+    Tag,
     DnViewDialogComponent,
     DnFromQuotationDialogComponent,
     DocumentStatusBadgeComponent,

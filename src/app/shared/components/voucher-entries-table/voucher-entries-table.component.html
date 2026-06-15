@@ -1,135 +1,87 @@
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
-  <table class="w-full border-collapse text-left text-sm">
-    <thead>
-      <tr class="border-b border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
-        <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Ledger Account</th>
-        <th class="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Description</th>
-        <th class="w-32 px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Amount</th>
-        <th class="w-24 px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Actions</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-      @for (line of lineGroups; track trackByLineId($index, line)) {
-        <tr
-          class="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-          [class.bg-emerald-50/30]="isEditing(line)"
-          [formGroup]="line"
-        >
-          <!-- Ledger selection -->
-          <td class="px-3 py-2">
-            @if (isEditing(line)) {
-              <p-select
-                appendTo="body"
-                formControlName="ledgerId"
-                [options]="ledgerOptions()"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select Ledger"
-                [filter]="true"
-                filterBy="label"
-                (onFilter)="onLedgerFilter($event)"
-                styleClass="ledger-p-select"
-              />
-            } @else {
-              <span class="px-2 font-medium text-slate-900 dark:text-slate-100 italic">
-                {{ line.get('ledgerName')?.value || 'No ledger selected' }}
-              </span>
-            }
-          </td>
+<div class="erp-lines">
+  <div class="erp-lines__toolbar">
+    <h3>Voucher lines</h3>
+    <div class="erp-lines__toolbar-actions">
+      <p-button label="Add line" icon="pi pi-plus" size="small" (onClick)="addRow()" />
+    </div>
+  </div>
 
-          <!-- Description -->
-          <td class="px-3 py-2">
-            @if (isEditing(line)) {
-              <input
-                type="text"
-                formControlName="description"
-                placeholder="Optional description"
-                class="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-950"
-              />
-            } @else {
-              <span class="px-2 text-slate-600 dark:text-slate-400">
-                {{ line.get('description')?.value || '-' }}
-              </span>
-            }
-          </td>
-
-          <!-- Amount -->
-          <td class="px-3 py-2 text-right">
-            @if (isEditing(line)) {
-              <input
-                type="number"
-                formControlName="amount"
-                class="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-950"
-              />
-            } @else {
-              <span class="px-2 font-mono font-bold text-slate-900 dark:text-slate-100">
-                {{ line.get('amount')?.value | number: '1.2-2' }}
-              </span>
-            }
-          </td>
-
-          <!-- Actions -->
-          <td class="px-3 py-2">
-            <div class="flex items-center justify-center gap-1">
-              @if (isEditing(line)) {
-                <button
-                  type="button"
-                  (click)="saveEdit(line)"
-                  class="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
-                  title="Save Row"
-                >
-                  <i class="pi pi-check text-xs"></i>
-                </button>
-                <button
-                  type="button"
-                  (click)="cancelEdit(line)"
-                  class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-800"
-                  title="Cancel"
-                >
-                  <i class="pi pi-times text-xs"></i>
-                </button>
-              } @else {
-                <button
-                  type="button"
-                  (click)="startEdit(line)"
-                  class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-                  title="Edit Row"
-                >
-                  <i class="pi pi-pencil text-xs"></i>
-                </button>
-                <button
-                  type="button"
-                  (click)="removeRow($index)"
-                  class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
-                  title="Delete Row"
-                >
-                  <i class="pi pi-trash text-xs"></i>
-                </button>
-              }
-            </div>
-          </td>
-        </tr>
-      } @empty {
+  <div class="cp-data-grid">
+    <table class="cp-data-grid__table erp-lines__table">
+      <thead>
         <tr>
-          <td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
-            No entries added yet. Click "Add Line" to begin.
-          </td>
+          <th>Ledger account</th>
+          <th>Description</th>
+          <th class="cp-data-grid__num">Amount</th>
+          <th>Actions</th>
         </tr>
-      }
-    </tbody>
-    <tfoot>
-      <tr class="bg-slate-50/30 dark:bg-slate-800/20">
-        <td colspan="4" class="px-3 py-2">
-          <button
-            type="button"
-            (click)="addRow()"
-            class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+      </thead>
+      <tbody>
+        @for (line of lineGroups; track trackByLineId($index, line); let i = $index) {
+          <tr
+            [class.erp-lines__row--edit]="isEditing(line)"
+            [formGroup]="line"
           >
-            <i class="pi pi-plus text-xs"></i>
-            Add Line
-          </button>
-        </td>
-      </tr>
-    </tfoot>
-  </table>
+            <td>
+              @if (isEditing(line)) {
+                <p-select
+                  appendTo="body"
+                  formControlName="ledgerId"
+                  [options]="ledgerOptions()"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select ledger"
+                  [filter]="true"
+                  filterBy="label"
+                  (onFilter)="onLedgerFilter($event)"
+                  size="small"
+                  styleClass="erp-lines__select"
+                />
+              } @else {
+                {{ line.get('ledgerName')?.value || 'No ledger selected' }}
+              }
+            </td>
+            <td>
+              @if (isEditing(line)) {
+                <input
+                  type="text"
+                  formControlName="description"
+                  placeholder="Optional description"
+                  class="erp-doc__input erp-doc__input--cell"
+                />
+              } @else {
+                {{ line.get('description')?.value || '—' }}
+              }
+            </td>
+            <td class="cp-data-grid__num">
+              @if (isEditing(line)) {
+                <input
+                  type="number"
+                  formControlName="amount"
+                  class="erp-doc__input erp-doc__input--cell erp-doc__input--amount"
+                />
+              } @else {
+                {{ line.get('amount')?.value | number: '1.2-2' }}
+              }
+            </td>
+            <td class="erp-lines__cell-actions">
+              <div class="cp-data-grid__row-actions">
+                @if (isEditing(line)) {
+                  <p-button icon="pi pi-check" size="small" severity="success" [text]="true" (onClick)="saveEdit(line)" pTooltip="Save" />
+                  <p-button icon="pi pi-times" size="small" [text]="true" (onClick)="cancelEdit(line)" pTooltip="Cancel" />
+                } @else {
+                  <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="startEdit(line)" pTooltip="Edit" />
+                  <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeRow(i)" pTooltip="Remove" />
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="cp-data-grid__empty">No entries yet. Click Add line to begin.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

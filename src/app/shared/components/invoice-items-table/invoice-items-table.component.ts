@@ -3,6 +3,7 @@ import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, signal } from 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
 import { InvoiceLineJson, InvoiceLineKind } from '../../../features/erp/invoices/models/sales-invoice.model';
 import {
   BATCH_WEEK_SELECT_OPTIONS,
@@ -16,7 +17,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, catchError, of 
 @Component({
   selector: 'app-invoice-items-table',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, Select],
+  imports: [DecimalPipe, ReactiveFormsModule, Select, Button],
   templateUrl: './invoice-items-table.component.html',
   styles: [
     `

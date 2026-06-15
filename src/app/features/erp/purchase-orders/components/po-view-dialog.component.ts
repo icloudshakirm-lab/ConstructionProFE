@@ -10,6 +10,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { PurchaseOrdersApiService } from '../../../../core/api/purchase-orders-api.service';
 import type { PurchaseOrderDto } from '../../../../core/api/erp-api.models';
@@ -19,7 +20,7 @@ import { DocumentStatusBadgeComponent } from '../../../../shared/components/docu
 @Component({
   standalone: true,
   selector: 'app-po-view-dialog',
-  imports: [DecimalPipe, DatePipe, Dialog, RouterLink, DocumentStatusBadgeComponent],
+  imports: [DecimalPipe, DatePipe, Dialog, RouterLink, Button, DocumentStatusBadgeComponent],
   templateUrl: './po-view-dialog.component.html',
 })
 export class PoViewDialogComponent implements OnChanges {

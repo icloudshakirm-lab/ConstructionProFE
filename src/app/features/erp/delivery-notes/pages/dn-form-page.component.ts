@@ -271,7 +271,7 @@ export class DnFormPageComponent implements OnInit {
   }
 
   cancel(): void {
-    void this.router.navigateByUrl('/app/inventory-transactions/delivery-notes');
+    void this.router.navigateByUrl('/erp/inventory-transactions/delivery-notes');
   }
 
   submit(): void {
@@ -313,7 +313,7 @@ export class DnFormPageComponent implements OnInit {
 
     if (this.isEdit() && this.dnId() != null) {
       this.api.update(this.dnId()!, bodyBase).subscribe({
-        next: () => void this.router.navigateByUrl('/app/inventory-transactions/delivery-notes'),
+        next: () => void this.router.navigateByUrl('/erp/inventory-transactions/delivery-notes'),
         error: (e) => {
           this.error.set(apiErrorMessage(e));
           this.saving.set(false);
@@ -327,7 +327,7 @@ export class DnFormPageComponent implements OnInit {
         return;
       }
       this.api.create({ dnNumber, ...bodyBase }).subscribe({
-        next: () => void this.router.navigateByUrl('/app/inventory-transactions/delivery-notes'),
+        next: () => void this.router.navigateByUrl('/erp/inventory-transactions/delivery-notes'),
         error: (e) => {
           this.error.set(apiErrorMessage(e));
           this.saving.set(false);

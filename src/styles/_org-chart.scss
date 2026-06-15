@@ -1,0 +1,45 @@
+/* PrimeNG OrganizationChart — shared connector + layout fixes */
+
+.shell__content .p-organizationchart,
+.p-organizationchart {
+  .p-organizationchart-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .p-organizationchart-table > tbody > tr > td {
+    background: transparent;
+    padding: 0 0.35rem;
+    vertical-align: top;
+  }
+
+  /* PrimeNG draws two vertical segments for single-child nodes; hide the duplicate */
+  .p-organizationchart-connectors + .p-organizationchart-connectors .p-organizationchart-connector-down {
+    display: none;
+  }
+
+  .p-organizationchart-connector-down {
+    width: 2px;
+    margin: 0 auto;
+    background: var(--p-text-muted-color);
+    border: none !important;
+  }
+
+  .p-organizationchart-connector-left,
+  .p-organizationchart-connector-right {
+    border-color: var(--p-text-muted-color);
+  }
+
+  .p-organizationchart-connector-top {
+    border-block-start-color: var(--p-text-muted-color);
+  }
+
+  /* Custom node templates supply their own card chrome */
+  .p-organizationchart-node:has(.node),
+  .p-organizationchart-node:has(.milestones-column) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+}

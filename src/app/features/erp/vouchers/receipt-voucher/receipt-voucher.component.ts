@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
 import { catchError, debounceTime, distinctUntilChanged, merge, of, startWith, Subject, switchMap } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { LookupsApiService } from '../../../../core/api/lookups-api.service';
@@ -24,6 +25,7 @@ import { VoucherJson, VoucherLineJson } from '../models/voucher.model';
     ReactiveFormsModule,
     DatePicker,
     Select,
+    Button,
     VoucherEntriesTableComponent,
   ],
   templateUrl: './receipt-voucher.component.html',

@@ -1,17 +1,14 @@
-<div class="space-y-4">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="erp-list-page">
+  <header class="erp-list-page__header">
     <div>
-      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Purchase orders</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">API: <span class="font-mono text-xs">/purchase-orders</span></p>
+      <p-tag value="Inventory · PO" severity="info" />
+      <h1>Purchase orders</h1>
+      <p class="erp-list-page__subtitle">Vendor purchase orders with line items, delivery dates, and status tracking.</p>
     </div>
-    <a
-      routerLink="/app/inventory-transactions/po/new"
-      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] no-underline shadow-sm hover:opacity-95"
-    >
-      <i class="pi pi-plus" aria-hidden="true"></i>
-      New PO
-    </a>
-  </div>
+    <div class="erp-list-page__header-actions">
+      <p-button label="New PO" icon="pi pi-plus" routerLink="/erp/inventory-transactions/po/new" />
+    </div>
+  </header>
 
   <app-po-view-dialog
     [visible]="viewVisible()"
@@ -20,10 +17,11 @@
     (saved)="onViewSaved()"
   />
 
-  <div class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/50">
-    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-      <span class="font-medium">Status</span>
+  <section class="erp-list-page__toolbar">
+    <div class="erp-list-page__field erp-list-page__field--narrow">
+      <label for="po-status">Status</label>
       <p-select
+        inputId="po-status"
         [options]="statusOptions"
         [ngModel]="filterStatus()"
         (ngModelChange)="filterStatus.set($event)"
@@ -31,95 +29,88 @@
         optionValue="value"
         placeholder="All"
         [showClear]="true"
-        [appendTo]="'body'"
-        styleClass="w-40"
+        appendTo="body"
+        [style]="{ minWidth: 'min(150px, 28vw)' }"
       />
-    </label>
-    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-      <span class="font-medium">From</span>
+    </div>
+    <div class="erp-list-page__field">
+      <label for="po-from">From</label>
       <input
+        id="po-from"
         type="datetime-local"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        class="erp-doc__input"
         [value]="filterFromLocal()"
         (input)="onFromInput($event)"
       />
-    </label>
-    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-      <span class="font-medium">To</span>
+    </div>
+    <div class="erp-list-page__field">
+      <label for="po-to">To</label>
       <input
+        id="po-to"
         type="datetime-local"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        class="erp-doc__input"
         [value]="filterToLocal()"
         (input)="onToInput($event)"
       />
-    </label>
-    <button
-      type="button"
-      class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)]"
-      (click)="load()"
-    >
-      Search
-    </button>
-  </div>
+    </div>
+    <p-button label="Search" icon="pi pi-search" (onClick)="load()" />
+    <span class="erp-list-page__count">{{ rows().length }} order(s)</span>
+  </section>
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-list-page__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading purchase orders…</p>
   } @else {
-    <div class="cp-data-grid">
-      <table class="cp-data-grid__table">
-        <thead>
-          <tr>
-            <th>PO #</th>
-            <th>Date</th>
-            <th>Vendor</th>
-            <th>Status</th>
-            <th>Lines</th>
-            <th>Total</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.id) {
-            <tr>
-              <td>{{ row.poNumber }}</td>
-              <td>{{ row.orderDate | date: 'mediumDate' }}</td>
-              <td>{{ row.vendorName }}</td>
-              <td>
-                <app-document-status-badge [status]="row.status" />
-              </td>
-              <td>{{ row.lineCount }}</td>
-              <td>{{ row.totalAmount | number: '1.2-2' }}</td>
-              <td>
-                <div class="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    class="cursor-pointer border-0 bg-transparent p-0 text-sm text-[var(--p-primary-color)]"
-                    (click)="openView(row.id)"
-                  >
-                    View
-                  </button>
-                  <a
-                    [routerLink]="['/app/inventory-transactions/po', row.id, 'edit']"
-                    class="text-sm text-[var(--p-primary-color)] no-underline"
-                  >
-                    Edit
-                  </a>
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="7" class="cp-data-grid__empty">No purchase orders found.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <p-table
+      [value]="rows()"
+      [rows]="10"
+      [paginator]="rows().length > 10"
+      dataKey="id"
+      styleClass="cp-data-grid"
+      [scrollable]="true"
+      scrollHeight="flex"
+    >
+      <ng-template #header>
+        <tr>
+          <th>PO #</th>
+          <th>Date</th>
+          <th>Vendor</th>
+          <th>Status</th>
+          <th>Lines</th>
+          <th class="erp-list-page__num">Total</th>
+          <th style="width: 8rem">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td><strong>{{ row.poNumber }}</strong></td>
+          <td>{{ row.orderDate | date: 'mediumDate' }}</td>
+          <td>{{ row.vendorName }}</td>
+          <td><app-document-status-badge [status]="row.status" /></td>
+          <td>{{ row.lineCount }}</td>
+          <td class="erp-list-page__num">{{ row.totalAmount | number: '1.2-2' }}</td>
+          <td>
+            <div class="cp-data-grid__row-actions">
+              <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="View" (onClick)="openView(row.id)" />
+              <p-button
+                icon="pi pi-pencil"
+                [rounded]="true"
+                [text]="true"
+                title="Edit"
+                [routerLink]="['/erp/inventory-transactions/po', row.id, 'edit']"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="7" class="cp-data-grid__empty">No purchase orders found.</td>
+        </tr>
+      </ng-template>
+    </p-table>
   }
 </div>

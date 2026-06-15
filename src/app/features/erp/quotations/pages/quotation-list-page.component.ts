@@ -2,6 +2,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { FormsModule } from '@angular/forms';
 import { QuotationsApiService } from '../../../../core/api/quotations-api.service';
 import type { QuotationListItemDto } from '../../../../core/api/erp-api.models';
@@ -18,7 +21,18 @@ import { DocumentStatusBadgeComponent } from '../../../../shared/components/docu
 @Component({
   standalone: true,
   selector: 'app-quotation-list-page',
-  imports: [DecimalPipe, DatePipe, RouterLink, Select, FormsModule, QuotationViewDialogComponent, DocumentStatusBadgeComponent],
+  imports: [
+    DecimalPipe,
+    DatePipe,
+    RouterLink,
+    Select,
+    FormsModule,
+    Button,
+    TableModule,
+    Tag,
+    QuotationViewDialogComponent,
+    DocumentStatusBadgeComponent,
+  ],
   templateUrl: './quotation-list-page.component.html',
 })
 export class QuotationListPageComponent implements OnInit {

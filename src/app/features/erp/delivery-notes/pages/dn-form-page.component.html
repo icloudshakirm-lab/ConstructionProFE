@@ -1,29 +1,25 @@
-<div class="dn-form mx-auto max-w-6xl space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="erp-doc dn-form">
+  <div class="erp-doc__header">
     <div>
-      <a routerLink="/app/inventory-transactions/delivery-notes" class="text-sm text-[var(--p-primary-color)] no-underline">← Back to list</a>
-      <h2 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
-        {{ isEdit() ? 'Edit delivery note' : 'New delivery note' }}
-      </h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">Goods dispatch document — no ledger or stock posting.</p>
+      <p-button label="Back to list" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/inventory-transactions/delivery-notes" />
+      <h2 style="margin: 0.5rem 0 0; font-size: 1.5rem; font-weight: 700">{{ isEdit() ? 'Edit delivery note' : 'New delivery note' }}</h2>
+      <p class="erp-doc__subtitle">Goods dispatch document — no ledger or stock posting.</p>
     </div>
     @if (form.get('dnNumber')?.value) {
-      <span class="rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 font-mono text-sm font-bold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
-        {{ form.get('dnNumber')?.value }}
-      </span>
+      <span class="erp-doc__badge erp-doc__badge--purchase">{{ form.get('dnNumber')?.value }}</span>
     }
   </div>
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ error() }}</p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading delivery note…</p>
+    <p class="erp-list-page__loading">Loading delivery note…</p>
   } @else {
-    <form class="space-y-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-      <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Delivery note details</h3>
+    <form class="erp-doc__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+      <section class="erp-doc__section">
+        <div class="erp-doc__section-head"><h3>Delivery note details</h3></div>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium">DN number</label>

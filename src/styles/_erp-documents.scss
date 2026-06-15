@@ -1,0 +1,409 @@
+/* ERP transaction documents — invoices, vouchers (ConstructPro layout, no Tailwind) */
+
+.erp-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.erp-doc__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.erp-doc__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+  max-width: 42rem;
+}
+
+.erp-doc__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--cp-subtle-bg);
+  color: var(--p-text-color);
+}
+
+.erp-doc__badge--sales,
+.erp-doc__badge--receipt {
+  border-color: color-mix(in srgb, var(--p-green-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-green-500) 12%, var(--cp-panel-bg));
+  color: var(--p-green-700);
+}
+
+html.app-dark .erp-doc__badge--sales,
+html.app-dark .erp-doc__badge--receipt {
+  color: var(--p-green-300);
+}
+
+.erp-doc__badge--purchase {
+  border-color: color-mix(in srgb, var(--p-blue-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-blue-500) 12%, var(--cp-panel-bg));
+  color: var(--p-blue-700);
+}
+
+html.app-dark .erp-doc__badge--purchase {
+  color: var(--p-blue-300);
+}
+
+.erp-doc__badge--payment {
+  border-color: color-mix(in srgb, var(--p-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-red-500) 10%, var(--cp-panel-bg));
+  color: var(--p-red-700);
+}
+
+html.app-dark .erp-doc__badge--payment {
+  color: var(--p-red-300);
+}
+
+.erp-doc__badge--mfg {
+  border-color: color-mix(in srgb, var(--p-purple-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-purple-500) 12%, var(--cp-panel-bg));
+  color: var(--p-purple-700);
+}
+
+html.app-dark .erp-doc__badge--mfg {
+  color: var(--p-purple-300);
+}
+
+.erp-doc__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.erp-doc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+}
+
+.erp-doc__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.erp-doc__field--narrow {
+  width: min(11rem, 100%);
+  flex-shrink: 0;
+}
+
+.erp-doc__field--grow {
+  flex: 1 1 12rem;
+  min-width: min(12rem, 100%);
+}
+
+.erp-doc__field--wide {
+  flex: 1 1 15rem;
+  min-width: min(15rem, 100%);
+}
+
+.erp-doc__field--date {
+  width: min(11rem, 100%);
+  flex-shrink: 0;
+}
+
+.erp-doc__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.erp-doc__input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-border-radius-md, 0.375rem);
+  background: var(--cp-input-bg);
+  color: var(--p-text-color);
+
+  &:read-only {
+    background: var(--cp-subtle-bg);
+    color: var(--p-text-muted-color);
+  }
+}
+
+.erp-doc__input--cell {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8125rem;
+  min-width: 4.5rem;
+}
+
+.erp-doc__input--amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 6rem;
+}
+
+.erp-doc__total-block {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.erp-doc__total-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.erp-doc__total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+
+  &--inline {
+    font-size: inherit;
+    font-weight: 700;
+  }
+}
+
+.erp-doc__save-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+
+  &--footer {
+    align-items: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--p-content-border-color);
+    margin-top: 0.25rem;
+  }
+}
+
+.erp-doc__grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.erp-doc__section {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  padding: 1rem;
+}
+
+.erp-doc__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+  }
+
+  p {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
+  }
+}
+
+.erp-doc__alert {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-red-500) 8%, var(--cp-panel-bg));
+  color: var(--p-red-600);
+  font-size: 0.875rem;
+}
+
+.erp-doc__alert--success {
+  border-color: color-mix(in srgb, var(--p-green-500) 35%, transparent);
+  background: color-mix(in srgb, var(--p-green-500) 8%, var(--cp-panel-bg));
+  color: var(--p-green-700);
+}
+
+.erp-doc__json {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.erp-doc__json-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.erp-doc__json-pre {
+  margin: 0;
+  padding: 1rem;
+  max-height: min(24rem, 50vh);
+  overflow: auto;
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  border-radius: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--cp-code-bg);
+  color: var(--p-text-color);
+}
+
+.erp-doc__hint-alert {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--p-red-600);
+}
+
+.erp-doc__chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--cp-panel-bg);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--p-text-color);
+
+  &:hover {
+    background: var(--p-content-hover-background);
+  }
+
+  &--active {
+    border-color: color-mix(in srgb, var(--p-red-500) 40%, transparent);
+    background: color-mix(in srgb, var(--p-red-500) 10%, var(--cp-panel-bg));
+    color: var(--p-red-700);
+  }
+}
+
+.erp-doc__chip-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--p-text-muted-color);
+
+  .erp-doc__chip-btn--active & {
+    background: var(--p-red-500);
+  }
+}
+
+/* Line items / voucher entry tables */
+.erp-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.erp-lines__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.erp-lines__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.erp-lines__table {
+  .erp-doc__input--cell {
+    width: 100%;
+  }
+}
+
+.erp-lines__row--return td {
+  background: color-mix(in srgb, var(--p-red-500) 6%, var(--cp-panel-bg)) !important;
+}
+
+.erp-lines__row--edit td {
+  background: color-mix(in srgb, var(--p-primary-color) 5%, var(--cp-panel-bg)) !important;
+}
+
+.erp-lines__type {
+  display: inline-flex;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--cp-subtle-bg);
+  color: var(--p-text-color);
+
+  &--return {
+    background: color-mix(in srgb, var(--p-red-500) 15%, var(--cp-panel-bg));
+    color: var(--p-red-700);
+  }
+}
+
+.erp-lines__cell-actions {
+  white-space: nowrap;
+}
+
+.erp-lines__select {
+  width: 100%;
+  min-width: 9rem;
+}
+
+.erp-doc .p-datepicker,
+.erp-doc .p-select {
+  width: 100%;
+}

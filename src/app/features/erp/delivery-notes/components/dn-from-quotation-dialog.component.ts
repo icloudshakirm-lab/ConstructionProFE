@@ -92,7 +92,7 @@ export class DnFromQuotationDialogComponent implements OnInit {
           this.saving.set(false);
           this.created.emit();
           this.onVisibilityChange(false);
-          void this.router.navigate(['/app/inventory-transactions/delivery-notes', res.id, 'edit']);
+          void this.router.navigate(['/erp/inventory-transactions/delivery-notes', res.id, 'edit']);
         },
         error: (e) => {
           this.error.set(apiErrorMessage(e));

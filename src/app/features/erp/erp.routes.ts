@@ -192,6 +192,13 @@ export const erpRoutes: Routes = [
       )
   },
   {
+    path: 'inventory-transactions',
+    loadComponent: () =>
+      import('./inventory-transactions/inventory-transactions-hub.component').then(
+        (m) => m.InventoryTransactionsHubComponent
+      ),
+  },
+  {
     path: 'inventory-transactions/po',
     loadChildren: () =>
       import('./purchase-orders/purchase-orders.module').then((m) => m.PurchaseOrdersModule)

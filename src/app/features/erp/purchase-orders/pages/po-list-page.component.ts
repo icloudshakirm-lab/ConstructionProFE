@@ -1,7 +1,10 @@
 ﻿import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { FormsModule } from '@angular/forms';
 import { PurchaseOrdersApiService } from '../../../../core/api/purchase-orders-api.service';
 import type { PurchaseOrderListItemDto } from '../../../../core/api/erp-api.models';
@@ -18,7 +21,18 @@ import { DocumentStatusBadgeComponent } from '../../../../shared/components/docu
 @Component({
   standalone: true,
   selector: 'app-po-list-page',
-  imports: [DecimalPipe, DatePipe, RouterLink, Select, FormsModule, PoViewDialogComponent, DocumentStatusBadgeComponent],
+  imports: [
+    DecimalPipe,
+    DatePipe,
+    RouterLink,
+    Select,
+    FormsModule,
+    Button,
+    TableModule,
+    Tag,
+    PoViewDialogComponent,
+    DocumentStatusBadgeComponent,
+  ],
   templateUrl: './po-list-page.component.html',
 })
 export class PoListPageComponent implements OnInit {

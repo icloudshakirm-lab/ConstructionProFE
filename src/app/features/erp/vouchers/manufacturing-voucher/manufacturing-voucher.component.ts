@@ -9,6 +9,7 @@ import {
 } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
 import {
   catchError,
   debounceTime,
@@ -39,7 +40,7 @@ const ENTRY_TYPE_OPTIONS = [
 @Component({
   selector: 'app-manufacturing-voucher',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, DatePicker, Select],
+  imports: [DecimalPipe, ReactiveFormsModule, DatePicker, Select, Button],
   templateUrl: './manufacturing-voucher.component.html',
   styleUrl: './manufacturing-voucher.component.css',
 })

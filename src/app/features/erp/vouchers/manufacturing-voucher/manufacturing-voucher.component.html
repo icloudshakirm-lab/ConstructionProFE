@@ -1,21 +1,19 @@
-<div class="manufacturing-voucher mx-auto max-w-6xl space-y-8">
-  <form class="space-y-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="flex w-full flex-wrap items-end justify-between gap-4">
-      <div class="min-w-0 flex-1">
-        <h2 class="flex items-center gap-3 text-2xl font-semibold text-slate-900 dark:text-slate-50">
-          Manufacturing Voucher
+<div class="erp-doc manufacturing-voucher">
+  <form class="erp-doc__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__header">
+      <div>
+        <h2>
+          Manufacturing voucher
           @if (form.get('voucherNumber')?.value) {
-            <span class="rounded-full border border-violet-200 bg-violet-100 px-3 py-1 text-sm font-bold text-violet-800 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300">
-              #{{ form.get('voucherNumber')?.value }}
-            </span>
+            <span class="erp-doc__badge erp-doc__badge--mfg">#{{ form.get('voucherNumber')?.value }}</span>
           }
         </h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p class="erp-doc__subtitle">
           Record raw material consumption, manufacturing expenses, ledger entries, and finished goods output.
         </p>
       </div>
-      <div class="flex w-[11rem] shrink-0 flex-col gap-1.5">
-        <label for="mfg-date" class="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
+      <div class="erp-doc__field erp-doc__field--date">
+        <label for="mfg-date" class="erp-doc__label">Date</label>
         <p-datepicker
           inputId="mfg-date"
           formControlName="date"
@@ -28,71 +26,101 @@
       <input type="hidden" formControlName="time" />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="flex flex-col gap-1.5">
-        <label for="mfg-num" class="text-sm font-medium text-slate-700 dark:text-slate-300">Voucher number</label>
-        <input
-          id="mfg-num"
-          type="text"
-          formControlName="voucherNumber"
-          class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-          readonly
-        />
+    <div class="erp-doc__grid-2">
+      <div class="erp-doc__field">
+        <label for="mfg-num" class="erp-doc__label">Voucher number</label>
+        <input id="mfg-num" type="text" class="erp-doc__input" formControlName="voucherNumber" readonly />
       </div>
-      <div class="flex flex-col gap-1.5 sm:col-span-1">
-        <label for="mfg-desc" class="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
+      <div class="erp-doc__field">
+        <label for="mfg-desc" class="erp-doc__label">Description</label>
         <input
           id="mfg-desc"
           type="text"
+          class="erp-doc__input"
           formControlName="description"
-          class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
           placeholder="Optional narration"
         />
       </div>
     </div>
 
     <!-- Raw materials -->
-    <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section class="erp-doc__section">
+      <div class="erp-doc__section-head">
         <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Raw materials</h3>
-          <p class="text-xs text-slate-500">Items consumed in production</p>
+          <h3>Raw materials</h3>
+          <p>Items consumed in production</p>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="text-sm text-slate-600">Total: <strong class="tabular-nums">{{ rawMaterialsTotal() | number: '1.2-2' }}</strong></span>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm" (click)="addRawMaterial()">
-            <i class="pi pi-plus"></i> Add line
-          </button>
+        <div class="erp-lines__toolbar-actions">
+          <span class="erp-doc__total-label">
+            Total: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ rawMaterialsTotal() | number: '1.2-2' }}</strong>
+          </span>
+          <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addRawMaterial()" />
         </div>
       </div>
-      <div class="overflow-x-auto" formArrayName="rawMaterials">
-        <table class="cp-data-grid__table">
+      <div class="cp-data-grid" formArrayName="rawMaterials">
+        <table class="cp-data-grid__table erp-lines__table">
           <thead>
-            <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+            <tr>
               <th>Item</th>
               <th>Batch</th>
               <th>Description</th>
               <th>Qty</th>
               <th>Rate</th>
-              <th>Amount</th>
+              <th class="cp-data-grid__num">Amount</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             @for (g of rawMaterials.controls; track $index; let i = $index) {
-              <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
-                <td class="px-2 py-2">
-                  <p-select formControlName="itemId" [options]="itemOptions()" optionLabel="label" optionValue="value" placeholder="Item" [filter]="true" filterBy="label" (onFilter)="onItemFilter($event)" (onChange)="onRawItemChange(i, g.get('itemId')?.value ?? null)" [appendTo]="'body'" styleClass="w-full" size="small" />
+              <tr [formGroupName]="i">
+                <td>
+                  <p-select
+                    formControlName="itemId"
+                    [options]="itemOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Item"
+                    [filter]="true"
+                    filterBy="label"
+                    (onFilter)="onItemFilter($event)"
+                    (onChange)="onRawItemChange(i, g.get('itemId')?.value ?? null)"
+                    appendTo="body"
+                    styleClass="erp-lines__select"
+                    size="small"
+                  />
                 </td>
-                <td class="px-2 py-2">
-                  <p-select formControlName="itemBatchId" [options]="rawBatchOptionsFor(i)" optionLabel="label" optionValue="value" placeholder="—" [showClear]="true" [appendTo]="'body'" styleClass="w-full" size="small" />
+                <td>
+                  <p-select
+                    formControlName="itemBatchId"
+                    [options]="rawBatchOptionsFor(i)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="—"
+                    [showClear]="true"
+                    appendTo="body"
+                    styleClass="erp-lines__select"
+                    size="small"
+                  />
                 </td>
-                <td class="px-2 py-2"><input type="text" formControlName="description" class="w-full min-w-[6rem] rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2"><input type="number" formControlName="quantity" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2"><input type="number" formControlName="rate" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2 text-right font-medium tabular-nums">{{ stockLineAmount(g) | number: '1.2-2' }}</td>
-                <td class="px-2 py-2">
-                  <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-red-600 disabled:opacity-30" [disabled]="rawMaterials.length <= 1" (click)="removeRawMaterial(i)"><i class="pi pi-trash"></i></button>
+                <td>
+                  <input type="text" formControlName="description" class="erp-doc__input erp-doc__input--cell" />
+                </td>
+                <td>
+                  <input type="number" formControlName="quantity" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                </td>
+                <td>
+                  <input type="number" formControlName="rate" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                </td>
+                <td class="cp-data-grid__num">{{ stockLineAmount(g) | number: '1.2-2' }}</td>
+                <td class="erp-lines__cell-actions">
+                  <p-button
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    [text]="true"
+                    [disabled]="rawMaterials.length <= 1"
+                    (onClick)="removeRawMaterial(i)"
+                  />
                 </td>
               </tr>
             }
@@ -102,42 +130,58 @@
     </section>
 
     <!-- Expenses -->
-    <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section class="erp-doc__section">
+      <div class="erp-doc__section-head">
         <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Manufacturing expenses</h3>
-          <p class="text-xs text-slate-500">Optional overhead / labour ledgers</p>
+          <h3>Manufacturing expenses</h3>
+          <p>Optional overhead / labour ledgers</p>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="text-sm text-slate-600">Total: <strong class="tabular-nums">{{ expensesTotal() | number: '1.2-2' }}</strong></span>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm" (click)="addExpense()">
-            <i class="pi pi-plus"></i> Add expense
-          </button>
+        <div class="erp-lines__toolbar-actions">
+          <span class="erp-doc__total-label">
+            Total: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ expensesTotal() | number: '1.2-2' }}</strong>
+          </span>
+          <p-button label="Add expense" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addExpense()" />
         </div>
       </div>
       @if (expenses.length === 0) {
-        <p class="text-sm text-slate-500">No expenses added.</p>
+        <p class="erp-doc__subtitle">No expenses added.</p>
       } @else {
-        <div class="overflow-x-auto" formArrayName="expenses">
-          <table class="cp-data-grid__table">
+        <div class="cp-data-grid" formArrayName="expenses">
+          <table class="cp-data-grid__table erp-lines__table">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+              <tr>
                 <th>Ledger</th>
                 <th>Description</th>
-                <th>Amount</th>
+                <th class="cp-data-grid__num">Amount</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               @for (g of expenses.controls; track $index; let i = $index) {
-                <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
-                  <td class="px-2 py-2">
-                    <p-select formControlName="ledgerId" [options]="ledgerOptions()" optionLabel="label" optionValue="value" placeholder="Ledger" [filter]="true" filterBy="label" (onFilter)="onLedgerFilter($event)" [appendTo]="'body'" styleClass="w-full" size="small" />
+                <tr [formGroupName]="i">
+                  <td>
+                    <p-select
+                      formControlName="ledgerId"
+                      [options]="ledgerOptions()"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Ledger"
+                      [filter]="true"
+                      filterBy="label"
+                      (onFilter)="onLedgerFilter($event)"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
+                      size="small"
+                    />
                   </td>
-                  <td class="px-2 py-2"><input type="text" formControlName="description" class="w-full rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                  <td class="px-2 py-2"><input type="number" formControlName="amount" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                  <td class="px-2 py-2">
-                    <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-red-600" (click)="removeExpense(i)"><i class="pi pi-trash"></i></button>
+                  <td>
+                    <input type="text" formControlName="description" class="erp-doc__input erp-doc__input--cell" />
+                  </td>
+                  <td>
+                    <input type="number" formControlName="amount" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                  </td>
+                  <td class="erp-lines__cell-actions">
+                    <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeExpense(i)" />
                   </td>
                 </tr>
               }
@@ -148,47 +192,73 @@
     </section>
 
     <!-- Ledger lines -->
-    <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section class="erp-doc__section">
+      <div class="erp-doc__section-head">
         <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Ledger lines</h3>
-          <p class="text-xs text-slate-500">Optional additional journal entries</p>
+          <h3>Ledger lines</h3>
+          <p>Optional additional journal entries</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-          <span>Dr: <strong class="tabular-nums">{{ ledgerDebitTotal() | number: '1.2-2' }}</strong></span>
-          <span>Cr: <strong class="tabular-nums">{{ ledgerCreditTotal() | number: '1.2-2' }}</strong></span>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm" (click)="addLedgerLine()">
-            <i class="pi pi-plus"></i> Add ledger line
-          </button>
+        <div class="erp-lines__toolbar-actions">
+          <span class="erp-doc__total-label">
+            Dr: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ ledgerDebitTotal() | number: '1.2-2' }}</strong>
+          </span>
+          <span class="erp-doc__total-label">
+            Cr: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ ledgerCreditTotal() | number: '1.2-2' }}</strong>
+          </span>
+          <p-button label="Add ledger line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLedgerLine()" />
         </div>
       </div>
       @if (ledgerLines.length === 0) {
-        <p class="text-sm text-slate-500">No ledger lines added.</p>
+        <p class="erp-doc__subtitle">No ledger lines added.</p>
       } @else {
-        <div class="overflow-x-auto" formArrayName="ledgerLines">
-          <table class="cp-data-grid__table">
+        <div class="cp-data-grid" formArrayName="ledgerLines">
+          <table class="cp-data-grid__table erp-lines__table">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+              <tr>
                 <th>Ledger</th>
                 <th>Type</th>
                 <th>Description</th>
-                <th>Amount</th>
+                <th class="cp-data-grid__num">Amount</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               @for (g of ledgerLines.controls; track $index; let i = $index) {
-                <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
-                  <td class="px-2 py-2">
-                    <p-select formControlName="ledgerId" [options]="ledgerOptions()" optionLabel="label" optionValue="value" placeholder="Ledger" [filter]="true" filterBy="label" (onFilter)="onLedgerFilter($event)" [appendTo]="'body'" styleClass="w-full" size="small" />
+                <tr [formGroupName]="i">
+                  <td>
+                    <p-select
+                      formControlName="ledgerId"
+                      [options]="ledgerOptions()"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Ledger"
+                      [filter]="true"
+                      filterBy="label"
+                      (onFilter)="onLedgerFilter($event)"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
+                      size="small"
+                    />
                   </td>
-                  <td class="px-2 py-2">
-                    <p-select formControlName="entryType" [options]="entryTypeOptions" optionLabel="label" optionValue="value" [appendTo]="'body'" styleClass="w-full" size="small" />
+                  <td>
+                    <p-select
+                      formControlName="entryType"
+                      [options]="entryTypeOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
+                      size="small"
+                    />
                   </td>
-                  <td class="px-2 py-2"><input type="text" formControlName="description" class="w-full rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                  <td class="px-2 py-2"><input type="number" formControlName="amount" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                  <td class="px-2 py-2">
-                    <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-red-600" (click)="removeLedgerLine(i)"><i class="pi pi-trash"></i></button>
+                  <td>
+                    <input type="text" formControlName="description" class="erp-doc__input erp-doc__input--cell" />
+                  </td>
+                  <td>
+                    <input type="number" formControlName="amount" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                  </td>
+                  <td class="erp-lines__cell-actions">
+                    <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeLedgerLine(i)" />
                   </td>
                 </tr>
               }
@@ -199,47 +269,83 @@
     </section>
 
     <!-- Output stock -->
-    <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section class="erp-doc__section">
+      <div class="erp-doc__section-head">
         <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Finished goods (output stock)</h3>
-          <p class="text-xs text-slate-500">Items produced</p>
+          <h3>Finished goods (output stock)</h3>
+          <p>Items produced</p>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="text-sm text-slate-600">Total: <strong class="tabular-nums">{{ outputStockTotal() | number: '1.2-2' }}</strong></span>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm" (click)="addOutputStock()">
-            <i class="pi pi-plus"></i> Add line
-          </button>
+        <div class="erp-lines__toolbar-actions">
+          <span class="erp-doc__total-label">
+            Total: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ outputStockTotal() | number: '1.2-2' }}</strong>
+          </span>
+          <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addOutputStock()" />
         </div>
       </div>
-      <div class="overflow-x-auto" formArrayName="outputStock">
-        <table class="cp-data-grid__table">
+      <div class="cp-data-grid" formArrayName="outputStock">
+        <table class="cp-data-grid__table erp-lines__table">
           <thead>
-            <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+            <tr>
               <th>Item</th>
               <th>Batch</th>
               <th>Description</th>
               <th>Qty</th>
               <th>Rate</th>
-              <th>Amount</th>
+              <th class="cp-data-grid__num">Amount</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             @for (g of outputStock.controls; track $index; let i = $index) {
-              <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
-                <td class="px-2 py-2">
-                  <p-select formControlName="itemId" [options]="itemOptions()" optionLabel="label" optionValue="value" placeholder="Item" [filter]="true" filterBy="label" (onFilter)="onItemFilter($event)" (onChange)="onOutputItemChange(i, g.get('itemId')?.value ?? null)" [appendTo]="'body'" styleClass="w-full" size="small" />
+              <tr [formGroupName]="i">
+                <td>
+                  <p-select
+                    formControlName="itemId"
+                    [options]="itemOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Item"
+                    [filter]="true"
+                    filterBy="label"
+                    (onFilter)="onItemFilter($event)"
+                    (onChange)="onOutputItemChange(i, g.get('itemId')?.value ?? null)"
+                    appendTo="body"
+                    styleClass="erp-lines__select"
+                    size="small"
+                  />
                 </td>
-                <td class="px-2 py-2">
-                  <p-select formControlName="itemBatchId" [options]="outputBatchOptionsFor(i)" optionLabel="label" optionValue="value" placeholder="—" [showClear]="true" [appendTo]="'body'" styleClass="w-full" size="small" />
+                <td>
+                  <p-select
+                    formControlName="itemBatchId"
+                    [options]="outputBatchOptionsFor(i)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="—"
+                    [showClear]="true"
+                    appendTo="body"
+                    styleClass="erp-lines__select"
+                    size="small"
+                  />
                 </td>
-                <td class="px-2 py-2"><input type="text" formControlName="description" class="w-full min-w-[6rem] rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2"><input type="number" formControlName="quantity" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2"><input type="number" formControlName="rate" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
-                <td class="px-2 py-2 text-right font-medium tabular-nums">{{ stockLineAmount(g) | number: '1.2-2' }}</td>
-                <td class="px-2 py-2">
-                  <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-red-600 disabled:opacity-30" [disabled]="outputStock.length <= 1" (click)="removeOutputStock(i)"><i class="pi pi-trash"></i></button>
+                <td>
+                  <input type="text" formControlName="description" class="erp-doc__input erp-doc__input--cell" />
+                </td>
+                <td>
+                  <input type="number" formControlName="quantity" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                </td>
+                <td>
+                  <input type="number" formControlName="rate" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
+                </td>
+                <td class="cp-data-grid__num">{{ stockLineAmount(g) | number: '1.2-2' }}</td>
+                <td class="erp-lines__cell-actions">
+                  <p-button
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    [text]="true"
+                    [disabled]="outputStock.length <= 1"
+                    (onClick)="removeOutputStock(i)"
+                  />
                 </td>
               </tr>
             }
@@ -248,44 +354,31 @@
       </div>
     </section>
 
-    <div class="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-700">
-      <button
-        type="button"
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--p-primary-color)] px-5 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95 disabled:opacity-60"
+    <div class="erp-doc__save-wrap erp-doc__save-wrap--footer">
+      <p-button
+        label="Save manufacturing voucher"
+        icon="pi pi-save"
+        [loading]="saving()"
         [disabled]="saving()"
-        (click)="save()"
-      >
-        <i class="pi pi-save text-xs" aria-hidden="true"></i>
-        Save manufacturing voucher
-      </button>
+        (onClick)="save()"
+      />
     </div>
   </form>
 
   @if (saveError()) {
     <p
-      class="rounded-lg border px-3 py-2 text-sm"
-      [class.border-emerald-200]="saveError()?.includes('success')"
-      [class.bg-emerald-50]="saveError()?.includes('success')"
-      [class.text-emerald-800]="saveError()?.includes('success')"
-      [class.border-rose-200]="!saveError()?.includes('success')"
-      [class.bg-rose-50]="!saveError()?.includes('success')"
-      [class.text-rose-800]="!saveError()?.includes('success')"
+      class="erp-doc__alert"
+      [class.erp-doc__alert--success]="saveError()?.includes('success')"
     >
       {{ saveError() }}
     </p>
   }
 
-  <section class="space-y-2" aria-labelledby="mfg-json-heading">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <h3 id="mfg-json-heading" class="text-base font-semibold text-slate-800 dark:text-slate-100">Request payload (JSON)</h3>
-      <button
-        type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-        (click)="copyJson()"
-      >
-        Copy JSON
-      </button>
+  <section class="erp-doc__json" aria-labelledby="mfg-json-heading">
+    <div class="erp-doc__json-head">
+      <h3 id="mfg-json-heading">Request payload (JSON)</h3>
+      <p-button label="Copy JSON" icon="pi pi-copy" size="small" [outlined]="true" (onClick)="copyJson()" />
     </div>
-    <pre class="max-h-96 overflow-auto rounded-lg border border-slate-200 bg-slate-900 p-4 text-xs text-emerald-100 dark:border-slate-700">{{ dataJson() }}</pre>
+    <pre class="erp-doc__json-pre">{{ dataJson() }}</pre>
   </section>
 </div>

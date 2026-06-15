@@ -200,16 +200,6 @@ html.app-dark .org-page__pill--active {
     margin: 0 auto;
   }
 
-  /* Thicker connector lines */
-  .p-organizationchart-connector-down,
-  .p-organizationchart-connector-left,
-  .p-organizationchart-connector-right,
-  .p-organizationchart-connector-top {
-    border-width: 3px !important;
-    border-color: var(--p-text-muted-color) !important;
-  }
-
-  /* Make toggler button slightly more visible */
   .p-organizationchart-node-toggle-button {
     width: 2rem;
     height: 2rem;

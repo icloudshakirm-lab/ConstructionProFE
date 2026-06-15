@@ -1,47 +1,38 @@
-<div class="po-form mx-auto max-w-6xl space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="erp-doc po-form">
+  <div class="erp-doc__header">
     <div>
-      <a routerLink="/app/inventory-transactions/po" class="text-sm text-[var(--p-primary-color)] no-underline">← Back to list</a>
-      <h2 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
+      <p-button label="Back to list" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/inventory-transactions/po" />
+      <h2 class="erp-doc__subtitle" style="margin-top: 0.5rem; font-size: 1.5rem; font-weight: 700; color: var(--p-text-color)">
         {{ isEdit() ? 'Edit purchase order' : 'New purchase order' }}
       </h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">Standard PO: vendor, dates, line items (qty × price + tax).</p>
+      <p class="erp-doc__subtitle">Standard PO: vendor, dates, line items (qty × price + tax).</p>
     </div>
     @if (form.get('poNumber')?.value) {
-      <span class="rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 font-mono text-sm font-bold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
-        {{ form.get('poNumber')?.value }}
-      </span>
+      <span class="erp-doc__badge erp-doc__badge--purchase">{{ form.get('poNumber')?.value }}</span>
     }
   </div>
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading purchase order…</p>
+    <p class="erp-list-page__loading">Loading purchase order…</p>
   } @else {
-    <form class="space-y-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-      <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Header</h3>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">PO number</label>
-            <input
-              type="text"
-              formControlName="poNumber"
-              class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-              readonly
-            />
+    <form class="erp-doc__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+      <section class="erp-doc__section">
+        <div class="erp-doc__section-head"><h3>Header</h3></div>
+        <div class="erp-doc__grid-2">
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">PO number</label>
+            <input type="text" formControlName="poNumber" class="erp-doc__input" readonly />
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Order date</label>
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">Order date</label>
             <p-datepicker formControlName="orderDate" dateFormat="yy-mm-dd" [showIcon]="true" styleClass="w-full" />
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Expected delivery</label>
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">Expected delivery</label>
             <p-datepicker
               formControlName="expectedDeliveryDate"
               dateFormat="yy-mm-dd"
@@ -50,8 +41,8 @@
               styleClass="w-full"
             />
           </div>
-          <div class="flex flex-col gap-1.5 sm:col-span-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Vendor / supplier</label>
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">Vendor / supplier</label>
             <p-select
               formControlName="vendorLedgerId"
               [options]="vendorOptions()"
@@ -62,67 +53,56 @@
               filterBy="label"
               (onFilter)="onVendorFilter($event)"
               [showClear]="true"
-              [appendTo]="'body'"
+              appendTo="body"
               styleClass="w-full"
             />
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">Status</label>
             <p-select
               formControlName="status"
               [options]="statusOptions"
               optionLabel="label"
               optionValue="value"
-              [appendTo]="'body'"
+              appendTo="body"
               styleClass="w-full"
             />
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Reference</label>
+          <div class="erp-doc__field">
+            <label class="erp-doc__label">Reference</label>
             <input
               type="text"
               formControlName="reference"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+              class="erp-doc__input"
               placeholder="Supplier quote / RFQ ref"
             />
           </div>
-          <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Delivery address</label>
-            <textarea
-              formControlName="deliveryAddress"
-              rows="2"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
-            ></textarea>
+          <div class="erp-doc__field" style="grid-column: 1 / -1">
+            <label class="erp-doc__label">Delivery address</label>
+            <textarea formControlName="deliveryAddress" rows="2" class="erp-doc__input"></textarea>
           </div>
-          <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Notes / terms</label>
+          <div class="erp-doc__field" style="grid-column: 1 / -1">
+            <label class="erp-doc__label">Notes / terms</label>
             <textarea
               formControlName="notes"
               rows="2"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"
+              class="erp-doc__input"
               placeholder="Payment terms, delivery instructions…"
             ></textarea>
           </div>
         </div>
       </section>
 
-      <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Line items</h3>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
-            (click)="addLine()"
-          >
-            <i class="pi pi-plus" aria-hidden="true"></i>
-            Add line
-          </button>
+      <section class="erp-doc__section">
+        <div class="erp-doc__section-head">
+          <h3>Line items</h3>
+          <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLine()" />
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="cp-data-grid__table">
+        <div class="cp-data-grid">
+          <table class="cp-data-grid__table erp-lines__table">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+              <tr>
                 <th>#</th>
                 <th>Item</th>
                 <th>Batch</th>
@@ -137,9 +117,9 @@
             </thead>
             <tbody formArrayName="lines">
               @for (g of lineGroups; track $index; let i = $index) {
-                <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
-                  <td class="px-2 py-2 tabular-nums text-slate-500">{{ g.get('lineNumber')?.value }}</td>
-                  <td class="px-2 py-2">
+                <tr [formGroupName]="i">
+                  <td class="cp-data-grid__num">{{ g.get('lineNumber')?.value }}</td>
+                  <td>
                     <p-select
                       formControlName="itemId"
                       [options]="itemOptions()"
@@ -150,12 +130,12 @@
                       filterBy="label"
                       (onFilter)="onItemFilter($event)"
                       (onChange)="onItemChange(i, g.get('itemId')?.value ?? null)"
-                      [appendTo]="'body'"
-                      styleClass="w-full"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
                       size="small"
                     />
                   </td>
-                  <td class="px-2 py-2">
+                  <td>
                     <p-select
                       formControlName="itemBatchId"
                       [options]="batchOptionsFor(i)"
@@ -163,12 +143,12 @@
                       optionValue="value"
                       placeholder="—"
                       [showClear]="true"
-                      [appendTo]="'body'"
-                      styleClass="w-full"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
                       size="small"
                     />
                   </td>
-                  <td class="px-2 py-2">
+                  <td>
                     <p-select
                       formControlName="unitOfMeasureId"
                       [options]="unitOptions()"
@@ -176,53 +156,33 @@
                       optionValue="value"
                       placeholder="—"
                       [showClear]="true"
-                      [appendTo]="'body'"
-                      styleClass="w-full"
+                      appendTo="body"
+                      styleClass="erp-lines__select"
                       size="small"
                     />
                   </td>
-                  <td class="px-2 py-2">
-                    <input
-                      type="text"
-                      formControlName="description"
-                      class="w-full min-w-[6rem] rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950"
-                    />
+                  <td>
+                    <input type="text" formControlName="description" class="erp-doc__input erp-doc__input--cell" />
                   </td>
-                  <td class="px-2 py-2">
-                    <input
-                      type="number"
-                      formControlName="quantity"
-                      step="any"
-                      class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950"
-                    />
+                  <td>
+                    <input type="number" formControlName="quantity" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
                   </td>
-                  <td class="px-2 py-2">
-                    <input
-                      type="number"
-                      formControlName="unitPrice"
-                      step="any"
-                      class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950"
-                    />
+                  <td>
+                    <input type="number" formControlName="unitPrice" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
                   </td>
-                  <td class="px-2 py-2">
-                    <input
-                      type="number"
-                      formControlName="taxAmount"
-                      step="any"
-                      class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950"
-                    />
+                  <td>
+                    <input type="number" formControlName="taxAmount" step="any" class="erp-doc__input erp-doc__input--cell erp-doc__input--amount" />
                   </td>
-                  <td class="px-2 py-2 text-right tabular-nums font-medium">{{ linePreview(g) | number: '1.2-2' }}</td>
-                  <td class="px-2 py-2">
-                    <button
-                      type="button"
-                      class="cursor-pointer border-0 bg-transparent p-0 text-red-600 disabled:opacity-30"
+                  <td class="cp-data-grid__num">{{ linePreview(g) | number: '1.2-2' }}</td>
+                  <td class="erp-lines__cell-actions">
+                    <p-button
+                      icon="pi pi-trash"
+                      size="small"
+                      severity="danger"
+                      [text]="true"
                       [disabled]="lines.length <= 1"
-                      (click)="removeLine(i)"
-                      title="Remove line"
-                    >
-                      <i class="pi pi-trash" aria-hidden="true"></i>
-                    </button>
+                      (onClick)="removeLine(i)"
+                    />
                   </td>
                 </tr>
               }
@@ -230,23 +190,18 @@
           </table>
         </div>
 
-        <dl class="mt-4 flex flex-col items-end gap-1 text-sm">
-          <div class="flex gap-8">
-            <dt class="text-slate-500">Estimated subtotal</dt>
-            <dd class="tabular-nums font-medium">{{ formSubTotal() | number: '1.2-2' }}</dd>
-          </div>
-          <div class="flex gap-8">
-            <dt class="text-slate-500">Tax (lines)</dt>
-            <dd class="tabular-nums font-medium">{{ formTaxTotal() | number: '1.2-2' }}</dd>
-          </div>
-        </dl>
+        <div class="erp-doc__total-block" style="margin-top: 0.75rem">
+          <span class="erp-doc__total-label">Estimated subtotal: <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ formSubTotal() | number: '1.2-2' }}</strong></span>
+          <span class="erp-doc__total-label">Tax (lines): <strong class="erp-doc__total-value erp-doc__total-value--inline">{{ formTaxTotal() | number: '1.2-2' }}</strong></span>
+        </div>
       </section>
 
-      <div class="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+      <div class="erp-doc__save-wrap erp-doc__save-wrap--footer">
         <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
         <p-button
           type="button"
           [label]="isEdit() ? 'Update PO' : 'Create PO'"
+          icon="pi pi-save"
           [loading]="saving()"
           [disabled]="saving()"
           (onClick)="submit()"

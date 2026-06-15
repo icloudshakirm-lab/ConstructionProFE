@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
 import { catchError, debounceTime, distinctUntilChanged, merge, of, startWith, Subject, switchMap } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { InvoiceItemsTableComponent } from '../../../../shared/components/invoice-items-table/invoice-items-table.component';
@@ -25,6 +26,7 @@ import { InvoiceLineJson, SalesInvoiceJson } from '../models/sales-invoice.model
     ReactiveFormsModule,
     DatePicker,
     Select,
+    Button,
     InvoiceItemsTableComponent,
   ],
   templateUrl: './purchase-invoice.component.html',

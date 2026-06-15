@@ -260,7 +260,7 @@ export class QuotationFormPageComponent implements OnInit {
   }
 
   cancel(): void {
-    void this.router.navigateByUrl('/app/inventory-transactions/quotations');
+    void this.router.navigateByUrl('/erp/inventory-transactions/quotations');
   }
 
   submit(): void {
@@ -302,7 +302,7 @@ export class QuotationFormPageComponent implements OnInit {
           lines,
         })
         .subscribe({
-          next: () => void this.router.navigateByUrl('/app/inventory-transactions/quotations'),
+          next: () => void this.router.navigateByUrl('/erp/inventory-transactions/quotations'),
           error: (e) => {
             this.error.set(apiErrorMessage(e));
             this.saving.set(false);
@@ -328,7 +328,7 @@ export class QuotationFormPageComponent implements OnInit {
           lines,
         })
         .subscribe({
-          next: () => void this.router.navigateByUrl('/app/inventory-transactions/quotations'),
+          next: () => void this.router.navigateByUrl('/erp/inventory-transactions/quotations'),
           error: (e) => {
             this.error.set(apiErrorMessage(e));
             this.saving.set(false);

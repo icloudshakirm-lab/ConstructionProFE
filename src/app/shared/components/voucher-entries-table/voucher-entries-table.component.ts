@@ -3,6 +3,8 @@ import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, signal } from 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
 import { LookupsApiService } from '../../../core/api/lookups-api.service';
 import { LookupDTO } from '../../../core/api/erp-api.models';
 import { VoucherLineJson } from '../../../features/erp/vouchers/models/voucher.model';
@@ -11,7 +13,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, catchError, of 
 @Component({
   selector: 'app-voucher-entries-table',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, Select],
+  imports: [DecimalPipe, ReactiveFormsModule, Select, Button, Tooltip],
   templateUrl: './voucher-entries-table.component.html',
   styles: [
     `

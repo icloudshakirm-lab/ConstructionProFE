@@ -1,21 +1,23 @@
 import { Component, Input } from '@angular/core';
-import { documentStatusBadgeClass } from '../../utils/document-status.util';
+import { Tag } from 'primeng/tag';
+import { documentStatusSeverity } from '../../utils/document-status.util';
 
 @Component({
   standalone: true,
   selector: 'app-document-status-badge',
+  imports: [Tag],
   template: `
     @if (status) {
-      <span [class]="badgeClass()">{{ status }}</span>
+      <p-tag [value]="status" [severity]="severity()" />
     } @else {
-      <span class="text-slate-400">—</span>
+      <span class="erp-list-page__loading">—</span>
     }
   `,
 })
 export class DocumentStatusBadgeComponent {
   @Input({ required: true }) status!: string | null | undefined;
 
-  badgeClass(): string {
-    return documentStatusBadgeClass(this.status);
+  severity() {
+    return documentStatusSeverity(this.status);
   }
 }

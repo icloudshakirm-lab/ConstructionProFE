@@ -1,7 +1,7 @@
-﻿import { NgClass } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+﻿import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
+import { catchError, forkJoin, of } from 'rxjs';
 import { DashboardApiService } from '../../../core/api/dashboard-api.service';
 import type { DashboardChartsDto, DashboardStatsDto } from '../../../core/api/erp-api.models';
 
@@ -13,12 +13,12 @@ export interface DashboardStat {
   deltaLabel: string;
   deltaPositive: boolean;
   icon: string;
-  accentClass: string;
+  accent: 'emerald' | 'sky' | 'violet' | 'amber';
 }
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [NgClass, RouterLink, ChartModule],
+  imports: [RouterLink, ChartModule],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css',
 })
@@ -45,7 +45,12 @@ export class DashboardPageComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: true,
+        position: 'top' as const,
+        align: 'end' as const,
+        labels: { color: '#64748b', usePointStyle: true, font: { size: 11 }, padding: 12 },
+      },
       tooltip: {
         backgroundColor: 'rgba(15, 23, 42, 0.92)',
         titleColor: '#f8fafc',
@@ -361,25 +366,25 @@ export class DashboardPageComponent implements OnInit {
   readonly quickLinks: { label: string; route: string; icon: string; blurb: string }[] = [
     {
       label: 'Sales invoices',
-      route: '/app/invoices/sales',
+      route: '/erp/invoices/sales',
       icon: 'pi pi-file',
       blurb: 'Create and review sales documents',
     },
     {
       label: 'Ledgers',
-      route: '/app/ledgers',
+      route: '/erp/ledgers',
       icon: 'pi pi-book',
       blurb: 'Accounts and balances',
     },
     {
       label: 'Transactions',
-      route: '/app/transactions',
+      route: '/erp/transactions',
       icon: 'pi pi-list',
       blurb: 'Journal and movement history',
     },
     {
       label: 'Items',
-      route: '/app/items',
+      route: '/erp/items',
       icon: 'pi pi-box',
       blurb: 'Catalog and stock context',
     },
@@ -396,28 +401,28 @@ export class DashboardPageComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    // Stats: defaults to all-time counts, with optional period inside response.
-    this.api.getStats().subscribe({
-      next: (dto) => {
-        this.statsDto.set(dto);
-        this.stats.set(this.mapStats(dto));
-      },
-      error: (e: unknown) => {
-        this.error.set(this.msg(e));
-      },
-    });
+    forkJoin({
+      stats: this.api.getStats().pipe(catchError((e) => of({ error: e }))),
+      charts: this.api.getCharts({ days: 30 }).pipe(catchError((e) => of({ error: e }))),
+    }).subscribe(({ stats, charts }) => {
+      const errors: string[] = [];
 
-    // Charts: backend requires `days`. Swagger says defaults to last 30 days.
-    this.api.getCharts({ days: 30 }).subscribe({
-      next: (dto) => {
-        this.charts.set(dto);
-        this.applyCharts(dto);
-        this.loading.set(false);
-      },
-      error: (e: unknown) => {
-        this.error.set(this.msg(e));
-        this.loading.set(false);
-      },
+      if ('error' in stats) {
+        errors.push(this.msg(stats.error));
+      } else {
+        this.statsDto.set(stats);
+        this.stats.set(this.mapStats(stats));
+      }
+
+      if ('error' in charts) {
+        errors.push(this.msg(charts.error));
+      } else {
+        this.charts.set(charts);
+        this.applyCharts(charts);
+      }
+
+      this.error.set(errors.length ? errors.join(' ') : null);
+      this.loading.set(false);
     });
   }
 
@@ -437,7 +442,7 @@ export class DashboardPageComponent implements OnInit {
         deltaLabel: 'Live',
         deltaPositive: true,
         icon: 'pi pi-wallet',
-        accentClass: 'stat-accent--emerald',
+        accent: 'emerald',
       },
       {
         label: 'Vouchers',
@@ -446,7 +451,7 @@ export class DashboardPageComponent implements OnInit {
         deltaLabel: 'Live',
         deltaPositive: true,
         icon: 'pi pi-file',
-        accentClass: 'stat-accent--sky',
+        accent: 'sky',
       },
       {
         label: 'Stock items',
@@ -455,7 +460,7 @@ export class DashboardPageComponent implements OnInit {
         deltaLabel: 'Live',
         deltaPositive: true,
         icon: 'pi pi-box',
-        accentClass: 'stat-accent--violet',
+        accent: 'violet',
       },
       {
         label: 'Users',
@@ -464,7 +469,7 @@ export class DashboardPageComponent implements OnInit {
         deltaLabel: 'Live',
         deltaPositive: true,
         icon: 'pi pi-users',
-        accentClass: 'stat-accent--amber',
+        accent: 'amber',
       },
     ];
   }
