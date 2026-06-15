@@ -45,6 +45,7 @@ export const ERP_NAV_ITEMS: ErpNavItem[] = [
     children: [
       { label: 'Point of Sale', route: '/erp/pos', icon: 'pi pi-shopping-cart' },
       { label: 'Sales Invoice', route: '/erp/invoices/sales', icon: 'pi pi-file-export' },
+      { label: 'Construction Project Invoice', route: '/erp/invoices/construction', icon: 'pi pi-building' },
       { label: 'Purchase Invoice', route: '/erp/invoices/purchase', icon: 'pi pi-file-import' },
       { label: 'Payment Voucher', route: '/erp/vouchers/payment', icon: 'pi pi-credit-card' },
       { label: 'Receipt Voucher', route: '/erp/vouchers/receipt', icon: 'pi pi-wallet' },

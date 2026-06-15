@@ -1,0 +1,151 @@
+<div class="erp-doc construction-invoice">
+  <form class="erp-doc__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__header">
+      <div>
+        <h2>
+          Construction project invoice
+          @if (form.get('invoiceNumber')?.value) {
+            <span class="erp-doc__badge erp-doc__badge--sales">#{{ form.get('invoiceNumber')?.value }}</span>
+          }
+        </h2>
+        <p class="erp-doc__subtitle">
+          Bill construction clients for issued materials (inventory) and project services (ledger revenue).
+        </p>
+      </div>
+      <div class="erp-doc__field erp-doc__field--date">
+        <label for="cpi-date" class="erp-doc__label">Date</label>
+        <p-datepicker
+          inputId="cpi-date"
+          formControlName="date"
+          placeholder="Select date"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          iconDisplay="input"
+          styleClass="w-full"
+        />
+      </div>
+      <input type="hidden" formControlName="time" />
+    </div>
+
+    <div class="erp-doc__meta">
+      <div class="erp-doc__field erp-doc__field--narrow">
+        <label for="cpi-num" class="erp-doc__label">Number</label>
+        <input id="cpi-num" type="text" class="erp-doc__input" formControlName="invoiceNumber" readonly />
+      </div>
+      <div class="erp-doc__field erp-doc__field--grow">
+        <label for="cpi-project" class="erp-doc__label">Construction project</label>
+        <p-select
+          inputId="cpi-project"
+          formControlName="projectId"
+          [options]="projectOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select project"
+          [filter]="true"
+          filterBy="label"
+          filterPlaceholder="Search project..."
+          (onChange)="onProjectChange(form.get('projectId')?.value ?? null)"
+          [showClear]="true"
+          appendTo="body"
+          scrollHeight="18rem"
+          size="small"
+          styleClass="w-full"
+        />
+      </div>
+      <div class="erp-doc__field erp-doc__field--grow">
+        <label for="cpi-dr-ledger" class="erp-doc__label">Client / party A/C</label>
+        <p-select
+          inputId="cpi-dr-ledger"
+          formControlName="drLedgerId"
+          [options]="drLedgerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select client ledger"
+          [filter]="true"
+          filterBy="label"
+          filterPlaceholder="Search ledger..."
+          (onFilter)="onDrLedgersFilter($event)"
+          [showClear]="true"
+          appendTo="body"
+          scrollHeight="18rem"
+          size="small"
+          styleClass="w-full"
+        />
+      </div>
+      <div class="erp-doc__field erp-doc__field--grow">
+        <label for="cpi-cr-material" class="erp-doc__label">Materials sales account</label>
+        <p-select
+          inputId="cpi-cr-material"
+          formControlName="crMaterialLedgerId"
+          [options]="crMaterialLedgerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Ledger for material lines"
+          [filter]="true"
+          filterBy="label"
+          filterPlaceholder="Search ledger..."
+          (onFilter)="onCrMaterialLedgersFilter($event)"
+          [showClear]="true"
+          appendTo="body"
+          scrollHeight="18rem"
+          size="small"
+          styleClass="w-full"
+        />
+      </div>
+      <div class="erp-doc__total-block">
+        <span class="erp-doc__total-label">Invoice total</span>
+        <span class="erp-doc__total-value">{{ totalAmount() | number: '1.2-2' }}</span>
+        <div class="construction-invoice__totals">
+          <span>Materials: <strong>{{ materialTotal() | number: '1.2-2' }}</strong></span>
+          <span>Services: <strong>{{ serviceTotal() | number: '1.2-2' }}</strong></span>
+        </div>
+      </div>
+      <div class="erp-doc__save-wrap">
+        <p-button label="Save" icon="pi pi-save" [loading]="saving()" [disabled]="saving()" (onClick)="save()" />
+      </div>
+    </div>
+
+    @if (selectedProjectLabel) {
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center">
+        <p-tag [value]="selectedProjectLabel" severity="info" />
+        @if (selectedClientLabel) {
+          <span class="erp-doc__subtitle" style="margin: 0">Client: {{ selectedClientLabel }}</span>
+        }
+      </div>
+    }
+
+    <section class="erp-doc__section" aria-labelledby="material-lines-heading">
+      <div class="erp-doc__section-head">
+        <div>
+          <h3 id="material-lines-heading">Material charges</h3>
+          <p>Inventory items issued to the project — stock moves out on save.</p>
+        </div>
+        <p-tag value="Inventory" severity="success" />
+      </div>
+      <app-invoice-items-table [lines]="materialLines" />
+    </section>
+
+    <section class="erp-doc__section" aria-labelledby="service-lines-heading">
+      <div class="erp-doc__section-head">
+        <div>
+          <h3 id="service-lines-heading">Service charges</h3>
+          <p>Labor, subcontracting, equipment hire, and other revenue ledgers — no stock movement.</p>
+        </div>
+        <p-tag value="Ledgers" severity="warn" />
+      </div>
+      <app-voucher-entries-table [lines]="serviceLines" />
+    </section>
+  </form>
+
+  @if (saveError()) {
+    <p class="erp-doc__alert">{{ saveError() }}</p>
+  }
+
+  <section class="erp-doc__json" aria-labelledby="cpi-json-heading">
+    <div class="erp-doc__json-head">
+      <h3 id="cpi-json-heading">Data (JSON)</h3>
+      <p-button label="Copy JSON" icon="pi pi-copy" size="small" [outlined]="true" (onClick)="copyJson()" />
+    </div>
+    <pre class="erp-doc__json-pre">{{ dataJson() }}</pre>
+  </section>
+</div>

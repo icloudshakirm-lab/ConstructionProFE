@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.construction-invoice__totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.construction-invoice__totals strong {
+  color: var(--p-text-color);
+  font-weight: 600;
+}

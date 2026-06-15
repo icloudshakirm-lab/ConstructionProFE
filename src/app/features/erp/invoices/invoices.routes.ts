@@ -19,4 +19,18 @@ export const invoicesRoutes: Routes = [
         (m) => m.PurchaseInvoiceComponent,
       ),
   },
+  {
+    path: 'construction',
+    loadComponent: () =>
+      import('./construction-project-invoice/construction-project-invoice.component').then(
+        (m) => m.ConstructionProjectInvoiceComponent,
+      ),
+  },
+  {
+    path: 'construction/:id',
+    loadComponent: () =>
+      import('./construction-project-invoice/construction-project-invoice.component').then(
+        (m) => m.ConstructionProjectInvoiceComponent,
+      ),
+  },
 ];

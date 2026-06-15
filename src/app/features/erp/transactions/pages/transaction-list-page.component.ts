@@ -58,6 +58,7 @@ export class TransactionListPageComponent implements OnInit {
   getEditRoute(row: TransactionDTO): (string | number)[] {
     switch (row.type) {
       case 'Sales': return ['/erp/invoices/sales', row.id];
+      case 'ConstructionSales': return ['/erp/invoices/construction', row.id];
       case 'Purchase': return ['/erp/invoices/purchase', row.id];
       case 'Payment': return ['/erp/vouchers/payment', row.id];
       case 'Receipt': return ['/erp/vouchers/receipt', row.id];
