@@ -71,7 +71,7 @@
     [rows]="10"
     [paginator]="filteredEmployees().length > 10"
     dataKey="id"
-    styleClass="employee-records-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -89,7 +89,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.employee-records-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -112,7 +112,7 @@
           <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
         </td>
         <td>
-          <div class="employee-records-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
             <p-button
@@ -444,7 +444,7 @@
             <div class="emp-detail__tab-toolbar">
               <p-button label="Add education" icon="pi pi-plus" size="small" (onClick)="openAddEducation()" />
             </div>
-            <p-table [value]="e.education" styleClass="emp-detail__subtable">
+            <p-table [value]="e.education" styleClass="cp-data-grid cp-data-grid--compact">
               <ng-template #header>
                 <tr>
                   <th>Qualification</th>
@@ -469,7 +469,7 @@
                     }
                   </td>
                   <td>
-                    <div class="employee-records-page__row-actions">
+                    <div class="cp-data-grid__row-actions">
                       <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditEducation(row)" />
                       <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteEducation(row)" />
                     </div>
@@ -486,7 +486,7 @@
             <div class="emp-detail__tab-toolbar">
               <p-button label="Add work history" icon="pi pi-plus" size="small" (onClick)="openAddWorkHistory()" />
             </div>
-            <p-table [value]="e.workHistory" styleClass="emp-detail__subtable">
+            <p-table [value]="e.workHistory" styleClass="cp-data-grid cp-data-grid--compact">
               <ng-template #header>
                 <tr>
                   <th>Employer</th>
@@ -503,7 +503,7 @@
                   <td>{{ row.startDate }} – {{ row.endDate ?? 'Present' }}</td>
                   <td>{{ row.location || '—' }}</td>
                   <td>
-                    <div class="employee-records-page__row-actions">
+                    <div class="cp-data-grid__row-actions">
                       <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditWorkHistory(row)" />
                       <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteWorkHistory(row)" />
                     </div>

@@ -1,0 +1,62 @@
+<p-toast></p-toast>
+
+<div class="p-6 space-y-6">
+  <div class="flex justify-between items-end">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Price Lists (Bulk Setup)</h1>
+      <p class="text-sm text-slate-500">Assign special prices to items for specific ledgers (e.g., vendors or customers).</p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+    <div class="bg-white dark:bg-slate-900 shadow rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+      <div class="flex flex-col gap-2 max-w-sm">
+        <label for="ledger" class="text-sm font-semibold text-slate-700 dark:text-slate-300">Target Ledger (Vendor/Customer)</label>
+        <p-select id="ledger" formControlName="ledgerId" [options]="ledgers()" 
+                  optionLabel="name" optionValue="id" placeholder="Select Ledger" 
+                  [filter]="true" filterBy="name" styleClass="w-full" appendTo="body"></p-select>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 shadow rounded-xl border border-slate-200 dark:border-slate-800">
+      <p-table [value]="lines.controls" [loading]="loading()" styleClass="cp-data-grid cp-data-grid--compact" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Item</th>
+            <th>Price Per Item</th>
+            <th>Actions</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-lineGroup let-i="rowIndex">
+          <tr [formGroup]="lineGroup">
+            <td class="py-2">
+              <p-select formControlName="itemId" [options]="items()" 
+                        optionLabel="name" optionValue="id" placeholder="Select Item" 
+                        [filter]="true" filterBy="name" styleClass="w-full" appendTo="body"></p-select>
+            </td>
+            <td class="py-2">
+              <input pInputText formControlName="pricePerItem" type="number" step="0.01" class="w-full" />
+            </td>
+            <td class="py-2 text-right">
+              <p-button icon="pi pi-minus" (click)="removeLine(i)" 
+                      variant="text" size="small" severity="danger"></p-button>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="footer">
+          <tr>
+            <td colspan="3" class="cp-data-grid__empty">
+              <p-button label="Add Item Row" icon="pi pi-plus" 
+                      variant="text" size="small" (click)="addLine()"></p-button>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <div class="flex justify-end pt-4">
+      <p-button type="submit" label="Save Changes" icon="pi pi-save" 
+              size="large" [loading]="loading()" [disabled]="form.invalid || lines.length === 0"></p-button>
+    </div>
+  </form>
+</div>

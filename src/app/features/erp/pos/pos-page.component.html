@@ -1,0 +1,349 @@
+<form
+  class="pos-page mx-auto max-w-6xl space-y-6"
+  [formGroup]="form"
+  (ngSubmit)="onScanSubmit($event)"
+>
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Point of sale</h2>
+      <p class="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+        Scan or type a barcode and press <kbd class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:border-slate-600 dark:bg-slate-800">Enter</kbd>. Sales mode adds
+        quantity; return mode adds to the return line for that item (or starts one). Use
+        <span class="font-medium">−</span> / <span class="font-medium">+</span> to adjust quantities.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
+        [class.border-rose-300]="salesReturnMode"
+        [class.bg-rose-50]="salesReturnMode"
+        [class.dark:border-rose-800]="salesReturnMode"
+        [class.dark:bg-rose-950/40]="salesReturnMode"
+        [class.border-slate-300]="!salesReturnMode"
+        [class.bg-white]="!salesReturnMode"
+        [class.dark:border-slate-600]="!salesReturnMode"
+        [class.dark:bg-slate-900]="!salesReturnMode"
+        [attr.aria-pressed]="salesReturnMode"
+        (click)="toggleSalesReturnMode()"
+      >
+        <span
+          class="inline-block h-2 w-2 rounded-full"
+          [class.bg-rose-500]="salesReturnMode"
+          [class.bg-slate-300]="!salesReturnMode"
+          aria-hidden="true"
+        ></span>
+        <span class="text-slate-800 dark:text-slate-100">Sales return</span>
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        (click)="clearCart()"
+      >
+        Clear cart
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,18.5rem)] lg:gap-8"
+  >
+    <div class="min-w-0 space-y-4">
+      <label for="pos-barcode" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Barcode / SKU</label>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          #barcodeInput
+          id="pos-barcode"
+          type="text"
+          formControlName="scanInput"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="Scan barcode or type SKU, then Enter"
+          class="min-h-12 w-full flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 text-base font-mono tracking-wide text-slate-900 shadow-inner outline-none ring-[var(--p-primary-color)] focus:border-[var(--p-primary-color)] focus:ring-2 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+          (keydown)="onBarcodeScanKeydown($event)"
+        />
+        <button
+          type="submit"
+          class="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[var(--p-primary-color)] px-6 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+        >
+          Add scan
+        </button>
+        <button
+          type="button"
+          class="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          title="Jump to payment (keyboard: Numpad +)"
+          (click)="focusPaymentPanel()"
+        >
+          Payment
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400">
+        Resolves items via <span class="font-medium">GET /items/by-barcode/…</span> first; if the server returns 404, demo
+        SKUs <span class="font-mono">SKU-1001</span>–<span class="font-mono">SKU-2002</span> and sample EANs
+        <span class="font-mono">5012345678901</span>–<span class="font-mono">5012345678905</span> still work offline.
+      </p>
+      <div class="min-h-[4.75rem] pt-1" aria-live="polite">
+        @if (scanError()) {
+          <p
+            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+            role="alert"
+          >
+            {{ scanError() }}
+          </p>
+        } @else {
+          <div class="flex flex-col gap-1.5">
+            <label for="pos-selected-item" class="text-sm font-medium text-slate-700 dark:text-slate-300">Selected item</label>
+            <input
+              id="pos-selected-item"
+              type="text"
+              readonly
+              tabindex="-1"
+              [value]="selectedItemLabel()"
+              placeholder="—"
+              class="min-h-11 w-full cursor-default rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 shadow-inner placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
+            />
+          </div>
+        }
+      </div>
+
+      @if (salesReturnMode) {
+        <p class="text-xs text-rose-800 dark:text-rose-200/90">
+          Return mode: each scan adds 1 to the return quantity for that item (same row, no duplicates). Sale lines stay
+          above returns.
+        </p>
+      }
+
+      <p class="text-xs text-slate-500 dark:text-slate-400">
+        Keyboard: Tab to <span class="font-medium">Payment</span> (or press the <span class="font-medium">Payment</span> button /
+        Numpad +), <span class="font-medium">Enter</span> on Card or Cash → received amount → <span class="font-medium">Enter</span> to print.
+      </p>
+
+      <div class="pos-cart-wrap overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+        <table class="cp-data-grid__table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Item</th>
+              <th>Batch</th>
+              <th>Qty</th>
+              <th>Rate (ex GST)</th>
+              <th>Amount (ex GST)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody formArrayName="lines">
+            @if (lineGroups.length === 0) {
+              <tr class="pos-empty-row">
+                <td colspan="7" class="cp-data-grid__empty">
+                  Cart is empty. Scan a barcode to add the first line.
+                </td>
+              </tr>
+            }
+            @for (line of lineGroups; track trackByLineId($index, line); let i = $index) {
+              <tr
+                class="border-b border-slate-100 dark:border-slate-800"
+                [class.bg-rose-50/70]="isReturnLine(line)"
+                [class.dark:bg-rose-950/25]="isReturnLine(line)"
+                [formGroupName]="i"
+              >
+                <td>
+                  <span
+                    class="inline-flex rounded px-2 py-0.5 text-xs font-medium"
+                    [class.bg-slate-100]="!isReturnLine(line)"
+                    [class.text-slate-800]="!isReturnLine(line)"
+                    [class.dark:bg-slate-800]="!isReturnLine(line)"
+                    [class.dark:text-slate-100]="!isReturnLine(line)"
+                    [class.bg-rose-100]="isReturnLine(line)"
+                    [class.text-rose-900]="isReturnLine(line)"
+                    [class.dark:bg-rose-900/60]="isReturnLine(line)"
+                    [class.dark:text-rose-100]="isReturnLine(line)"
+                  >
+                    {{ isReturnLine(line) ? 'Return' : 'Sale' }}
+                  </span>
+                </td>
+                <td class="max-w-[14rem] px-3 py-2 font-medium text-slate-800 dark:text-slate-100">
+                  {{ line.get('itemName')?.value }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">
+                  {{ batchLabel(line.get('batch')?.value) }}
+                </td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                      (click)="decrementQty(i)"
+                      [attr.aria-label]="'Decrease quantity for ' + line.get('itemName')?.value"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      formControlName="qty"
+                      min="0.01"
+                      step="1"
+                      class="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-sm tabular-nums dark:border-slate-600 dark:bg-slate-950"
+                      (blur)="onQtyBlur(line)"
+                      (keydown.enter)="$event.preventDefault()"
+                    />
+                    <button
+                      type="button"
+                      class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                      (click)="incrementQty(i)"
+                      [attr.aria-label]="'Increase quantity for ' + line.get('itemName')?.value"
+                    >
+                      +
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    formControlName="rate"
+                    min="0"
+                    step="0.01"
+                    class="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-950"
+                    (keydown.enter)="$event.preventDefault()"
+                  />
+                </td>
+                <td>
+                  {{ line.get('amount')?.value | number: '1.2-2' }}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+                    (click)="removeRow(i)"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <section class="space-y-2" aria-labelledby="pos-json-heading">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="pos-json-heading" class="text-base font-semibold text-slate-800 dark:text-slate-100">Cart (JSON)</h3>
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            (click)="copyJson()"
+          >
+            Copy JSON
+          </button>
+        </div>
+        <pre
+          class="max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-900 p-4 text-xs text-emerald-100 dark:border-slate-700"
+          >{{ dataJson() }}</pre
+        >
+      </section>
+    </div>
+
+    <aside
+      class="pos-payment-panel w-full shrink-0 space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/50 lg:sticky lg:top-4"
+      aria-label="Payment"
+    >
+      <div class="space-y-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Line rates and amounts are <span class="font-medium">excluding GST</span>. GST is calculated on the subtotal below.
+        </p>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-end justify-between gap-4">
+            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Subtotal (ex GST)</span>
+            <p class="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ netTotal() | number: '1.2-2' }}</p>
+          </div>
+          <div class="flex items-end justify-between gap-4">
+            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">GST ({{ posGstRatePercent }}%)</span>
+            <p class="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ gstAmount() | number: '1.2-2' }}</p>
+          </div>
+          <div class="flex items-end justify-between gap-4 border-t border-slate-200 pt-3 dark:border-slate-700">
+            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Total (inc. GST)</span>
+            <p class="text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ grandTotalIncGst() | number: '1.2-2' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Payment</h3>
+
+      <fieldset class="space-y-2 border-0 p-0">
+        <legend class="text-sm font-medium text-slate-700 dark:text-slate-300">Payment options</legend>
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4" role="radiogroup" aria-label="Card or cash">
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-800 dark:text-slate-100">
+            <input
+              #paymentRadioCard
+              type="radio"
+              formControlName="paymentMethod"
+              value="card"
+              class="h-4 w-4 accent-[var(--p-primary-color)]"
+              (keydown.enter)="onPaymentRadioKeydown($event)"
+            />
+            Card
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-800 dark:text-slate-100">
+            <input
+              type="radio"
+              formControlName="paymentMethod"
+              value="cash"
+              class="h-4 w-4 accent-[var(--p-primary-color)]"
+              (keydown.enter)="onPaymentRadioKeydown($event)"
+            />
+            Cash
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="space-y-1.5">
+        <label for="pos-paid-amount" class="text-sm font-medium text-slate-700 dark:text-slate-300">Paid amount</label>
+        <input
+          id="pos-paid-amount"
+          type="text"
+          readonly
+          tabindex="-1"
+          [value]="paidAmount() | number: '1.2-2'"
+          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="pos-received" class="text-sm font-medium text-slate-700 dark:text-slate-300">Received amount</label>
+        <input
+          #receivedAmountInput
+          id="pos-received"
+          type="number"
+          formControlName="receivedAmount"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          [readonly]="isCardPayment()"
+          [class.cursor-not-allowed]="isCardPayment()"
+          [class.bg-slate-100]="isCardPayment()"
+          [class.dark:bg-slate-900/80]="isCardPayment()"
+          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+          (keydown.enter)="onReceivedKeydown($event)"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Balance to return</span>
+        <p
+          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        >
+          {{ balanceToReturn() | number: '1.2-2' }}
+        </p>
+      </div>
+
+      <button
+        id="pos-print-bill"
+        type="button"
+        class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+        (click)="printBill()"
+      >
+        Print bill
+      </button>
+    </aside>
+  </div>
+</form>

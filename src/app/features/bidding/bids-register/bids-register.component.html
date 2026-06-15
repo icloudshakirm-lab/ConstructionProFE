@@ -61,7 +61,7 @@
     [rows]="10"
     [paginator]="filteredRecords().length > 10"
     dataKey="id"
-    styleClass="bids-register-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -86,7 +86,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.bids-register-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -110,7 +110,7 @@
         <td><p-tag [value]="statusLabel(row)" [severity]="statusSeverity(row)" /></td>
         <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
         <td>
-          <div class="bids-register-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEdit(row)" />
             <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="requestDelete(row)" />
@@ -305,7 +305,7 @@
             <div class="bids-register-page__tab-toolbar">
               <p-button label="Add quotation" icon="pi pi-plus" size="small" (onClick)="openAddQuotation()" />
             </div>
-            <p-table [value]="r.quotations ?? []" dataKey="id">
+            <p-table [value]="r.quotations ?? []" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
               <ng-template #header>
                 <tr>
                   <th>Partner</th>
@@ -342,7 +342,7 @@
           </p-tabpanel>
         }
         <p-tabpanel [value]="isInward ? '1' : '2'">
-          <p-table [value]="r.attachments" dataKey="id">
+          <p-table [value]="r.attachments" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
             <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
             <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>

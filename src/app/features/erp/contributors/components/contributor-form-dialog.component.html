@@ -1,0 +1,33 @@
+<p-dialog
+  [header]="header"
+  [visible]="visible"
+  (visibleChange)="onVisibilityChange($event)"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(calc(100vw - 2rem), 26rem)' }"
+>
+  @if (error()) {
+    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="flex flex-col gap-1.5">
+      <label for="ctd-name" class="text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
+      <input id="ctd-name" type="text" formControlName="name" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+    </div>
+    @if (!isEdit) {
+      <div class="flex flex-col gap-1.5">
+        <label for="ctd-phone" class="text-sm font-medium text-slate-700 dark:text-slate-300">Phone (optional)</label>
+        <input id="ctd-phone" type="text" formControlName="phoneNumber" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+      </div>
+    }
+    <p class="text-xs text-slate-500 dark:text-slate-400">Update only sends name to the API.</p>
+    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
+      <p-button type="button" label="Save" [disabled]="saving()" (onClick)="submit()" />
+    </div>
+  </form>
+</p-dialog>

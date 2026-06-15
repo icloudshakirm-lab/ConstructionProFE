@@ -1,0 +1,22 @@
+<div class="theme-toggle" role="group" aria-label="Color theme">
+  <button
+    type="button"
+    class="theme-toggle__btn"
+    [class.theme-toggle__btn--active]="themeService.theme() === 'light'"
+    [attr.aria-pressed]="themeService.theme() === 'light'"
+    (click)="themeService.set('light')"
+  >
+    <i class="pi pi-sun" aria-hidden="true"></i>
+    <span>Light</span>
+  </button>
+  <button
+    type="button"
+    class="theme-toggle__btn"
+    [class.theme-toggle__btn--active]="themeService.theme() === 'dark'"
+    [attr.aria-pressed]="themeService.theme() === 'dark'"
+    (click)="themeService.set('dark')"
+  >
+    <i class="pi pi-moon" aria-hidden="true"></i>
+    <span>Dark</span>
+  </button>
+</div>

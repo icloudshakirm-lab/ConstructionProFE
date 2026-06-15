@@ -229,3 +229,24 @@ html.app-dark .shell__nav-link:focus-visible {
     cursor: pointer;
   }
 }
+
+.shell__nav-divider {
+  height: 1px;
+  margin: 0.75rem 0.5rem;
+  background: var(--p-content-border-color);
+}
+
+.shell__nav-section-label {
+  margin: 0 0.5rem 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+}
+
+.shell__nav-icon {
+  margin-right: 0.35rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}

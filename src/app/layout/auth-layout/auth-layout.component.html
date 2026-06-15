@@ -1,0 +1,19 @@
+<div class="auth-layout">
+  <div class="auth-layout__theme">
+    <app-theme-toggle />
+  </div>
+
+  <div class="auth-layout__brand">
+    <a routerLink="/dashboard" class="auth-layout__logo-link">
+      <span class="auth-layout__logo">CP</span>
+      <span class="auth-layout__brand-text">
+        <strong>ConstructPro</strong>
+        <small>Construction ERP</small>
+      </span>
+    </a>
+  </div>
+
+  <div class="auth-layout__card">
+    <router-outlet />
+  </div>
+</div>

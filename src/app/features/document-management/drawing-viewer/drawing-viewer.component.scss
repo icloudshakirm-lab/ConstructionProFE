@@ -75,30 +75,15 @@ $viewer-canvas-h-expanded: calc(100dvh - 6.5rem);
   }
 }
 
-:host ::ng-deep .drawings-page__table {
+:host ::ng-deep .cp-data-grid {
   .p-datatable-tbody > tr.drawings-page__row {
     cursor: pointer;
-
-    &:hover {
-      background: var(--p-content-hover-background);
-    }
-  }
-
-  .drawings-page__row--active {
-    background: color-mix(in srgb, var(--p-primary-color) 14%, var(--cp-panel-bg)) !important;
   }
 }
 
 .drawings-page__title-cell {
   display: block;
   font-weight: 600;
-}
-
-.drawings-page__table small {
-  display: block;
-  margin-top: 0.15rem;
-  color: var(--p-text-muted-color);
-  font-size: 0.75rem;
 }
 
 .drawings-page__hint {

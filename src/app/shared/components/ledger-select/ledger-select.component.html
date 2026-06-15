@@ -1,0 +1,18 @@
+<div class="flex flex-col gap-1.5">
+  <label [attr.for]="inputId" class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ label }}</label>
+  <p-select
+    [inputId]="inputId"
+    [formControl]="control"
+    [options]="selectOptions"
+    optionLabel="label"
+    optionValue="id"
+    [placeholder]="placeholder"
+    [filter]="true"
+    filterBy="label,code,name"
+    filterPlaceholder="Search ledger..."
+    [showClear]="true"
+    [appendTo]="'body'"
+    size="small"
+    styleClass="w-full ledger-p-select"
+  />
+</div>

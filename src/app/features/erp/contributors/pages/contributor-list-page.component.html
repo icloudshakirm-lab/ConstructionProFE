@@ -1,0 +1,99 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Contributors</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">Paginated list (GitHub-style query params).</p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="openNew()"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New contributor
+    </button>
+  </div>
+
+  <app-contributor-form-dialog
+    [visible]="formVisible()"
+    (visibleChange)="onFormVisibleChange($event)"
+    [contributorId]="formContributorId()"
+    (saved)="load()"
+  />
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  <div class="flex flex-wrap items-center gap-2 text-sm">
+    <span class="text-slate-600 dark:text-slate-400">Per page</span>
+    <select
+      class="rounded border border-slate-300 bg-white px-2 py-1 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+      [value]="perPage()"
+      (change)="onPerPageChange($event)"
+    >
+      <option [value]="5">5</option>
+      <option [value]="10">10</option>
+      <option [value]="20">20</option>
+      <option [value]="50">50</option>
+    </select>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else if (result(); as res) {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of res.items; track row.id) {
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.phoneNumber || '—' }}</td>
+              <td>
+                <a [routerLink]="['/app/contributors', row.id]" class="mr-2 text-sm text-[var(--p-primary-color)] no-underline">View</a>
+                <button type="button" class="cp-data-grid__link" (click)="openEdit(row.id)">
+                  Edit
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" class="cp-data-grid__empty">No contributors on this page.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400">
+      <span>Page {{ res.page }} of {{ res.totalPages }} ({{ res.totalCount }} total)</span>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="rounded border border-slate-300 px-2 py-1 dark:border-slate-600"
+          [disabled]="res.page <= 1"
+          (click)="setPage(res.page - 1)"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          class="rounded border border-slate-300 px-2 py-1 dark:border-slate-600"
+          [disabled]="res.page >= res.totalPages"
+          (click)="setPage(res.page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>

@@ -7,6 +7,7 @@ import { Button } from 'primeng/button';
 import { Tag } from 'primeng/tag';
 import { Tooltip } from 'primeng/tooltip';
 import { FEATURE_MODULES } from '../../core/constants/feature-registry';
+import { ERP_NAV_ITEMS, ErpNavItem } from '../../core/constants/erp-nav.constants';
 import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
@@ -29,14 +30,19 @@ export class MainLayoutComponent {
   readonly themeService = inject(ThemeService);
 
   readonly modules = FEATURE_MODULES;
+  readonly erpNavItems = ERP_NAV_ITEMS;
   readonly sidebarVisible = signal(false);
   readonly expandedGroups = signal<Record<string, boolean>>({});
+  readonly expandedErpSections = signal<Record<string, boolean>>({});
   readonly currentUrl = signal(this.router.url);
 
   readonly pageTitle = computed(() => {
     const url = this.currentUrl();
-    if (url.includes('/dashboard') || url === '/') {
+    if (url === '/dashboard' || url === '/') {
       return 'Dashboard';
+    }
+    if (url.startsWith('/erp')) {
+      return this.resolveErpPageTitle(url) ?? 'ERP & Ledgers';
     }
     const segment = url.split('/').filter(Boolean)[0];
     const mod = FEATURE_MODULES.find((m) => m.routePath === segment);
@@ -61,12 +67,40 @@ export class MainLayoutComponent {
       .subscribe((url) => this.currentUrl.set(url));
 
     const initial = this.router.url.split('/').filter(Boolean)[0];
-    if (initial) {
+    if (initial === 'erp') {
+      this.expandedErpSections.update((g) => ({ ...g, '/erp': true }));
+    } else if (initial) {
       const mod = FEATURE_MODULES.find((m) => m.routePath === initial);
       if (mod) {
         this.expandedGroups.update((g) => ({ ...g, [mod.id]: true }));
       }
     }
+  }
+
+  toggleErpSection(sectionKey: string): void {
+    this.expandedErpSections.update((g) => ({ ...g, [sectionKey]: !g[sectionKey] }));
+  }
+
+  isErpSectionExpanded(sectionKey: string): boolean {
+    return !!this.expandedErpSections()[sectionKey];
+  }
+
+  private resolveErpPageTitle(url: string): string | null {
+    const find = (items: ErpNavItem[]): string | null => {
+      for (const item of items) {
+        if (url === item.route || url.startsWith(item.route + '/')) {
+          return item.label;
+        }
+        if (item.children) {
+          const child = find(item.children);
+          if (child) {
+            return child;
+          }
+        }
+      }
+      return null;
+    };
+    return find(ERP_NAV_ITEMS);
   }
 
   toggleGroup(moduleId: string): void {

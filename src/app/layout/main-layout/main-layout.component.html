@@ -73,6 +73,54 @@
           }
         </div>
       }
+
+      <div class="shell__nav-divider" aria-hidden="true"></div>
+      <p class="shell__nav-section-label">ERP &amp; Ledgers</p>
+
+      @for (item of erpNavItems; track item.route) {
+        @if (item.children?.length) {
+          <div class="shell__nav-group">
+            <button
+              type="button"
+              class="shell__nav-group-toggle"
+              (click)="toggleErpSection(item.route)"
+              [attr.aria-expanded]="isErpSectionExpanded(item.route)"
+            >
+              <i [class]="item.icon"></i>
+              <span class="shell__nav-group-label">{{ item.label }}</span>
+              <i
+                class="pi shell__chevron"
+                [class.pi-chevron-down]="isErpSectionExpanded(item.route)"
+                [class.pi-chevron-right]="!isErpSectionExpanded(item.route)"
+              ></i>
+            </button>
+            @if (isErpSectionExpanded(item.route)) {
+              <div class="shell__nav-children">
+                @for (child of item.children; track child.route) {
+                  <a
+                    class="shell__nav-link"
+                    [routerLink]="child.route"
+                    routerLinkActive="shell__nav-link--active"
+                    (click)="onNavClick()"
+                  >
+                    {{ child.label }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <a
+            class="shell__nav-link shell__nav-link--top"
+            [routerLink]="item.route"
+            routerLinkActive="shell__nav-link--active"
+            (click)="onNavClick()"
+          >
+            <i [class]="item.icon"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      }
     </nav>
   </aside>
 

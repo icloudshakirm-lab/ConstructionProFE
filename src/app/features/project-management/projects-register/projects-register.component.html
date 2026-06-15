@@ -54,7 +54,7 @@
     [paginator]="filteredProjects().length > 10"
     selectionMode="single"
     dataKey="id"
-    styleClass="projects-register-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -72,7 +72,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.projects-register-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -92,7 +92,7 @@
         </td>
         <td>{{ row.linkedSiteCount }}</td>
         <td>
-          <div class="projects-register-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button
               icon="pi pi-eye"
               [rounded]="true"

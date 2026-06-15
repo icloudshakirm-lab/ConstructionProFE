@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+
+/* Reduces layout thrash when rows are added; keeps net total row stable. */
+.pos-cart-wrap {
+  contain: layout;
+  min-height: 8rem;
+}
+

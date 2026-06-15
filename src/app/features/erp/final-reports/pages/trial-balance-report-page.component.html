@@ -1,0 +1,102 @@
+<div class="mx-auto max-w-[min(100%,80rem)] space-y-4">
+  <header class="space-y-1">
+    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Trial balance</h2>
+    <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/financial/trial-balance</p>
+  </header>
+
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">From</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="fromDateLocal()"
+        (input)="onFromDateInput($event)"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">To</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="toDateLocal()"
+        (input)="onToDateInput($event)"
+      />
+    </label>
+    <button
+      type="button"
+      class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="load()"
+    >
+      Refresh
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (report(); as r) {
+    @if (r.fromDate && r.toDate) {
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        Period: {{ r.fromDate | date: 'medium' }} — {{ r.toDate | date: 'medium' }}
+      </p>
+    }
+  }
+
+  <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <table class="cp-data-grid__table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Opening Dr</th>
+          <th>Opening Cr</th>
+          <th>Period Dr</th>
+          <th>Period Cr</th>
+          <th>Closing Dr</th>
+          <th>Closing Cr</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="9" class="cp-data-grid__empty">Loading…</td>
+          </tr>
+        } @else if (!report()?.lines?.length) {
+          <tr>
+            <td colspan="9" class="cp-data-grid__empty">No rows.</td>
+          </tr>
+        } @else {
+          @for (line of report()!.lines!; track line.ledgerId) {
+            <tr>
+              <td>{{ line.code }}</td>
+              <td>{{ line.name }}</td>
+              <td>{{ line.ledgerType || '—' }}</td>
+              <td>{{ line.openingDebit | number: '1.2-2' }}</td>
+              <td>{{ line.openingCredit | number: '1.2-2' }}</td>
+              <td>{{ line.periodDebit | number: '1.2-2' }}</td>
+              <td>{{ line.periodCredit | number: '1.2-2' }}</td>
+              <td>{{ line.closingDebit | number: '1.2-2' }}</td>
+              <td>{{ line.closingCredit | number: '1.2-2' }}</td>
+            </tr>
+          }
+          @if (report(); as r) {
+            <tr class="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-900/80">
+              <td colspan="3" class="cp-data-grid__empty">Totals</td>
+              <td>{{ r.totalOpeningDebit | number: '1.2-2' }}</td>
+              <td>{{ r.totalOpeningCredit | number: '1.2-2' }}</td>
+              <td>{{ r.totalPeriodDebit | number: '1.2-2' }}</td>
+              <td>{{ r.totalPeriodCredit | number: '1.2-2' }}</td>
+              <td>{{ r.totalClosingDebit | number: '1.2-2' }}</td>
+              <td>{{ r.totalClosingCredit | number: '1.2-2' }}</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

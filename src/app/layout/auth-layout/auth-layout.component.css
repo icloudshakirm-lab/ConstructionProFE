@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.auth-layout {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  background: var(--cp-app-bg);
+}
+
+.auth-layout__theme {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.auth-layout__brand {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.auth-layout__logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.auth-layout__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.auth-layout__brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.auth-layout__brand-text strong {
+  font-size: 1.125rem;
+}
+
+.auth-layout__brand-text small {
+  color: var(--p-text-muted-color);
+  font-size: 0.75rem;
+}
+
+.auth-layout__card {
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--cp-panel-bg);
+  box-shadow: 0 1px 3px var(--cp-shadow-soft);
+}

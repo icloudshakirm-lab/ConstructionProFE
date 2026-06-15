@@ -62,7 +62,7 @@
     [rows]="10"
     [paginator]="filteredPlans().length > 10"
     dataKey="id"
-    styleClass="bid-planning-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -80,7 +80,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.bid-planning-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -99,7 +99,7 @@
         <td><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)" /></td>
         <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
         <td>
-          <div class="bid-planning-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEdit(row)" />
             <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="requestDelete(row)" />

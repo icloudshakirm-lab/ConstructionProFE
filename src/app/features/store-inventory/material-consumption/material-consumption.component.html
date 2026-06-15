@@ -104,7 +104,7 @@
     [rows]="12"
     [paginator]="filteredRecords().length > 12"
     dataKey="id"
-    styleClass="material-consumption-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -123,7 +123,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.material-consumption-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         [class.material-consumption-page__row--over]="row.status === 'over_budget'"
         (click)="selectedId.set(row.id)"
       >
@@ -150,7 +150,7 @@
         <td><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)" /></td>
         <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
         <td>
-          <div class="material-consumption-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Adjust" (onClick)="openAdjust(row)" />
           </div>
@@ -228,7 +228,7 @@
           <p class="material-consumption-page__tab-intro">
             Material issuances tagged to this BOQ item and cost code — source of consumption data.
           </p>
-          <p-table [value]="r.issuanceRefs" dataKey="id">
+          <p-table [value]="r.issuanceRefs" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Issuance</th>
@@ -278,7 +278,7 @@
           </dl>
         </p-tabpanel>
         <p-tabpanel value="3">
-          <p-table [value]="r.attachments" dataKey="id">
+          <p-table [value]="r.attachments" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
             <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
             <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>

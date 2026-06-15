@@ -59,7 +59,7 @@
     [rows]="10"
     [paginator]="filteredPartners().length > 10"
     dataKey="id"
-    styleClass="partners-directory-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -79,7 +79,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.partners-directory-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -111,7 +111,7 @@
           <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
         </td>
         <td>
-          <div class="partners-directory-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
             <p-button
@@ -379,7 +379,7 @@
           <div class="partners-directory-page__tab-toolbar">
             <p-button label="Add contact" icon="pi pi-plus" size="small" (onClick)="openAddContact()" />
           </div>
-          <p-table [value]="p.contacts" dataKey="id">
+          <p-table [value]="p.contacts" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Name</th>
@@ -410,7 +410,7 @@
           <div class="partners-directory-page__tab-toolbar">
             <p-button label="Add certification" icon="pi pi-plus" size="small" (onClick)="openAddCertification()" />
           </div>
-          <p-table [value]="p.certifications" dataKey="id">
+          <p-table [value]="p.certifications" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Certification</th>
@@ -444,7 +444,7 @@
           </p-table>
         </p-tabpanel>
         <p-tabpanel value="3">
-          <p-table [value]="p.attachments" dataKey="id">
+          <p-table [value]="p.attachments" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Document</th>

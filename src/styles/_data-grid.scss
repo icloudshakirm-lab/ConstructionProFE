@@ -1,0 +1,216 @@
+/* Unified data grids — PrimeNG p-table + native HTML tables */
+
+@mixin cp-grid-cell-padding {
+  padding: 0.65rem 0.75rem;
+}
+
+@mixin cp-grid-header-cell {
+  @include cp-grid-cell-padding;
+  background: var(--cp-subtle-bg);
+  color: var(--p-text-color);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-color: var(--p-content-border-color);
+  white-space: nowrap;
+}
+
+@mixin cp-grid-body-cell {
+  @include cp-grid-cell-padding;
+  font-size: 0.8125rem;
+  color: var(--p-text-color);
+  border-color: var(--p-content-border-color);
+  vertical-align: middle;
+}
+
+/* —— PrimeNG DataTable —— */
+.shell__content .p-datatable,
+.p-dialog .p-datatable {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--cp-panel-bg);
+
+  .p-datatable-wrapper {
+    max-height: min(62vh, 600px);
+  }
+
+  .p-datatable-table {
+    border-collapse: collapse;
+  }
+
+  .p-datatable-thead > tr > th {
+    @include cp-grid-header-cell;
+  }
+
+  .p-datatable-tbody > tr > td {
+    @include cp-grid-body-cell;
+  }
+
+  .p-datatable-tbody > tr:nth-child(even) {
+    background: var(--cp-muted-bg);
+  }
+
+  .p-datatable-tbody > tr:hover {
+    background: var(--p-content-hover-background);
+  }
+
+  .p-datatable-tbody > tr.cp-data-grid__row--active,
+  .p-datatable-tbody > tr[class*='__row--active'] {
+    background: color-mix(in srgb, var(--p-primary-color) 8%, transparent) !important;
+  }
+
+  .p-datatable-emptymessage > td {
+    text-align: center;
+    color: var(--p-text-muted-color);
+    padding: 1.5rem;
+  }
+
+  small {
+    display: block;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .p-paginator {
+    border-top: 1px solid var(--p-content-border-color);
+    background: var(--cp-subtle-bg);
+    padding: 0.35rem 0.75rem;
+  }
+}
+
+.p-datatable.cp-data-grid--compact .p-datatable-wrapper,
+.cp-data-grid--compact.p-datatable .p-datatable-wrapper {
+  max-height: min(280px, 42vh);
+}
+
+.p-datatable.cp-data-grid--compact {
+  .p-datatable-thead > tr > th,
+  .p-datatable-tbody > tr > td {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* —— Native HTML tables (ERP lists, reports) —— */
+.cp-data-grid {
+  overflow-x: auto;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+}
+
+.cp-data-grid__table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  thead tr {
+    border-bottom: 1px solid var(--p-content-border-color);
+  }
+
+  th {
+    @include cp-grid-header-cell;
+  }
+
+  td {
+    @include cp-grid-body-cell;
+    border-bottom: 1px solid var(--p-content-border-color);
+  }
+
+  tbody tr:nth-child(even) td {
+    background: var(--cp-muted-bg);
+  }
+
+  tbody tr:hover td {
+    background: var(--p-content-hover-background);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  td.cp-data-grid__empty {
+    text-align: center;
+    color: var(--p-text-muted-color);
+    padding: 1.5rem;
+  }
+
+  small {
+    display: block;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+  }
+}
+
+.cp-data-grid__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.cp-data-grid__link {
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--p-primary-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  & + & {
+    margin-left: 0.35rem;
+  }
+}
+
+.cp-data-grid__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cp-data-grid__row-actions {
+  display: flex;
+  gap: 0.15rem;
+  justify-content: flex-end;
+}
+
+/* BOQ editable grids — same header / row rhythm as data grids */
+.boq-table,
+.boq-rev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+
+  th {
+    @include cp-grid-header-cell;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  td {
+    @include cp-grid-body-cell;
+    border-bottom: 1px solid var(--p-content-border-color);
+  }
+
+  tbody tr:nth-child(even) td {
+    background: var(--cp-muted-bg);
+  }
+}
+
+.boq-page__table-wrap,
+.boq-rev-page__table-wrap {
+  overflow: auto;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+}

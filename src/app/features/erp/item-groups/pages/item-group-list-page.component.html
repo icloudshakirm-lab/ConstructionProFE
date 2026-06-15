@@ -1,0 +1,55 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Item groups</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">No update endpoint in API — create, view, delete.</p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="openNew()"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New group
+    </button>
+  </div>
+
+  <app-item-group-form-dialog [visible]="formVisible()" (visibleChange)="onFormVisibleChange($event)" (saved)="load()" />
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.code }}</td>
+              <td>{{ row.name }}</td>
+              <td>
+                <a [routerLink]="['/app/item-groups', row.id]" class="text-sm text-[var(--p-primary-color)] no-underline">View</a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" class="cp-data-grid__empty">No item groups yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

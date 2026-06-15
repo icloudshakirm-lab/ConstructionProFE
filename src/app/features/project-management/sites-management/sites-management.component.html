@@ -63,7 +63,7 @@
           [rows]="10"
           [paginator]="filteredSites().length > 10"
           dataKey="id"
-          styleClass="sites-mgmt-page__table"
+          styleClass="cp-data-grid"
           [scrollable]="true"
           scrollHeight="420px"
         >
@@ -97,7 +97,7 @@
                 <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
               </td>
               <td>
-                <div class="sites-mgmt-page__row-actions">
+                <div class="cp-data-grid__row-actions">
                   <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailSite(row)" />
                   <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditSite(row)" />
                   <p-button
@@ -124,7 +124,7 @@
           [rows]="10"
           [paginator]="filteredGeofences().length > 10"
           dataKey="id"
-          styleClass="sites-mgmt-page__table"
+          styleClass="cp-data-grid"
           [scrollable]="true"
           scrollHeight="420px"
         >
@@ -163,7 +163,7 @@
                 <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
               </td>
               <td>
-                <div class="sites-mgmt-page__row-actions">
+                <div class="cp-data-grid__row-actions">
                   <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailGeofence(row)" />
                   <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditGeofence(row)" />
                   <p-button
@@ -190,7 +190,7 @@
           [rows]="10"
           [paginator]="filteredContacts().length > 10"
           dataKey="id"
-          styleClass="sites-mgmt-page__table"
+          styleClass="cp-data-grid"
           [scrollable]="true"
           scrollHeight="420px"
         >
@@ -222,7 +222,7 @@
                 <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
               </td>
               <td>
-                <div class="sites-mgmt-page__row-actions">
+                <div class="cp-data-grid__row-actions">
                   <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetailContact(row)" />
                   <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditContact(row)" />
                   <p-button

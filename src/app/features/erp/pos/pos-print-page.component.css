@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #fff;
+  color: #0f172a;
+}
+
+.pos-print-root {
+  padding: 1.5rem;
+}
+
+.pos-print-sheet {
+  padding-bottom: 2rem;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  :host {
+    background: #fff;
+  }
+
+  .pos-print-root {
+    padding: 0;
+  }
+
+  .pos-print-sheet {
+    max-width: none;
+    padding: 0;
+  }
+}

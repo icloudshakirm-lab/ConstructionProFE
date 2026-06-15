@@ -1,0 +1,76 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Tills</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">Manage POS tills and their statuses.</p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="openNew()"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New Till
+    </button>
+  </div>
+
+  <app-till-form-dialog
+    [visible]="formVisible()"
+    (visibleChange)="onFormVisibleChange($event)"
+    [tillId]="formTillId()"
+    (saved)="load()"
+  />
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Warehouse</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.code }}</td>
+              <td>{{ row.name }}</td>
+              <td>#{{ row.warehouseId }}</td>
+              <td>
+                <span 
+                  [class]="'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ' + (row.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700')"
+                >
+                  {{ row.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="cp-data-grid__link"
+                  (click)="openEdit(row.id)"
+                >
+                  Edit
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="cp-data-grid__empty">No tills yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

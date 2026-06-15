@@ -1,0 +1,41 @@
+/* Tailwind utilities for NetLedgers ERP screens — scoped + mapped to ConstructPro tokens */
+@import 'tailwindcss';
+
+/* Match ConstructPro dark mode (.app-dark), not NetLedgers (.dark) */
+@custom-variant dark (&:where(.app-dark, .app-dark *));
+
+@source '../app/features/erp';
+
+/* Map NetLedgers slate palette to ConstructPro / PrimeNG semantic tokens */
+@theme {
+  --color-slate-50: var(--cp-app-bg);
+  --color-slate-100: var(--cp-subtle-bg);
+  --color-slate-200: var(--p-content-border-color);
+  --color-slate-300: var(--p-content-border-color);
+  --color-slate-400: var(--p-text-muted-color);
+  --color-slate-500: var(--p-text-muted-color);
+  --color-slate-600: var(--p-text-muted-color);
+  --color-slate-700: var(--p-text-color);
+  --color-slate-800: var(--cp-panel-bg);
+  --color-slate-900: var(--p-text-color);
+  --color-slate-950: var(--cp-app-bg);
+  --color-white: var(--cp-panel-bg);
+  --color-red-50: color-mix(in srgb, var(--p-red-500) 8%, var(--cp-panel-bg));
+  --color-red-200: color-mix(in srgb, var(--p-red-500) 28%, transparent);
+  --color-red-800: var(--p-red-600);
+  --color-red-900: var(--p-red-700);
+  --color-red-950: color-mix(in srgb, var(--p-red-500) 12%, var(--cp-app-bg));
+  --color-rose-50: color-mix(in srgb, var(--p-red-500) 8%, var(--cp-panel-bg));
+  --color-rose-200: color-mix(in srgb, var(--p-red-500) 28%, transparent);
+  --color-rose-800: var(--p-red-600);
+  --color-rose-900: var(--p-red-700);
+  --color-rose-950: color-mix(in srgb, var(--p-red-500) 12%, var(--cp-app-bg));
+  --color-emerald-50: color-mix(in srgb, var(--p-green-500) 10%, var(--cp-panel-bg));
+  --color-emerald-400: var(--p-green-400);
+  --color-emerald-500: var(--p-green-500);
+  --color-emerald-600: var(--p-green-600);
+  --color-emerald-950: color-mix(in srgb, var(--p-green-500) 12%, var(--cp-app-bg));
+  --color-amber-50: color-mix(in srgb, var(--p-amber-500) 10%, var(--cp-panel-bg));
+  --color-amber-400: var(--p-amber-400);
+  --color-amber-500: var(--p-amber-500);
+}

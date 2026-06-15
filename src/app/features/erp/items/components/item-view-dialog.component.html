@@ -1,0 +1,58 @@
+<p-dialog
+  [header]="row()?.name ?? 'Item'"
+  [visible]="visible"
+  (visibleChange)="onVisibilityChange($event)"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
+>
+  @if (error()) {
+    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else if (row(); as r) {
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="text-sm text-slate-600 dark:text-slate-400">{{ r.title }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <p-button label="Edit" severity="secondary" size="small" (onClick)="openEdit()" />
+        <p-button
+          label="Delete"
+          severity="danger"
+          [outlined]="true"
+          size="small"
+          [loading]="deleting()"
+          (onClick)="remove()"
+        />
+      </div>
+    </div>
+    <dl class="mt-4 grid gap-3 text-sm">
+      <div>
+        <dt class="font-medium text-slate-500 dark:text-slate-400">Barcode</dt>
+        <dd class="font-mono text-slate-800 dark:text-slate-100">{{ r.barcode }}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-slate-500 dark:text-slate-400">Item group</dt>
+        <dd class="text-slate-800 dark:text-slate-100">{{ groupName() ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-slate-500 dark:text-slate-400">Description</dt>
+        <dd class="text-slate-800 dark:text-slate-100">{{ r.description || '—' }}</dd>
+      </div>
+    </dl>
+  }
+</p-dialog>
+
+<app-item-form-dialog
+  [visible]="formVisible()"
+  (visibleChange)="onFormVisibleChange($event)"
+  [itemId]="row()?.id ?? null"
+  formIdSuffix="view"
+  (saved)="onFormSaved()"
+/>

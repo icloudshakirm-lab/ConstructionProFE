@@ -36,7 +36,7 @@
     [rows]="8"
     [paginator]="filteredRuns().length > 8"
     dataKey="id"
-    styleClass="payroll-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -53,7 +53,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-row>
-      <tr [class.payroll-page__row--active]="selectedId() === row.id" (click)="selectedId.set(row.id)">
+      <tr [class.cp-data-grid__row--active]="selectedId() === row.id" (click)="selectedId.set(row.id)">
         <td>
           <strong>{{ row.periodLabel }}</strong>
           <small>{{ row.id }}</small>
@@ -73,7 +73,7 @@
           }
         </td>
         <td>
-          <div class="payroll-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-download" [rounded]="true" [text]="true" title="Export" (onClick)="exportCsv(row)" />
           </div>
@@ -128,7 +128,7 @@
         </div>
       </section>
 
-      <p-table [value]="run.lines" styleClass="payroll-detail__lines" [paginator]="run.lines.length > 8" [rows]="8">
+      <p-table [value]="run.lines" styleClass="cp-data-grid cp-data-grid--compact" [paginator]="run.lines.length > 8" [rows]="8">
         <ng-template #header>
           <tr>
             <th>Employee</th>

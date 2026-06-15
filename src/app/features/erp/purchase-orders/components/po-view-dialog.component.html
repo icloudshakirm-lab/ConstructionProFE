@@ -1,0 +1,113 @@
+<p-dialog
+  [header]="row()?.poNumber ?? 'Purchase order'"
+  [visible]="visible"
+  (visibleChange)="onVisibilityChange($event)"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(calc(100vw - 2rem), 52rem)' }"
+>
+  @if (error()) {
+    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else if (row(); as r) {
+    <div class="mb-4 flex flex-wrap justify-end gap-2">
+      <a
+        [routerLink]="['/app/inventory-transactions/po', r.id, 'edit']"
+        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 no-underline dark:border-slate-600 dark:text-slate-200"
+        (click)="onVisibilityChange(false)"
+      >
+        Edit
+      </a>
+    </div>
+
+    <dl class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">Vendor</dt>
+        <dd class="font-medium">{{ r.vendorName }} <span class="font-mono text-xs text-slate-400">({{ r.vendorCode }})</span></dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">Status</dt>
+        <dd><app-document-status-badge [status]="r.status" /></dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">Order date</dt>
+        <dd>{{ r.orderDate | date: 'medium' }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">Expected delivery</dt>
+        <dd>{{ r.expectedDeliveryDate ? (r.expectedDeliveryDate | date: 'medium') : '—' }}</dd>
+      </div>
+      @if (r.reference) {
+        <div>
+          <dt class="text-slate-500 dark:text-slate-400">Reference</dt>
+          <dd>{{ r.reference }}</dd>
+        </div>
+      }
+      @if (r.deliveryAddress) {
+        <div class="sm:col-span-2">
+          <dt class="text-slate-500 dark:text-slate-400">Delivery address</dt>
+          <dd>{{ r.deliveryAddress }}</dd>
+        </div>
+      }
+      @if (r.notes) {
+        <div class="sm:col-span-2">
+          <dt class="text-slate-500 dark:text-slate-400">Notes</dt>
+          <dd>{{ r.notes }}</dd>
+        </div>
+      }
+    </dl>
+
+    <div class="overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+            <th>#</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Unit price</th>
+            <th>Tax</th>
+            <th>Line total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of r.lines; track line.id) {
+            <tr>
+              <td class="px-2 py-1.5 tabular-nums">{{ line.lineNumber }}</td>
+              <td class="px-2 py-1.5">
+                <div>{{ line.itemTitle }}</div>
+                @if (line.description) {
+                  <div class="text-xs text-slate-500">{{ line.description }}</div>
+                }
+              </td>
+              <td class="px-2 py-1.5 text-right tabular-nums">{{ line.quantity | number: '1.2-4' }}</td>
+              <td class="px-2 py-1.5 text-right tabular-nums">{{ line.unitPrice | number: '1.2-2' }}</td>
+              <td class="px-2 py-1.5 text-right tabular-nums">{{ line.taxAmount | number: '1.2-2' }}</td>
+              <td class="px-2 py-1.5 text-right tabular-nums">{{ line.lineAmount | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <dl class="mt-4 grid gap-1 text-right text-sm">
+      <div class="flex justify-between gap-4">
+        <dt class="text-slate-500">Subtotal</dt>
+        <dd class="tabular-nums font-medium">{{ r.subTotal | number: '1.2-2' }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-slate-500">Tax</dt>
+        <dd class="tabular-nums font-medium">{{ r.taxAmount | number: '1.2-2' }}</dd>
+      </div>
+      <div class="flex justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-700">
+        <dt class="font-semibold">PO total</dt>
+        <dd class="tabular-nums text-base font-bold">{{ r.totalAmount | number: '1.2-2' }}</dd>
+      </div>
+    </dl>
+  }
+</p-dialog>

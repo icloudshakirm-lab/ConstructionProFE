@@ -101,7 +101,7 @@
     [rows]="12"
     [paginator]="attendanceRows().length > 12"
     dataKey="employeeId"
-    styleClass="hr-attendance-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -169,7 +169,7 @@
           </div>
         </td>
         <td>
-          <div class="hr-attendance-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             @if (row.record) {
               <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row.record)" />
               <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row.record)" />

@@ -1,0 +1,134 @@
+<div class="mx-auto max-w-5xl space-y-4">
+  <header class="space-y-1">
+    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Balance sheet</h2>
+    <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/financial/balance-sheet</p>
+  </header>
+
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">From</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="fromDateLocal()"
+        (input)="onFromDateInput($event)"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">To</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="toDateLocal()"
+        (input)="onToDateInput($event)"
+      />
+    </label>
+    <button
+      type="button"
+      class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="load()"
+    >
+      Refresh
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else if (report(); as r) {
+    @if (r.fromDate && r.toDate) {
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        As of period ending: {{ r.toDate | date: 'medium' }}
+        <span class="text-slate-400">(from {{ r.fromDate | date: 'shortDate' }})</span>
+      </p>
+    }
+
+    <section class="space-y-2">
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Assets</h3>
+      <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <table class="cp-data-grid__table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Section</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines('assets'); track line.ledgerId) {
+              <tr>
+                <td>{{ line.code }}</td>
+                <td>{{ line.name }}</td>
+                <td>{{ line.section || '—' }}</td>
+                <td>{{ line.amount | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="cp-data-grid__empty">No asset rows.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="text-right text-sm font-medium tabular-nums text-slate-800 dark:text-slate-100">
+        Total assets: {{ r.totalAssets | number: '1.2-2' }}
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Liabilities</h3>
+      <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <table class="cp-data-grid__table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Section</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines('liabilities'); track line.ledgerId) {
+              <tr>
+                <td>{{ line.code }}</td>
+                <td>{{ line.name }}</td>
+                <td>{{ line.section || '—' }}</td>
+                <td>{{ line.amount | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="cp-data-grid__empty">No liability rows.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="text-right text-sm font-medium tabular-nums text-slate-800 dark:text-slate-100">
+        Total liabilities: {{ r.totalLiabilities | number: '1.2-2' }}
+      </p>
+    </section>
+
+    <dl class="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-900/80">
+      <div class="flex justify-between gap-4">
+        <dt class="text-slate-600 dark:text-slate-400">Net profit for period</dt>
+        <dd class="font-medium tabular-nums text-slate-900 dark:text-slate-50">{{ r.netProfitForPeriod | number: '1.2-2' }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt class="text-slate-600 dark:text-slate-400">Total equity</dt>
+        <dd class="font-medium tabular-nums text-slate-900 dark:text-slate-50">{{ r.totalEquity | number: '1.2-2' }}</dd>
+      </div>
+      <div class="flex justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-700">
+        <dt class="font-semibold text-slate-800 dark:text-slate-100">Total liabilities & equity</dt>
+        <dd class="font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+          {{ r.totalLiabilitiesAndEquity | number: '1.2-2' }}
+        </dd>
+      </div>
+    </dl>
+  }
+</div>

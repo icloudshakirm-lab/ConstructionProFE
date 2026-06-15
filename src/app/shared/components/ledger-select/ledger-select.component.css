@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep .ledger-p-select.p-select,
+:host ::ng-deep .ledger-p-select {
+  width: 100%;
+  min-height: unset;
+}
+
+/* Match nearby text inputs: text-sm, compact padding */
+:host ::ng-deep .ledger-p-select .p-select-label,
+:host ::ng-deep .ledger-p-select .p-placeholder {
+  width: 100%;
+  padding-block: 0.25rem;
+  padding-inline: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+:host ::ng-deep .ledger-p-select .p-select-dropdown {
+  width: 1.75rem;
+}
+
+:host ::ng-deep .ledger-p-select .p-select-clear-icon {
+  scale: 0.85;
+}

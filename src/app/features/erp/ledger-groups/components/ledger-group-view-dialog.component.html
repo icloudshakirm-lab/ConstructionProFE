@@ -1,0 +1,54 @@
+<p-dialog
+  [header]="row()?.name ?? 'Ledger group'"
+  [visible]="visible"
+  (visibleChange)="onVisibilityChange($event)"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
+>
+  @if (error()) {
+    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else if (row(); as r) {
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="font-mono text-sm text-slate-600 dark:text-slate-400">{{ r.code }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <p-button label="Edit" severity="secondary" size="small" (onClick)="openEdit()" />
+        <p-button
+          label="Delete"
+          severity="danger"
+          [outlined]="true"
+          size="small"
+          [loading]="deleting()"
+          (onClick)="remove()"
+        />
+      </div>
+    </div>
+
+    <dl class="mt-4 grid gap-3 text-sm">
+      <div>
+        <dt class="font-medium text-slate-500 dark:text-slate-400">Description</dt>
+        <dd class="text-slate-800 dark:text-slate-100">{{ r.description || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-slate-500 dark:text-slate-400">Parent group id</dt>
+        <dd class="text-slate-800 dark:text-slate-100">{{ r.parentGroupId ?? '—' }}</dd>
+      </div>
+    </dl>
+  }
+</p-dialog>
+
+<app-ledger-group-form-dialog
+  [visible]="formVisible()"
+  (visibleChange)="onFormVisibleChange($event)"
+  [groupId]="row()?.id ?? null"
+  (saved)="onFormSaved()"
+/>

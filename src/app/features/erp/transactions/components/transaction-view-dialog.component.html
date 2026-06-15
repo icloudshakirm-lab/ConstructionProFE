@@ -1,0 +1,112 @@
+<p-dialog
+  [header]="'Transaction Details - ' + (row()?.voucherNumber || '#...')"
+  [visible]="visible"
+  (visibleChange)="onVisibilityChange($event)"
+  [modal]="true"
+  [style]="{ width: '70vw' }"
+  [breakpoints]="{ '960px': '90vw', '640px': '100vw' }"
+  [draggable]="false"
+  [resizable]="false"
+>
+  @if (error()) {
+    <div class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-slate-900 dark:text-red-400">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <i class="pi pi-spin pi-spinner text-4xl text-slate-400"></i>
+    </div>
+  } @else if (row(); as r) {
+    <div class="space-y-6">
+      <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-6 dark:border-slate-800">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-50">{{ r.voucherNumber }}</h2>
+          <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+            <span class="flex items-center gap-1.5"><i class="pi pi-tag text-xs"></i> {{ r.type }}</span>
+            <span class="flex items-center gap-1.5"><i class="pi pi-calendar text-xs"></i> {{ r.date | date: 'mediumDate' }}</span>
+            <span class="flex items-center gap-1.5">
+              <i class="pi pi-info-circle text-xs"></i>
+              <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {{ r.status }}
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Total Amount</p>
+          <p class="text-3xl font-black text-[var(--p-primary-color)] tabular-nums">
+            {{ r.totalAmount | number: '1.2-2' }}
+          </p>
+        </div>
+      </div>
+
+      @if (r.description) {
+        <div class="rounded-lg bg-slate-50 p-4 dark:bg-slate-900/50">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Description</p>
+          <p class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ r.description }}</p>
+        </div>
+      }
+
+      <div class="space-y-3">
+        <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Transaction Lines</h3>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
+                <th>Ledger</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              @for (c of r.childTransactions; track c.id) {
+                <tr>
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-slate-900 dark:text-slate-100">
+                      {{ c.ledgerName ?? c.ledgerId ?? '—' }}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                    {{ c.description || '—' }}
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-tighter"
+                      [ngClass]="{
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': c.ledgerEntryType === 'Dr',
+                        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': c.ledgerEntryType === 'Cr'
+                      }"
+                    >
+                      {{ c.ledgerEntryType }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                    {{ c.ledgerAmount | number: '1.2-2' }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="cp-data-grid__empty">No transaction lines found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end pt-4">
+      <p-button
+        label="Close"
+        icon="pi pi-times"
+        (click)="onVisibilityChange(false)"
+        styleClass="p-button-text p-button-sm"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

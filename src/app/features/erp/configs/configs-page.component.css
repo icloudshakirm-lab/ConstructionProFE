@@ -1,0 +1,17 @@
+/* Configs Styles */
+:host {
+    display: block;
+}
+
+:deep(.p-tree) {
+    background: transparent !important;
+}
+
+:deep(.p-treenode-content) {
+    border-radius: 8px !important;
+    padding: 0.5rem !important;
+}
+
+:deep(.p-treenode-content:hover) {
+    background: rgba(var(--p-primary-color-rgb), 0.05) !important;
+}

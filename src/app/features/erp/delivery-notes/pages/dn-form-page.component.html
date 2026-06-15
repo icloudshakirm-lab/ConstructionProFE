@@ -1,0 +1,124 @@
+<div class="dn-form mx-auto max-w-6xl space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <a routerLink="/app/inventory-transactions/delivery-notes" class="text-sm text-[var(--p-primary-color)] no-underline">← Back to list</a>
+      <h2 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
+        {{ isEdit() ? 'Edit delivery note' : 'New delivery note' }}
+      </h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">Goods dispatch document — no ledger or stock posting.</p>
+    </div>
+    @if (form.get('dnNumber')?.value) {
+      <span class="rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 font-mono text-sm font-bold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
+        {{ form.get('dnNumber')?.value }}
+      </span>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading delivery note…</p>
+  } @else {
+    <form class="space-y-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+      <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Delivery note details</h3>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium">DN number</label>
+            <input type="text" formControlName="dnNumber" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" readonly />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium">Delivery date</label>
+            <p-datepicker formControlName="deliveryDate" dateFormat="yy-mm-dd" [showIcon]="true" styleClass="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium">Status</label>
+            <p-select formControlName="status" [options]="statusOptions" optionLabel="label" optionValue="value" [appendTo]="'body'" styleClass="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label class="text-sm font-medium">Customer</label>
+            <p-select formControlName="customerLedgerId" [options]="customerOptions()" optionLabel="label" optionValue="value" placeholder="Search customer…" [filter]="true" filterBy="label" (onFilter)="onCustomerFilter($event)" [showClear]="true" [appendTo]="'body'" styleClass="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium">Source quotation (optional)</label>
+            <p-select formControlName="quotationId" [options]="quotationOptions()" optionLabel="label" optionValue="value" placeholder="—" [showClear]="true" [appendTo]="'body'" styleClass="w-full" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium">Reference</label>
+            <input type="text" formControlName="reference" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950" />
+          </div>
+          <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+            <label class="text-sm font-medium">Delivery address</label>
+            <textarea formControlName="deliveryAddress" rows="2" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"></textarea>
+          </div>
+          <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+            <label class="text-sm font-medium">Notes</label>
+            <textarea formControlName="notes" rows="2" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Line items</h3>
+          <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm" (click)="addLine()">
+            <i class="pi pi-plus"></i> Add line
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="cp-data-grid__table">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80">
+                <th>#</th>
+                <th>Item</th>
+                <th>Batch</th>
+                <th>Unit</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit price</th>
+                <th>Tax</th>
+                <th>Line total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody formArrayName="lines">
+              @for (g of lineGroups; track $index; let i = $index) {
+                <tr class="border-b border-slate-100 dark:border-slate-800" [formGroupName]="i">
+                  <td class="px-2 py-2 tabular-nums text-slate-500">{{ g.get('lineNumber')?.value }}</td>
+                  <td class="px-2 py-2">
+                    <p-select formControlName="itemId" [options]="itemOptions()" optionLabel="label" optionValue="value" placeholder="Item" [filter]="true" filterBy="label" (onFilter)="onItemFilter($event)" (onChange)="onItemChange(i, g.get('itemId')?.value ?? null)" [appendTo]="'body'" styleClass="w-full" size="small" />
+                  </td>
+                  <td class="px-2 py-2">
+                    <p-select formControlName="itemBatchId" [options]="batchOptionsFor(i)" optionLabel="label" optionValue="value" placeholder="—" [showClear]="true" [appendTo]="'body'" styleClass="w-full" size="small" />
+                  </td>
+                  <td class="px-2 py-2">
+                    <p-select formControlName="unitOfMeasureId" [options]="unitOptions()" optionLabel="label" optionValue="value" placeholder="—" [showClear]="true" [appendTo]="'body'" styleClass="w-full" size="small" />
+                  </td>
+                  <td class="px-2 py-2"><input type="text" formControlName="description" class="w-full min-w-[6rem] rounded border border-slate-300 px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
+                  <td class="px-2 py-2"><input type="number" formControlName="quantity" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
+                  <td class="px-2 py-2"><input type="number" formControlName="unitPrice" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
+                  <td class="px-2 py-2"><input type="number" formControlName="taxAmount" step="any" class="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm dark:border-slate-600 dark:bg-slate-950" /></td>
+                  <td class="px-2 py-2 text-right font-medium tabular-nums">{{ linePreview(g) | number: '1.2-2' }}</td>
+                  <td class="px-2 py-2">
+                    <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-red-600 disabled:opacity-30" [disabled]="lines.length <= 1" (click)="removeLine(i)"><i class="pi pi-trash"></i></button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <dl class="mt-4 flex flex-col items-end gap-1 text-sm">
+          <div class="flex gap-8"><dt class="text-slate-500">Estimated subtotal</dt><dd class="font-medium tabular-nums">{{ formSubTotal() | number: '1.2-2' }}</dd></div>
+          <div class="flex gap-8"><dt class="text-slate-500">Tax</dt><dd class="font-medium tabular-nums">{{ formTaxTotal() | number: '1.2-2' }}</dd></div>
+        </dl>
+      </section>
+
+      <div class="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+        <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
+        <p-button type="button" [label]="isEdit() ? 'Update DN' : 'Create DN'" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
+      </div>
+    </form>
+  }
+</div>

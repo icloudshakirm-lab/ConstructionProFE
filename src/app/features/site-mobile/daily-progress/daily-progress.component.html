@@ -70,7 +70,7 @@
     [rows]="10"
     [paginator]="filteredRecords().length > 10"
     dataKey="id"
-    styleClass="daily-progress-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -89,7 +89,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.daily-progress-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -125,7 +125,7 @@
           <p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" />
         </td>
         <td>
-          <div class="daily-progress-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
             <p-button
@@ -339,7 +339,7 @@
           <div class="daily-progress-page__tab-toolbar">
             <p-button label="Add quantity line" icon="pi pi-plus" size="small" (onClick)="openAddQuantity()" />
           </div>
-          <p-table [value]="r.quantities" dataKey="id">
+          <p-table [value]="r.quantities" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>BOQ item</th>
@@ -378,7 +378,7 @@
             <p-button label="Add photo" icon="pi pi-plus" size="small" (onClick)="openAddPhoto()" />
             <p-button label="Capture from mobile" icon="pi pi-camera" size="small" [outlined]="true" (onClick)="mockCapturePhoto(r)" />
           </div>
-          <p-table [value]="r.photos" dataKey="id">
+          <p-table [value]="r.photos" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Caption</th>
@@ -422,7 +422,7 @@
           </dl>
         </p-tabpanel>
         <p-tabpanel value="4">
-          <p-table [value]="r.attachments" dataKey="id">
+          <p-table [value]="r.attachments" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>Document</th>

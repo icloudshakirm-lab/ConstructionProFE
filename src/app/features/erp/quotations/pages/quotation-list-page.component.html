@@ -1,0 +1,139 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Quotations</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">API: <span class="font-mono text-xs">/quotations</span></p>
+    </div>
+    <a
+      routerLink="/app/inventory-transactions/quotations/new"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] no-underline shadow-sm hover:opacity-95"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New quotation
+    </a>
+  </div>
+
+  <app-quotation-view-dialog
+    [visible]="viewVisible()"
+    (visibleChange)="onViewVisibleChange($event)"
+    [quotationId]="viewQuotationId()"
+    (saved)="onViewSaved()"
+  />
+
+  <div class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/50">
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">Status</span>
+      <p-select
+        [options]="statusOptions"
+        [ngModel]="filterStatus()"
+        (ngModelChange)="filterStatus.set($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="All"
+        [showClear]="true"
+        [appendTo]="'body'"
+        styleClass="w-40"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">From</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="filterFromLocal()"
+        (input)="onFromInput($event)"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+      <span class="font-medium">To</span>
+      <input
+        type="datetime-local"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        [value]="filterToLocal()"
+        (input)="onToInput($event)"
+      />
+    </label>
+    <button
+      type="button"
+      class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)]"
+      (click)="load()"
+    >
+      Search
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>Quotation #</th>
+            <th>Date</th>
+            <th>Valid until</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Lines</th>
+            <th>Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.quotationNumber }}</td>
+              <td>{{ row.quotationDate | date: 'mediumDate' }}</td>
+              <td>
+                {{ row.validUntil ? (row.validUntil | date: 'mediumDate') : '—' }}
+              </td>
+              <td>{{ row.customerName }}</td>
+              <td>
+                <app-document-status-badge [status]="row.status" />
+              </td>
+              <td>{{ row.lineCount }}</td>
+              <td>{{ row.totalAmount | number: '1.2-2' }}</td>
+              <td>
+                <div class="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    class="cursor-pointer border-0 bg-transparent p-0 text-sm text-[var(--p-primary-color)]"
+                    (click)="openView(row.id)"
+                  >
+                    View
+                  </button>
+                  <a
+                    [routerLink]="['/app/inventory-transactions/quotations', row.id, 'edit']"
+                    class="text-sm text-[var(--p-primary-color)] no-underline"
+                  >
+                    Edit
+                  </a>
+                  @if (canDelete(row)) {
+                    <button
+                      type="button"
+                      class="cursor-pointer border-0 bg-transparent p-0 text-sm text-red-600 dark:text-red-400"
+                      [disabled]="deletingId() === row.id"
+                      (click)="remove(row)"
+                    >
+                      {{ deletingId() === row.id ? 'Deleting…' : 'Delete' }}
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="cp-data-grid__empty">No quotations found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

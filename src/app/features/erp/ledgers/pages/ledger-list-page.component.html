@@ -1,0 +1,82 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Ledgers</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">Create, view, edit, and remove ledger accounts.</p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="openNew()"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New ledger
+    </button>
+  </div>
+
+  <app-ledger-form-dialog
+    [visible]="formVisible()"
+    (visibleChange)="onFormVisibleChange($event)"
+    [ledgerId]="formLedgerId()"
+    (saved)="load()"
+  />
+
+  <app-ledger-view-dialog
+    [visible]="viewVisible()"
+    (visibleChange)="onViewVisibleChange($event)"
+    [ledgerId]="viewLedgerId()"
+    (saved)="onViewSaved()"
+  />
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Group</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.code }}</td>
+              <td>{{ row.name }}</td>
+              <td>{{ row.groupName ?? '—' }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="cp-data-grid__link"
+                  (click)="openView(row.id)"
+                >
+                  View
+                </button>
+                <button
+                  type="button"
+                  class="cp-data-grid__link"
+                  (click)="openEdit(row.id)"
+                >
+                  Edit
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="cp-data-grid__empty">No ledgers yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

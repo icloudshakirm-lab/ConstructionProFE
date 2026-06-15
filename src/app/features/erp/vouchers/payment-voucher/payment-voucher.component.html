@@ -1,0 +1,116 @@
+<div class="payment-voucher mx-auto max-w-6xl space-y-8">
+  <form class="space-y-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="flex w-full flex-wrap items-end justify-between gap-4 gap-y-4">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-3">
+          Payment Voucher
+          @if (form.get('voucherNumber')?.value) {
+            <span class="rounded-full bg-rose-100 px-3 py-1 text-sm font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-400 shadow-sm border border-rose-200 dark:border-rose-800">
+              #{{ form.get('voucherNumber')?.value }}
+            </span>
+          }
+        </h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Capture payments made to suppliers or for expenses.
+        </p>
+      </div>
+      <div class="flex w-[11rem] shrink-0 flex-col gap-1.5 max-sm:ml-auto max-sm:items-end sm:items-end">
+        <label for="v-date" class="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
+        <p-datepicker
+          inputId="v-date"
+          formControlName="date"
+          placeholder="Select Date"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          iconDisplay="input"
+          inputStyleClass="w-full text-sm"
+          styleClass="w-full"
+        />
+      </div>
+      <input type="hidden" formControlName="time" />
+    </div>
+
+    <div class="flex flex-nowrap items-end gap-3 overflow-x-auto pb-1 sm:gap-4 md:gap-6">
+      <div class="w-[10rem] shrink-0 sm:w-[11rem]">
+        <div class="flex flex-col gap-1.5">
+          <label for="v-num" class="text-sm font-medium text-slate-700 dark:text-slate-300">Voucher Number</label>
+          <input
+            id="v-num"
+            type="text"
+            class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            formControlName="voucherNumber"
+            readonly
+          />
+        </div>
+      </div>
+      <div class="min-w-[15rem] flex-1 basis-0">
+        <div class="flex flex-col gap-1.5">
+          <label for="header-ledger" class="text-sm font-medium text-slate-700 dark:text-slate-300">Payment Account (Bank/Cash)</label>
+          <p-select
+            inputId="header-ledger"
+            formControlName="headerLedgerId"
+            [options]="headerLedgerOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select ledger"
+            [filter]="true"
+            filterBy="label"
+            filterPlaceholder="Search ledger..."
+            (onFilter)="onHeaderLedgerFilter($event)"
+            [showClear]="true"
+            [appendTo]="'body'"
+            scrollHeight="18rem"
+            size="small"
+            styleClass="w-full"
+          />
+        </div>
+      </div>
+      
+      <div class="flex shrink-0 flex-col items-end gap-1 pl-1 sm:pl-2">
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Total Payment</span>
+        <span class="text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{
+          totalAmount() | number: '1.2-2'
+        }}</span>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-1.5">
+        <span class="h-5 shrink-0" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="inline-flex h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[var(--p-primary-color)] px-4 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95 disabled:opacity-60"
+          [disabled]="saving()"
+          (click)="save()"
+        >
+          <i class="pi pi-save text-xs" aria-hidden="true"></i>
+          Save Voucher
+        </button>
+      </div>
+    </div>
+
+    <app-voucher-entries-table [lines]="lines" />
+  </form>
+
+  @if (saveError()) {
+    <p
+      class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200"
+    >
+      {{ saveError() }}
+    </p>
+  }
+
+  <section class="space-y-2" aria-labelledby="json-heading">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h3 id="json-heading" class="text-base font-semibold text-slate-800 dark:text-slate-100">Data (JSON)</h3>
+      <button
+        type="button"
+        class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        (click)="copyJson()"
+      >
+        Copy JSON
+      </button>
+    </div>
+    <pre
+      class="max-h-96 overflow-auto rounded-lg border border-slate-200 bg-slate-900 p-4 text-xs text-emerald-100 dark:border-slate-700"
+      >{{ dataJson() }}</pre
+    >
+  </section>
+</div>

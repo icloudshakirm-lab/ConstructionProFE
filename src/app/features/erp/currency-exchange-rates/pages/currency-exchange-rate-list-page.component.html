@@ -1,0 +1,86 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Currency exchange rates</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400">API: <span class="font-mono text-xs">/currencyexchangerates</span></p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+      (click)="openNew()"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      New rate
+    </button>
+  </div>
+
+  <app-currency-exchange-rate-form-dialog
+    [visible]="formVisible()"
+    (visibleChange)="onFormVisibleChange($event)"
+    (saved)="load()"
+  />
+
+  <app-currency-exchange-rate-view-dialog
+    [visible]="viewVisible()"
+    (visibleChange)="onViewVisibleChange($event)"
+    [exchangeRateId]="viewExchangeRateId()"
+    (saved)="onViewSaved()"
+  />
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading…</p>
+  } @else {
+    <div class="cp-data-grid">
+      <table class="cp-data-grid__table">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Rate</th>
+            <th>Effective</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ codeFor(row.fromCurrencyId) }}</td>
+              <td>{{ codeFor(row.toCurrencyId) }}</td>
+              <td>{{ row.rate | number: '1.0-8' }}</td>
+              <td>{{ row.effectiveDate || '—' }}</td>
+              <td>
+                <div class="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    class="cursor-pointer border-0 bg-transparent p-0 text-sm text-[var(--p-primary-color)]"
+                    (click)="openView(row.id)"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    class="cursor-pointer border-0 bg-transparent p-0 text-sm text-red-600 dark:text-red-400"
+                    [disabled]="deletingId() === row.id"
+                    (click)="remove(row.id)"
+                  >
+                    {{ deletingId() === row.id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="cp-data-grid__empty">No exchange rates yet. Create currencies first.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

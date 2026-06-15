@@ -62,7 +62,7 @@
     [rows]="10"
     [paginator]="filteredRecords().length > 10"
     dataKey="id"
-    styleClass="material-issuance-page__table"
+    styleClass="cp-data-grid"
     [scrollable]="true"
     scrollHeight="flex"
   >
@@ -81,7 +81,7 @@
     </ng-template>
     <ng-template #body let-row>
       <tr
-        [class.material-issuance-page__row--active]="selectedId() === row.id"
+        [class.cp-data-grid__row--active]="selectedId() === row.id"
         (click)="selectedId.set(row.id)"
       >
         <td>
@@ -109,7 +109,7 @@
         <td><p-tag [value]="row.status" [severity]="statusSeverity(row.status)" /></td>
         <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
         <td>
-          <div class="material-issuance-page__row-actions" (click)="$event.stopPropagation()">
+          <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
             <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
             @if (row.status !== 'issued') {
               <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
@@ -246,7 +246,7 @@
               <p-button label="Add material line (BOQ tag)" icon="pi pi-plus" size="small" (onClick)="openAddLine()" />
             </div>
           }
-          <p-table [value]="r.lines" dataKey="id">
+          <p-table [value]="r.lines" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>
@@ -298,7 +298,7 @@
           <p class="material-issuance-page__boq-intro">
             Budget vs consumption by BOQ line — includes previously issued materials plus this issuance.
           </p>
-          <p-table [value]="boqConsumption()" dataKey="boqItemId">
+          <p-table [value]="boqConsumption()" dataKey="boqItemId" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header>
               <tr>
                 <th>BOQ item</th>
@@ -350,7 +350,7 @@
         </p-tabpanel>
 
         <p-tabpanel value="3">
-          <p-table [value]="r.attachments" dataKey="id">
+          <p-table [value]="r.attachments" dataKey="id" styleClass="cp-data-grid cp-data-grid--compact">
             <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
             <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
             <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>

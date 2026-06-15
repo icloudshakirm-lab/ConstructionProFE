@@ -1,0 +1,38 @@
+<h2 class="mb-1 text-xl font-semibold text-slate-900 dark:text-slate-50">Sign in</h2>
+<p class="mb-6 text-sm text-slate-600 dark:text-slate-400">Sign in to ConstructPro ERP.</p>
+<form class="flex flex-col gap-4" (submit)="$event.preventDefault()">
+  <div class="flex flex-col gap-1.5">
+    <label for="login-email" class="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+    <input
+      id="login-email"
+      type="email"
+      autocomplete="username"
+      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-[var(--p-primary-color)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--p-primary-color)_35%,transparent)] dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+      placeholder="you@company.com"
+    />
+  </div>
+  <div class="flex flex-col gap-1.5">
+    <label for="login-password" class="text-sm font-medium text-slate-700 dark:text-slate-300"
+      >Password</label
+    >
+    <input
+      id="login-password"
+      type="password"
+      autocomplete="current-password"
+      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-[var(--p-primary-color)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--p-primary-color)_35%,transparent)] dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+      placeholder="••••••••"
+    />
+  </div>
+  <button
+    type="submit"
+    class="mt-2 rounded-lg bg-[var(--p-primary-color)] px-4 py-2.5 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
+  >
+    Sign in
+  </button>
+</form>
+<p class="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+  No account?
+  <a routerLink="/signup" class="font-medium text-[var(--p-primary-color)] no-underline hover:underline"
+    >Create one</a
+  >
+</p>

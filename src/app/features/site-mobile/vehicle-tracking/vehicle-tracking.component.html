@@ -109,7 +109,7 @@
         [paginator]="filteredVehicles().length > 8"
         selectionMode="single"
         dataKey="id"
-        styleClass="vehicle-tracking-page__table"
+        styleClass="cp-data-grid"
         [scrollable]="true"
         scrollHeight="420px"
       >
@@ -123,7 +123,7 @@
         </ng-template>
         <ng-template #body let-row>
           <tr
-            [class.vehicle-tracking-page__row--active]="selectedId() === row.id"
+            [class.cp-data-grid__row--active]="selectedId() === row.id"
             [class.vehicle-tracking-page__row--alert]="row.status === 'speeding'"
             (click)="selectVehicle(row)"
           >
@@ -138,7 +138,7 @@
               <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
             </td>
             <td>
-              <div class="vehicle-tracking-page__row-actions" (click)="$event.stopPropagation()">
+              <div class="cp-data-grid__row-actions" (click)="$event.stopPropagation()">
                 <p-button
                   icon="pi pi-map-marker"
                   [rounded]="true"

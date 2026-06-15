@@ -1,0 +1,72 @@
+<div class="coa space-y-4">
+  <div>
+    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Chart of accounts</h2>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Groups, nested groups, and ledgers. Tree data will come from your API (<code class="text-xs">isGroup</code> vs
+      ledger). Expand rows to navigate; use + on a group to add a ledger or a child group.
+    </p>
+  </div>
+
+  @if (error()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {{ error() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Loading tree…</p>
+  } @else {
+    <div
+      class="coa-tree rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <p-tree [value]="treeNodes()" styleClass="w-full border-0 bg-transparent">
+        <ng-template pTemplate="node" let-node>
+          <div class="coa-node flex w-full min-w-0 items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              @if (node.data?.isGroup) {
+                <i class="pi pi-folder shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+              } @else {
+                <i class="pi pi-book shrink-0 text-sky-600 dark:text-sky-400" aria-hidden="true"></i>
+              }
+              <span class="truncate font-medium text-slate-800 dark:text-slate-100">{{ node.label }}</span>
+              @if (node.data?.code) {
+                <span class="shrink-0 font-mono text-xs text-slate-500 dark:text-slate-400">{{ node.data.code }}</span>
+              }
+            </div>
+            @if (node.data?.isGroup) {
+              <div class="flex shrink-0 items-center gap-1">
+                <p-button
+                  icon="pi pi-plus"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  styleClass="!h-8 !w-8 !min-w-8"
+                  aria-label="Add ledger under this group"
+                  (onClick)="openAddDialog($event, node, 'ledger')"
+                />
+                <p-button
+                  icon="pi pi-sitemap"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  styleClass="!h-8 !w-8 !min-w-8"
+                  aria-label="Add child group"
+                  (onClick)="openAddDialog($event, node, 'group')"
+                />
+              </div>
+            }
+          </div>
+        </ng-template>
+      </p-tree>
+    </div>
+  }
+
+  <app-chart-of-account-add-dialog
+    [visible]="addVisible()"
+    (visibleChange)="onAddVisible($event)"
+    [parentGroupId]="addParentId()"
+    [parentLabel]="addParentLabel()"
+    [initialTab]="addInitialTab()"
+    (saved)="onSaved()"
+  />
+</div>

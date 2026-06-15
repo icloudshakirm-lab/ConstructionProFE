@@ -53,7 +53,7 @@
         [paginator]="filteredDrawings().length > 12"
         selectionMode="single"
         dataKey="id"
-        styleClass="drawings-page__table"
+        styleClass="cp-data-grid"
         [loading]="loading()"
       >
         <ng-template #header>
@@ -68,7 +68,7 @@
         <ng-template #body let-row>
           <tr
             class="drawings-page__row"
-            [class.drawings-page__row--active]="selected()?.id === row.id"
+            [class.cp-data-grid__row--active]="selected()?.id === row.id"
             (click)="selectDrawing(row)"
           >
             <td>
