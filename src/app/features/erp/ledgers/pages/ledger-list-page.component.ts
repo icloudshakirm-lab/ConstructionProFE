@@ -1,5 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { LedgersApiService } from '../../../../core/api/ledgers-api.service';
 import type { LedgerDTO } from '../../../../core/api/erp-api.models';
 import { LedgerFormDialogComponent } from '../components/ledger-form-dialog.component';
@@ -8,7 +12,7 @@ import { LedgerViewDialogComponent } from '../components/ledger-view-dialog.comp
 @Component({
   standalone: true,
   selector: 'app-ledger-list-page',
-  imports: [CommonModule, LedgerFormDialogComponent, LedgerViewDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, LedgerFormDialogComponent, LedgerViewDialogComponent],
   templateUrl: './ledger-list-page.component.html',
   styleUrl: './ledger-list-page.component.css',
 })

@@ -5,65 +5,37 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 26rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
-  <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="flex flex-col gap-1.5">
-      <label for="cur-code" class="text-sm font-medium text-slate-700 dark:text-slate-300">Code</label>
-      <input
-        id="cur-code"
-        type="text"
-        formControlName="code"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+  <form class="erp-dialog__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__field">
+      <label for="cur-code" class="erp-doc__label">Code</label>
+      <input id="cur-code" type="text" formControlName="code" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cur-name" class="text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
-      <input
-        id="cur-name"
-        type="text"
-        formControlName="name"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label for="cur-name" class="erp-doc__label">Name</label>
+      <input id="cur-name" type="text" formControlName="name" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cur-symbol" class="text-sm font-medium text-slate-700 dark:text-slate-300">Symbol</label>
-      <input
-        id="cur-symbol"
-        type="text"
-        formControlName="symbol"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label for="cur-symbol" class="erp-doc__label">Symbol</label>
+      <input id="cur-symbol" type="text" formControlName="symbol" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cur-dp" class="text-sm font-medium text-slate-700 dark:text-slate-300">Decimal places</label>
-      <input
-        id="cur-dp"
-        type="number"
-        min="0"
-        step="1"
-        formControlName="decimalPlaces"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label for="cur-dp" class="erp-doc__label">Decimal places</label>
+      <input id="cur-dp" type="number" min="0" step="1" formControlName="decimalPlaces" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cur-desc" class="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-      <textarea
-        id="cur-desc"
-        rows="2"
-        formControlName="description"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      ></textarea>
+    <div class="erp-doc__field">
+      <label for="cur-desc" class="erp-doc__label">Description</label>
+      <textarea id="cur-desc" rows="2" formControlName="description" class="erp-doc__input"></textarea>
     </div>
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
-      <p-button type="button" label="Save" [disabled]="saving()" (onClick)="submit()" />
+    <div class="erp-dialog__actions">
+      <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
+      <p-button type="button" label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
     </div>
   </form>
 </p-dialog>

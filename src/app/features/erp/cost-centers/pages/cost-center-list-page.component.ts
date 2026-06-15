@@ -1,6 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { CostCentersApiService } from '../../../../core/api/cost-centers-api.service';
 import type { CostCenterDTO } from '../../../../core/api/erp-api.models';
 import { CostCenterFormDialogComponent } from '../components/cost-center-form-dialog.component';
@@ -8,7 +11,7 @@ import { CostCenterFormDialogComponent } from '../components/cost-center-form-di
 @Component({
   standalone: true,
   selector: 'app-cost-center-list-page',
-  imports: [CommonModule, RouterLink, CostCenterFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, CostCenterFormDialogComponent],
   templateUrl: './cost-center-list-page.component.html',
   styleUrl: './cost-center-list-page.component.css',
 })

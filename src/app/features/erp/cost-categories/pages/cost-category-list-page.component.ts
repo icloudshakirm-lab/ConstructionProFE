@@ -1,6 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { forkJoin } from 'rxjs';
 import { CostCategoriesApiService } from '../../../../core/api/cost-categories-api.service';
 import { CostCentersApiService } from '../../../../core/api/cost-centers-api.service';
@@ -10,7 +13,7 @@ import { CostCategoryFormDialogComponent } from '../components/cost-category-for
 @Component({
   standalone: true,
   selector: 'app-cost-category-list-page',
-  imports: [CommonModule, RouterLink, CostCategoryFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, CostCategoryFormDialogComponent],
   templateUrl: './cost-category-list-page.component.html',
   styleUrl: './cost-category-list-page.component.css',
 })

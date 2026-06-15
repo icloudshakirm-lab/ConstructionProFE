@@ -5,23 +5,23 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        Rate: <span class="tabular-nums font-medium text-slate-800 dark:text-slate-100">{{ r.rate | number: '1.0-8' }}</span>
+    <div class="erp-dialog__summary">
+      <p class="erp-dialog__rate">
+        Rate: <strong>{{ r.rate | number: '1.0-8' }}</strong>
       </p>
       <p-button
         label="Delete"
+        icon="pi pi-trash"
         severity="danger"
         [outlined]="true"
         size="small"
@@ -30,18 +30,18 @@
       />
     </div>
 
-    <dl class="mt-4 grid gap-3 text-sm">
+    <dl class="erp-dialog__detail-grid">
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">From currency</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ codeFor(r.fromCurrencyId) }} (id {{ r.fromCurrencyId }})</dd>
+        <dt>From currency</dt>
+        <dd>{{ codeFor(r.fromCurrencyId) }} <span class="erp-doc__subtitle">(id {{ r.fromCurrencyId }})</span></dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">To currency</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ codeFor(r.toCurrencyId) }} (id {{ r.toCurrencyId }})</dd>
+        <dt>To currency</dt>
+        <dd>{{ codeFor(r.toCurrencyId) }} <span class="erp-doc__subtitle">(id {{ r.toCurrencyId }})</span></dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Effective date</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.effectiveDate || '—' }}</dd>
+        <dt>Effective date</dt>
+        <dd>{{ r.effectiveDate || '—' }}</dd>
       </div>
     </dl>
   }

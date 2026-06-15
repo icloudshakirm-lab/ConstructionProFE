@@ -5,63 +5,51 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
-  <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="flex flex-col gap-1.5">
-      <label for="cer-from" class="text-sm font-medium text-slate-700 dark:text-slate-300">From currency</label>
+  <form class="erp-dialog__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__field">
+      <label for="cer-from" class="erp-doc__label">From currency</label>
       <p-select
         inputId="cer-from"
         formControlName="fromCurrencyId"
         [options]="currencyOptions()"
         optionLabel="label"
         optionValue="value"
-        placeholder="Select"
-        [appendTo]="'body'"
+        placeholder="Select currency"
+        appendTo="body"
         styleClass="w-full"
       />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cer-to" class="text-sm font-medium text-slate-700 dark:text-slate-300">To currency</label>
+    <div class="erp-doc__field">
+      <label for="cer-to" class="erp-doc__label">To currency</label>
       <p-select
         inputId="cer-to"
         formControlName="toCurrencyId"
         [options]="currencyOptions()"
         optionLabel="label"
         optionValue="value"
-        placeholder="Select"
-        [appendTo]="'body'"
+        placeholder="Select currency"
+        appendTo="body"
         styleClass="w-full"
       />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cer-rate" class="text-sm font-medium text-slate-700 dark:text-slate-300">Rate</label>
-      <input
-        id="cer-rate"
-        type="number"
-        step="any"
-        formControlName="rate"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label for="cer-rate" class="erp-doc__label">Rate</label>
+      <input id="cer-rate" type="number" step="any" formControlName="rate" class="erp-doc__input erp-doc__input--amount" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="cer-eff" class="text-sm font-medium text-slate-700 dark:text-slate-300">Effective date (optional)</label>
-      <input
-        id="cer-eff"
-        type="datetime-local"
-        formControlName="effectiveDate"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label for="cer-eff" class="erp-doc__label">Effective date (optional)</label>
+      <input id="cer-eff" type="datetime-local" formControlName="effectiveDate" class="erp-doc__input" />
     </div>
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
-      <p-button type="button" label="Save" [disabled]="saving()" (onClick)="submit()" />
+    <div class="erp-dialog__actions">
+      <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
+      <p-button type="button" label="Save rate" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
     </div>
   </form>
 </p-dialog>

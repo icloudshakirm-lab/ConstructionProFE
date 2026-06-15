@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { forkJoin } from 'rxjs';
 import { CostCategoriesApiService } from '../../../../core/api/cost-categories-api.service';
 import { CostCentersApiService } from '../../../../core/api/cost-centers-api.service';
@@ -10,7 +11,7 @@ import { CostCategoryFormDialogComponent } from '../components/cost-category-for
 @Component({
   standalone: true,
   selector: 'app-cost-category-detail-page',
-  imports: [CommonModule, RouterLink, CostCategoryFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, CostCategoryFormDialogComponent],
   templateUrl: './cost-category-detail-page.component.html',
   styleUrl: './cost-category-detail-page.component.css',
 })
@@ -78,7 +79,7 @@ export class CostCategoryDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/cost-categories'),
+      next: () => void this.router.navigateByUrl('/erp/cost-categories'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);

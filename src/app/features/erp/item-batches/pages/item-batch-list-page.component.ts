@@ -1,5 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ItemBatchesApiService } from '../../../../core/api/item-batches-api.service';
 import type { BatchDTO } from '../../../../core/api/erp-api.models';
 import { ItemBatchFormDialogComponent } from '../components/item-batch-form-dialog.component';
@@ -8,7 +12,7 @@ import { ItemBatchViewDialogComponent } from '../components/item-batch-view-dial
 @Component({
   standalone: true,
   selector: 'app-item-batch-list-page',
-  imports: [CommonModule, ItemBatchFormDialogComponent, ItemBatchViewDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, ItemBatchFormDialogComponent, ItemBatchViewDialogComponent],
   templateUrl: './item-batch-list-page.component.html',
   styleUrl: './item-batch-list-page.component.css',
 })

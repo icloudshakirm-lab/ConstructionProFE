@@ -1,0 +1,65 @@
+/* ERP modal dialogs — forms & detail views (ConstructPro tokens) */
+
+.erp-dialog {
+  .p-dialog-content {
+    padding-top: 0.35rem;
+  }
+
+  .p-select {
+    width: 100%;
+  }
+}
+
+.erp-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.erp-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--p-content-border-color);
+  margin-top: 0.15rem;
+}
+
+.erp-dialog__detail-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+
+  dt {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--p-text-muted-color);
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.875rem;
+  }
+}
+
+.erp-dialog__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.erp-dialog__rate {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+
+  strong {
+    font-size: 1.125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--p-text-color);
+  }
+}

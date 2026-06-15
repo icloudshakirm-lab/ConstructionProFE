@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { LedgerGroupsApiService } from '../../../../core/api/ledger-groups-api.service';
 import type { GroupLedgerDTO } from '../../../../core/api/erp-api.models';
 import { LedgerGroupFormDialogComponent } from '../components/ledger-group-form-dialog.component';
@@ -8,7 +9,7 @@ import { LedgerGroupFormDialogComponent } from '../components/ledger-group-form-
 @Component({
   standalone: true,
   selector: 'app-ledger-group-detail-page',
-  imports: [CommonModule, RouterLink, LedgerGroupFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, LedgerGroupFormDialogComponent],
   templateUrl: './ledger-group-detail-page.component.html',
   styleUrl: './ledger-group-detail-page.component.css',
 })
@@ -69,7 +70,7 @@ export class LedgerGroupDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/ledger-groups'),
+      next: () => void this.router.navigateByUrl('/erp/ledger-groups'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);

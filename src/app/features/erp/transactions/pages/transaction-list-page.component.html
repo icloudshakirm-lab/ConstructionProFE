@@ -1,62 +1,75 @@
-<div class="space-y-4">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="erp-list-page">
+  <header class="erp-list-page__header">
     <div>
-      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Transactions</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">Vouchers (list, detail, create — no update in API).</p>
+      <p-tag value="Accounting · Vouchers" severity="info" />
+      <h1>Transactions</h1>
+      <p class="erp-list-page__subtitle">Vouchers — list, detail, and create (no update in API).</p>
     </div>
-    <button
-      type="button"
-      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-      (click)="openNew()"
-    >
-      <i class="pi pi-plus" aria-hidden="true"></i>
-      New transaction
-    </button>
-  </div>
+    <div class="erp-list-page__header-actions">
+      <p-button label="New transaction" icon="pi pi-plus" (onClick)="openNew()" />
+    </div>
+  </header>
 
   <app-transaction-form-dialog [visible]="formVisible()" (visibleChange)="onFormVisibleChange($event)" (saved)="load()" />
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-list-page__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading transactions…</p>
   } @else {
-    <div class="cp-data-grid">
-      <table class="cp-data-grid__table">
-        <thead>
-          <tr>
-            <th>Voucher</th>
-            <th>Type</th>
-            <th>Till No</th>
-            <th>Date</th>
-            <th>Total</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.id) {
-            <tr>
-              <td>{{ row.voucherNumber }}</td>
-              <td>{{ row.type }}</td>
-              <td>{{ row.tillNo || '—' }}</td>
-              <td>{{ row.date | date: 'short' }}</td>
-              <td>{{ row.totalAmount }}</td>
-              <td>
-                <a [routerLink]="['/app/transactions', row.id]" class="text-sm text-[var(--p-primary-color)] no-underline mr-3">View</a>
-                <a [routerLink]="getEditRoute(row)" class="text-sm text-[var(--p-primary-color)] no-underline font-medium">Edit</a>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5" class="cp-data-grid__empty">No transactions yet.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <p-table
+      [value]="rows()"
+      [rows]="10"
+      [paginator]="rows().length > 10"
+      dataKey="id"
+      styleClass="cp-data-grid"
+      [scrollable]="true"
+      scrollHeight="flex"
+    >
+      <ng-template #header>
+        <tr>
+          <th>Voucher</th>
+          <th>Type</th>
+          <th>Till No</th>
+          <th>Date</th>
+          <th class="erp-list-page__num">Total</th>
+          <th style="width: 7rem">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td><strong>{{ row.voucherNumber }}</strong></td>
+          <td>{{ row.type }}</td>
+          <td>{{ row.tillNo || '—' }}</td>
+          <td>{{ row.date | date: 'short' }}</td>
+          <td class="erp-list-page__num">{{ row.totalAmount }}</td>
+          <td>
+            <div class="cp-data-grid__row-actions">
+              <p-button
+                icon="pi pi-eye"
+                [rounded]="true"
+                [text]="true"
+                title="View"
+                [routerLink]="['/erp/transactions', row.id]"
+              />
+              <p-button
+                icon="pi pi-pencil"
+                [rounded]="true"
+                [text]="true"
+                title="Edit"
+                [routerLink]="getEditRoute(row)"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6" class="cp-data-grid__empty">No transactions yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
   }
 </div>

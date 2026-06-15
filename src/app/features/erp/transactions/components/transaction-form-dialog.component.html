@@ -5,58 +5,61 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 44rem)' }"
   [contentStyle]="{ maxHeight: 'min(80vh, 32rem)', overflowY: 'auto' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
-  <form class="flex flex-col gap-6" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="flex flex-col gap-1.5">
-        <label for="txd-v" class="text-sm font-medium text-slate-700 dark:text-slate-300">Voucher number</label>
-        <input id="txd-v" type="text" formControlName="voucherNumber" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+  <form class="erp-dialog__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__grid-2">
+      <div class="erp-doc__field">
+        <label for="txd-v" class="erp-doc__label">Voucher number</label>
+        <input id="txd-v" type="text" formControlName="voucherNumber" class="erp-doc__input" />
       </div>
-      <div class="flex flex-col gap-1.5">
-        <label for="txd-type" class="text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
-        <input id="txd-type" type="text" formControlName="type" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+      <div class="erp-doc__field">
+        <label for="txd-type" class="erp-doc__label">Type</label>
+        <input id="txd-type" type="text" formControlName="type" class="erp-doc__input" />
       </div>
-      <div class="flex flex-col gap-1.5 sm:col-span-2">
-        <label for="txd-date" class="text-sm font-medium text-slate-700 dark:text-slate-300">Date (optional)</label>
-        <input id="txd-date" type="datetime-local" formControlName="date" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+      <div class="erp-doc__field erp-doc__field--wide">
+        <label for="txd-date" class="erp-doc__label">Date (optional)</label>
+        <input id="txd-date" type="datetime-local" formControlName="date" class="erp-doc__input" />
       </div>
-      <div class="flex flex-col gap-1.5 sm:col-span-2">
-        <label for="txd-desc" class="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-        <textarea id="txd-desc" rows="2" formControlName="description" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
+      <div class="erp-doc__field erp-doc__field--wide">
+        <label for="txd-desc" class="erp-doc__label">Description</label>
+        <textarea id="txd-desc" rows="2" formControlName="description" class="erp-doc__input"></textarea>
       </div>
     </div>
 
-    <div class="space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Child lines</h3>
-        <button type="button" class="rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-600" (click)="addLine()">
-          Add line
-        </button>
+    <div class="erp-doc__section">
+      <div class="erp-doc__section-head">
+        <h3>Child lines</h3>
+        <p-button type="button" label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLine()" />
       </div>
 
       @for (line of lines.controls; track $index; let i = $index) {
-        <div class="rounded-lg border border-slate-200 p-3 dark:border-slate-800" [formGroup]="asGroup(line)">
-          <div class="mb-2 flex justify-between gap-2">
-            <span class="text-xs font-medium text-slate-500">Line {{ i + 1 }}</span>
-            <button type="button" class="text-xs text-red-600 dark:text-red-400" [disabled]="lines.length <= 1" (click)="removeLine(i)">
-              Remove
-            </button>
+        <div class="erp-doc__section" [formGroup]="asGroup(line)">
+          <div class="erp-doc__section-head">
+            <span>Line {{ i + 1 }}</span>
+            <p-button
+              type="button"
+              label="Remove"
+              severity="danger"
+              [text]="true"
+              size="small"
+              [disabled]="lines.length <= 1"
+              (onClick)="removeLine(i)"
+            />
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div class="flex flex-col gap-1.5 sm:col-span-2">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-              <input type="text" formControlName="description" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+          <div class="erp-doc__grid-2">
+            <div class="erp-doc__field erp-doc__field--wide">
+              <label class="erp-doc__label">Description</label>
+              <input type="text" formControlName="description" class="erp-doc__input" />
             </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Ledger</label>
+            <div class="erp-doc__field">
+              <label class="erp-doc__label">Ledger</label>
               <p-select
                 [inputId]="'txd-led-' + i"
                 formControlName="ledgerId"
@@ -66,26 +69,26 @@
                 placeholder="Select ledger"
                 [filter]="true"
                 filterBy="label"
-                [appendTo]="'body'"
+                appendTo="body"
                 styleClass="w-full"
               />
             </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Dr / Cr</label>
-              <input type="text" formControlName="ledgerEntryType" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+            <div class="erp-doc__field">
+              <label class="erp-doc__label">Dr / Cr</label>
+              <input type="text" formControlName="ledgerEntryType" class="erp-doc__input" />
             </div>
-            <div class="flex flex-col gap-1.5 sm:col-span-2">
-              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Amount</label>
-              <input type="number" step="0.01" formControlName="ledgerAmount" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+            <div class="erp-doc__field erp-doc__field--wide">
+              <label class="erp-doc__label">Amount</label>
+              <input type="number" step="0.01" formControlName="ledgerAmount" class="erp-doc__input erp-doc__input--amount" />
             </div>
           </div>
         </div>
       }
     </div>
 
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
-      <p-button type="button" label="Create" [disabled]="saving()" (onClick)="submit()" />
+    <div class="erp-dialog__actions">
+      <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
+      <p-button type="button" label="Create" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
     </div>
   </form>
 </p-dialog>

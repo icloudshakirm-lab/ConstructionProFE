@@ -1,13 +1,14 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { ItemGroupsApiService } from '../../../../core/api/item-groups-api.service';
 import type { ItemGroupDTO } from '../../../../core/api/erp-api.models';
 
 @Component({
   standalone: true,
   selector: 'app-item-group-detail-page',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, Button],
   templateUrl: './item-group-detail-page.component.html',
   styleUrl: './item-group-detail-page.component.css',
 })
@@ -47,7 +48,7 @@ export class ItemGroupDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/item-groups'),
+      next: () => void this.router.navigateByUrl('/erp/item-groups'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);

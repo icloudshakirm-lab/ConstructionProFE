@@ -1,64 +1,78 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Tag } from 'primeng/tag';
+
+interface ReportCard {
+  title: string;
+  description: string;
+  route: string[];
+  icon: string;
+}
 
 @Component({
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, Tag],
   template: `
-    <div class="mx-auto max-w-4xl space-y-6">
-      <header class="space-y-1">
-        <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Reports</h2>
-        <p class="text-sm text-slate-600 dark:text-slate-400">
-          Choose a report from the menu, or from the list below.
-        </p>
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
+        <div>
+          <p-tag value="ERP · Reports" severity="info" />
+          <h1>Reports</h1>
+          <p class="erp-list-page__subtitle">
+            Choose a report below — stock balances, ledger activity, and daily sales from the API.
+          </p>
+        </div>
       </header>
 
-      <section class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <a
-          routerLink="stock/items-closing-balance"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Stock • Items closing balance</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/items-closing-balance</div>
-        </a>
-        <a
-          routerLink="stock/items-by-group"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Stock • Items by group</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/items-by-group/(groupId)</div>
-        </a>
-        <a
-          routerLink="stock/batches-by-item"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Stock • Batches by item</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/batches-by-item/(itemId)</div>
-        </a>
-        <a
-          routerLink="ledgers/closing-balance"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Ledgers • Closing balance</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/ledgers/closing-balance</div>
-        </a>
-        <a
-          routerLink="ledgers/transactions"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Ledgers • Transactions</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/ledgers/(ledgerId)/transactions</div>
-        </a>
-        <a
-          routerLink="sales/daily"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        >
-          <div class="font-semibold">Sales • Daily sales report</div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">GET /reports/daily/(pos|sales)</div>
-        </a>
-      </section>
+      <div class="erp-inv-hub">
+        @for (card of cards; track card.route.join('/')) {
+          <a [routerLink]="card.route" class="erp-inv-hub__card">
+            <span class="erp-inv-hub__icon"><i [class]="card.icon" aria-hidden="true"></i></span>
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.description }}</p>
+          </a>
+        }
+      </div>
     </div>
   `,
 })
-export class ReportsHomePageComponent {}
-
+export class ReportsHomePageComponent {
+  readonly cards: ReportCard[] = [
+    {
+      title: 'Stock · Items closing balance',
+      description: 'Closing quantity and value per item as of a date.',
+      route: ['/erp', 'reports', 'stock', 'items-closing-balance'],
+      icon: 'pi pi-box',
+    },
+    {
+      title: 'Stock · Items by group',
+      description: 'Items rolled up by item group — pick a group to drill down.',
+      route: ['/erp', 'reports', 'stock', 'items-by-group'],
+      icon: 'pi pi-th-large',
+    },
+    {
+      title: 'Stock · Batches by item',
+      description: 'Batch-level stock for a selected item.',
+      route: ['/erp', 'reports', 'stock', 'batches-by-item'],
+      icon: 'pi pi-tags',
+    },
+    {
+      title: 'Ledgers · Closing balance',
+      description: 'Ledger closing balances as of a date.',
+      route: ['/erp', 'reports', 'ledgers', 'closing-balance'],
+      icon: 'pi pi-wallet',
+    },
+    {
+      title: 'Ledgers · Transactions',
+      description: 'Transaction lines for a selected ledger.',
+      route: ['/erp', 'reports', 'ledgers', 'transactions'],
+      icon: 'pi pi-list',
+    },
+    {
+      title: 'Sales · Daily sales report',
+      description: 'Daily POS / sales totals for a chosen date.',
+      route: ['/erp', 'reports', 'sales', 'daily'],
+      icon: 'pi pi-chart-bar',
+    },
+  ];
+}

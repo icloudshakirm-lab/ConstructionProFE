@@ -1,6 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { CurrenciesApiService } from '../../../../core/api/currencies-api.service';
 import type { CurrencyDTO } from '../../../../core/api/erp-api.models';
 import { CurrencyFormDialogComponent } from '../components/currency-form-dialog.component';
@@ -8,7 +11,7 @@ import { CurrencyFormDialogComponent } from '../components/currency-form-dialog.
 @Component({
   standalone: true,
   selector: 'app-currency-list-page',
-  imports: [CommonModule, RouterLink, CurrencyFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, CurrencyFormDialogComponent],
   templateUrl: './currency-list-page.component.html',
   styleUrl: './currency-list-page.component.css',
 })

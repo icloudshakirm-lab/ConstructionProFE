@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { CurrenciesApiService } from '../../../../core/api/currencies-api.service';
 import type { CurrencyDTO } from '../../../../core/api/erp-api.models';
 import { CurrencyFormDialogComponent } from '../components/currency-form-dialog.component';
@@ -8,7 +9,7 @@ import { CurrencyFormDialogComponent } from '../components/currency-form-dialog.
 @Component({
   standalone: true,
   selector: 'app-currency-detail-page',
-  imports: [CommonModule, RouterLink, CurrencyFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, CurrencyFormDialogComponent],
   templateUrl: './currency-detail-page.component.html',
   styleUrl: './currency-detail-page.component.css',
 })
@@ -69,7 +70,7 @@ export class CurrencyDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/currencies'),
+      next: () => void this.router.navigateByUrl('/erp/currencies'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);

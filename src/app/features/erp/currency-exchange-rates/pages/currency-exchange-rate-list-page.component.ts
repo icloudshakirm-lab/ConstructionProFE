@@ -1,6 +1,9 @@
 ﻿import { CommonModule, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { CurrenciesApiService } from '../../../../core/api/currencies-api.service';
 import { CurrencyExchangeRatesApiService } from '../../../../core/api/currency-exchange-rates-api.service';
 import type { CurrencyDTO, CurrencyExchangeRateDTO } from '../../../../core/api/erp-api.models';
@@ -13,6 +16,9 @@ import { CurrencyExchangeRateViewDialogComponent } from '../components/currency-
   imports: [
     CommonModule,
     DecimalPipe,
+    Button,
+    TableModule,
+    Tag,
     CurrencyExchangeRateFormDialogComponent,
     CurrencyExchangeRateViewDialogComponent,
   ],

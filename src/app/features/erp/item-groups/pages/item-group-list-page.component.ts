@@ -1,6 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ItemGroupsApiService } from '../../../../core/api/item-groups-api.service';
 import type { ItemGroupDTO } from '../../../../core/api/erp-api.models';
 import { ItemGroupFormDialogComponent } from '../components/item-group-form-dialog.component';
@@ -8,7 +11,7 @@ import { ItemGroupFormDialogComponent } from '../components/item-group-form-dial
 @Component({
   standalone: true,
   selector: 'app-item-group-list-page',
-  imports: [CommonModule, RouterLink, ItemGroupFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, ItemGroupFormDialogComponent],
   templateUrl: './item-group-list-page.component.html',
   styleUrl: './item-group-list-page.component.css',
 })

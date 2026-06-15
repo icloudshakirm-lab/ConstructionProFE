@@ -1,48 +1,69 @@
-<div class="space-y-4">
-  <a routerLink="/app/transactions" class="text-sm text-[var(--p-primary-color)] no-underline">← Back to list</a>
+<div class="erp-doc">
+  <div class="erp-doc__header">
+    <div>
+      <p-button label="Back to list" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/transactions" />
+    </div>
+  </div>
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
-    <div>
-      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">{{ r.voucherNumber }}</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">{{ r.type }} · {{ r.status }} · {{ r.date | date: 'medium' }}</p>
-      <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">{{ r.description || '—' }}</p>
-      <p class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">Total: {{ r.totalAmount }}</p>
+    <div class="erp-doc__section">
+      <div class="erp-doc__section-head">
+        <div>
+          <h3>{{ r.voucherNumber }}</h3>
+          <p>{{ r.type }} · {{ r.status }} · {{ r.date | date: 'medium' }}</p>
+        </div>
+      </div>
+      <dl class="erp-dialog__detail-grid">
+        <div>
+          <dt>Description</dt>
+          <dd>{{ r.description || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Total amount</dt>
+          <dd><strong>{{ r.totalAmount }}</strong></dd>
+        </div>
+      </dl>
     </div>
 
-    <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Lines</h3>
-    <div class="cp-data-grid">
-      <table class="cp-data-grid__table">
-        <thead>
+    <div class="erp-doc__section">
+      <div class="erp-doc__section-head">
+        <h3>Lines</h3>
+      </div>
+      <p-table
+        [value]="r.childTransactions"
+        dataKey="id"
+        styleClass="cp-data-grid"
+        [scrollable]="true"
+        scrollHeight="flex"
+      >
+        <ng-template #header>
           <tr>
             <th>Description</th>
             <th>Ledger</th>
             <th>Dr/Cr</th>
-            <th>Amount</th>
+            <th class="erp-list-page__num">Amount</th>
           </tr>
-        </thead>
-        <tbody>
-          @for (c of r.childTransactions; track c.id) {
-            <tr>
-              <td>{{ c.description }}</td>
-              <td>{{ c.ledgerName ?? c.ledgerId ?? '—' }}</td>
-              <td>{{ c.ledgerEntryType || '—' }}</td>
-              <td>{{ c.ledgerAmount ?? '—' }}</td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="4" class="cp-data-grid__empty">No lines.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+        </ng-template>
+        <ng-template #body let-line>
+          <tr>
+            <td>{{ line.description }}</td>
+            <td>{{ line.ledgerName ?? line.ledgerId ?? '—' }}</td>
+            <td>{{ line.ledgerEntryType || '—' }}</td>
+            <td class="erp-list-page__num">{{ line.ledgerAmount ?? '—' }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="4" class="cp-data-grid__empty">No lines.</td>
+          </tr>
+        </ng-template>
+      </p-table>
     </div>
   }
 </div>

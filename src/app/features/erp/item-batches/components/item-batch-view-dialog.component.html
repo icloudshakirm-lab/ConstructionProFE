@@ -5,21 +5,21 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <p class="text-sm text-slate-600 dark:text-slate-400">Item id {{ r.itemId }}</p>
+    <div class="erp-dialog__summary">
+      <p class="erp-doc__subtitle">Item id {{ r.itemId }}</p>
       <p-button
         label="Delete"
+        icon="pi pi-trash"
         severity="danger"
         [outlined]="true"
         size="small"
@@ -28,26 +28,26 @@
       />
     </div>
 
-    <dl class="mt-4 grid gap-3 text-sm">
+    <dl class="erp-dialog__detail-grid">
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Manufacturing</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.manufacturingDate | date: 'medium' }}</dd>
+        <dt>Manufacturing</dt>
+        <dd>{{ r.manufacturingDate | date: 'medium' }}</dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Expiry</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.expiryDate ? (r.expiryDate | date: 'medium') : '—' }}</dd>
+        <dt>Expiry</dt>
+        <dd>{{ r.expiryDate ? (r.expiryDate | date: 'medium') : '—' }}</dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Available / allocated</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.availableQuantity }} / {{ r.allocatedQuantity }}</dd>
+        <dt>Available / allocated</dt>
+        <dd>{{ r.availableQuantity }} / {{ r.allocatedQuantity }}</dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Default price</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.defaultPrice | currency }}</dd>
+        <dt>Default price</dt>
+        <dd>{{ r.defaultPrice | currency }}</dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Notes</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.notes || '—' }}</dd>
+        <dt>Notes</dt>
+        <dd>{{ r.notes || '—' }}</dd>
       </div>
     </dl>
   }

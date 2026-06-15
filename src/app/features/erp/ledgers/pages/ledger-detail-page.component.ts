@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { LedgersApiService } from '../../../../core/api/ledgers-api.service';
 import type { LedgerDTO } from '../../../../core/api/erp-api.models';
 import { LedgerFormDialogComponent } from '../components/ledger-form-dialog.component';
@@ -8,7 +9,7 @@ import { LedgerFormDialogComponent } from '../components/ledger-form-dialog.comp
 @Component({
   standalone: true,
   selector: 'app-ledger-detail-page',
-  imports: [CommonModule, RouterLink, LedgerFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, LedgerFormDialogComponent],
   templateUrl: './ledger-detail-page.component.html',
   styleUrl: './ledger-detail-page.component.css',
 })
@@ -69,7 +70,7 @@ export class LedgerDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/ledgers'),
+      next: () => void this.router.navigateByUrl('/erp/ledgers'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);

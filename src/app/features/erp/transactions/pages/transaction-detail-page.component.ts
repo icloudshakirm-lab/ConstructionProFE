@@ -1,13 +1,15 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
 import { TransactionsApiService } from '../../../../core/api/transactions-api.service';
 import type { TransactionDTO } from '../../../../core/api/erp-api.models';
 
 @Component({
   standalone: true,
   selector: 'app-transaction-detail-page',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, Button, TableModule],
   templateUrl: './transaction-detail-page.component.html',
   styleUrl: './transaction-detail-page.component.css',
 })

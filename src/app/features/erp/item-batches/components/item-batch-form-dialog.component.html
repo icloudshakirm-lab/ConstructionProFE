@@ -5,17 +5,16 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
-  [style]="{ width: 'min(calc(100vw - 2rem), 26rem)' }"
+  styleClass="erp-dialog"
+  [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
-  <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-item" class="text-sm font-medium text-slate-700 dark:text-slate-300">Item</label>
+  <form class="erp-dialog__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__field">
+      <label for="ibd-item" class="erp-doc__label">Item</label>
       <p-select
         inputId="ibd-item"
         formControlName="itemId"
@@ -25,33 +24,33 @@
         placeholder="Select item"
         [filter]="true"
         filterBy="label"
-        [appendTo]="'body'"
+        appendTo="body"
         styleClass="w-full"
       />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-num" class="text-sm font-medium text-slate-700 dark:text-slate-300">Batch number</label>
-      <input id="ibd-num" type="text" formControlName="batchNumber" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+    <div class="erp-doc__field">
+      <label for="ibd-num" class="erp-doc__label">Batch number</label>
+      <input id="ibd-num" type="text" formControlName="batchNumber" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-mfg" class="text-sm font-medium text-slate-700 dark:text-slate-300">Manufacturing date</label>
-      <input id="ibd-mfg" type="datetime-local" formControlName="manufacturingDate" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+    <div class="erp-doc__field">
+      <label for="ibd-mfg" class="erp-doc__label">Manufacturing date</label>
+      <input id="ibd-mfg" type="datetime-local" formControlName="manufacturingDate" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-exp" class="text-sm font-medium text-slate-700 dark:text-slate-300">Expiry (optional)</label>
-      <input id="ibd-exp" type="datetime-local" formControlName="expiryDate" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+    <div class="erp-doc__field">
+      <label for="ibd-exp" class="erp-doc__label">Expiry (optional)</label>
+      <input id="ibd-exp" type="datetime-local" formControlName="expiryDate" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-price" class="text-sm font-medium text-slate-700 dark:text-slate-300">Default price</label>
-      <input id="ibd-price" type="number" step="0.01" min="0" formControlName="defaultPrice" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" />
+    <div class="erp-doc__field">
+      <label for="ibd-price" class="erp-doc__label">Default price</label>
+      <input id="ibd-price" type="number" step="0.01" min="0" formControlName="defaultPrice" class="erp-doc__input erp-doc__input--amount" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label for="ibd-notes" class="text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>
-      <textarea id="ibd-notes" rows="2" formControlName="notes" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
+    <div class="erp-doc__field">
+      <label for="ibd-notes" class="erp-doc__label">Notes</label>
+      <textarea id="ibd-notes" rows="2" formControlName="notes" class="erp-doc__input"></textarea>
     </div>
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
-      <p-button type="button" label="Create" [disabled]="saving()" (onClick)="submit()" />
+    <div class="erp-dialog__actions">
+      <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
+      <p-button type="button" label="Create" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
     </div>
   </form>
 </p-dialog>

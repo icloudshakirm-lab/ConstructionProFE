@@ -5,55 +5,39 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
-  <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
-    <div class="flex flex-col gap-1.5">
-      <label [attr.for]="'itd-name-' + formIdSuffix" class="text-sm font-medium text-slate-700 dark:text-slate-300"
-        >Name</label
-      >
-      <input
-        [id]="'itd-name-' + formIdSuffix"
-        type="text"
-        formControlName="name"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+  <form class="erp-dialog__form" [formGroup]="form" (ngSubmit)="$event.preventDefault()">
+    <div class="erp-doc__field">
+      <label [attr.for]="'itd-name-' + formIdSuffix" class="erp-doc__label">Name</label>
+      <input [id]="'itd-name-' + formIdSuffix" type="text" formControlName="name" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label [attr.for]="'itd-title-' + formIdSuffix" class="text-sm font-medium text-slate-700 dark:text-slate-300"
-        >Title</label
-      >
-      <input
-        [id]="'itd-title-' + formIdSuffix"
-        type="text"
-        formControlName="title"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      />
+    <div class="erp-doc__field">
+      <label [attr.for]="'itd-title-' + formIdSuffix" class="erp-doc__label">Title</label>
+      <input [id]="'itd-title-' + formIdSuffix" type="text" formControlName="title" class="erp-doc__input" />
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label [attr.for]="'itd-barcode-' + formIdSuffix" class="text-sm font-medium text-slate-700 dark:text-slate-300"
-        >Barcode</label
-      >
+    <div class="erp-doc__field">
+      <label [attr.for]="'itd-barcode-' + formIdSuffix" class="erp-doc__label">Barcode</label>
       <input
         [id]="'itd-barcode-' + formIdSuffix"
         type="text"
         formControlName="barcode"
         maxlength="64"
         autocomplete="off"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+        class="erp-doc__input"
+        style="font-family: ui-monospace, monospace"
       />
       @if (form.controls.barcode.touched && form.controls.barcode.errors?.['maxlength']) {
-        <span class="text-xs text-red-600 dark:text-red-400">Barcode must be at most 64 characters.</span>
+        <span class="erp-doc__hint-alert">Barcode must be at most 64 characters.</span>
       }
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Item group</label>
+    <div class="erp-doc__field">
+      <label class="erp-doc__label">Item group</label>
       <p-select
         formControlName="itemGroupId"
         [options]="groupOptions()"
@@ -61,28 +45,21 @@
         optionValue="value"
         placeholder="Select group (optional)"
         [showClear]="true"
-        [appendTo]="'body'"
+        appendTo="body"
         size="small"
         styleClass="w-full"
       />
       @if (form.controls.itemGroupId.touched && form.controls.itemGroupId.errors?.['positiveGroupId']) {
-        <span class="text-xs text-red-600 dark:text-red-400">Group id must be greater than zero when set.</span>
+        <span class="erp-doc__hint-alert">Group id must be greater than zero when set.</span>
       }
     </div>
-    <div class="flex flex-col gap-1.5">
-      <label [attr.for]="'itd-desc-' + formIdSuffix" class="text-sm font-medium text-slate-700 dark:text-slate-300"
-        >Description</label
-      >
-      <textarea
-        [id]="'itd-desc-' + formIdSuffix"
-        rows="3"
-        formControlName="description"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-      ></textarea>
+    <div class="erp-doc__field">
+      <label [attr.for]="'itd-desc-' + formIdSuffix" class="erp-doc__label">Description</label>
+      <textarea [id]="'itd-desc-' + formIdSuffix" rows="3" formControlName="description" class="erp-doc__input"></textarea>
     </div>
-    <div class="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-      <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
-      <p-button type="button" [label]="submitLabel" [disabled]="saving()" (onClick)="submit()" />
+    <div class="erp-dialog__actions">
+      <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
+      <p-button type="button" [label]="submitLabel" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (onClick)="submit()" />
     </div>
   </form>
 </p-dialog>

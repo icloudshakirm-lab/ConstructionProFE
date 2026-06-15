@@ -1,5 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { LedgerGroupsApiService } from '../../../../core/api/ledger-groups-api.service';
 import type { GroupLedgerDTO } from '../../../../core/api/erp-api.models';
 import { LedgerGroupFormDialogComponent } from '../components/ledger-group-form-dialog.component';
@@ -8,7 +12,7 @@ import { LedgerGroupViewDialogComponent } from '../components/ledger-group-view-
 @Component({
   standalone: true,
   selector: 'app-ledger-group-list-page',
-  imports: [CommonModule, LedgerGroupFormDialogComponent, LedgerGroupViewDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, LedgerGroupFormDialogComponent, LedgerGroupViewDialogComponent],
   templateUrl: './ledger-group-list-page.component.html',
   styleUrl: './ledger-group-list-page.component.css',
 })

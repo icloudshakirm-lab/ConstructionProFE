@@ -5,42 +5,32 @@
   [modal]="true"
   [closable]="true"
   [draggable]="false"
+  styleClass="erp-dialog"
   [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
 >
   @if (error()) {
-    <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-doc__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading…</p>
   } @else if (row(); as r) {
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <p class="font-mono text-sm text-slate-600 dark:text-slate-400">{{ r.code }}</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <p-button label="Edit" severity="secondary" size="small" (onClick)="openEdit()" />
-        <p-button
-          label="Delete"
-          severity="danger"
-          [outlined]="true"
-          size="small"
-          [loading]="deleting()"
-          (onClick)="remove()"
-        />
+    <div class="erp-dialog__summary">
+      <p class="erp-dialog__rate"><strong>{{ r.code }}</strong></p>
+      <div class="cp-data-grid__row-actions">
+        <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" size="small" (onClick)="openEdit()" />
+        <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" size="small" [loading]="deleting()" (onClick)="remove()" />
       </div>
     </div>
 
-    <dl class="mt-4 grid gap-3 text-sm">
+    <dl class="erp-dialog__detail-grid">
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Description</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.description || '—' }}</dd>
+        <dt>Description</dt>
+        <dd>{{ r.description || '—' }}</dd>
       </div>
       <div>
-        <dt class="font-medium text-slate-500 dark:text-slate-400">Parent group id</dt>
-        <dd class="text-slate-800 dark:text-slate-100">{{ r.parentGroupId ?? '—' }}</dd>
+        <dt>Parent group id</dt>
+        <dd>{{ r.parentGroupId ?? '—' }}</dd>
       </div>
     </dl>
   }

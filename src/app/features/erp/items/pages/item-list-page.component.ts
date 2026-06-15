@@ -1,5 +1,9 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { forkJoin } from 'rxjs';
 import { ItemsApiService } from '../../../../core/api/items-api.service';
 import { LookupsApiService } from '../../../../core/api/lookups-api.service';
@@ -10,7 +14,7 @@ import { ItemViewDialogComponent } from '../components/item-view-dialog.componen
 @Component({
   standalone: true,
   selector: 'app-item-list-page',
-  imports: [CommonModule, ItemFormDialogComponent, ItemViewDialogComponent],
+  imports: [CommonModule, RouterLink, Button, TableModule, Tag, ItemFormDialogComponent, ItemViewDialogComponent],
   templateUrl: './item-list-page.component.html',
   styleUrl: './item-list-page.component.css',
 })

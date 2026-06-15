@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
 import { CostCentersApiService } from '../../../../core/api/cost-centers-api.service';
 import type { CostCenterDTO } from '../../../../core/api/erp-api.models';
 import { CostCenterFormDialogComponent } from '../components/cost-center-form-dialog.component';
@@ -8,7 +9,7 @@ import { CostCenterFormDialogComponent } from '../components/cost-center-form-di
 @Component({
   standalone: true,
   selector: 'app-cost-center-detail-page',
-  imports: [CommonModule, RouterLink, CostCenterFormDialogComponent],
+  imports: [CommonModule, RouterLink, Button, CostCenterFormDialogComponent],
   templateUrl: './cost-center-detail-page.component.html',
   styleUrl: './cost-center-detail-page.component.css',
 })
@@ -69,7 +70,7 @@ export class CostCenterDetailPageComponent implements OnInit {
     }
     this.deleting.set(true);
     this.api.delete(id).subscribe({
-      next: () => void this.router.navigateByUrl('/app/cost-centers'),
+      next: () => void this.router.navigateByUrl('/erp/cost-centers'),
       error: (e) => {
         this.error.set(this.msg(e));
         this.deleting.set(false);
