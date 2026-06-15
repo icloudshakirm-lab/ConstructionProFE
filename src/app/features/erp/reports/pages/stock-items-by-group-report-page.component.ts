@@ -1,82 +1,94 @@
-import { Component, DestroyRef, inject, signal, viewChild, AfterViewInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, viewChild, AfterViewInit, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { Select } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ReportsApiService } from '../../../../core/api/reports-api.service';
 import { LookupsApiService } from '../../../../core/api/lookups-api.service';
 import type { ItemDTO, LookupDTO } from '../../../../core/api/erp-api.models';
-import { Select } from 'primeng/select';
-import { OnInit } from '@angular/core';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, Select],
+  imports: [ReactiveFormsModule, RouterLink, Button, Select, TableModule, Tag],
   template: `
-    <div class="mx-auto max-w-5xl space-y-4">
-      <header class="space-y-1">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Items by group</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/items-by-group/(groupId)</p>
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
+        <div>
+          <p-tag value="Reports · Stock" severity="info" />
+          <h1>Items by group</h1>
+          <p class="erp-list-page__subtitle">List items belonging to a stock group.</p>
+        </div>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Back to reports" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/reports" />
+        </div>
       </header>
 
-      <form class="flex flex-wrap items-end gap-3" [formGroup]="form" (ngSubmit)="load()">
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Stock Group</label>
+      <form class="erp-list-page__toolbar" [formGroup]="form" (ngSubmit)="load()">
+        <div class="erp-list-page__field">
+          <label for="ibg-group">Stock group</label>
           <p-select
             #selectInput
+            inputId="ibg-group"
             formControlName="groupId"
             [options]="groups()"
             optionLabel="name"
             optionValue="id"
             [filter]="true"
             filterBy="name"
-            placeholder="Select a Group"
-            styleClass="w-64"
+            placeholder="Select a group"
+            appendTo="body"
+            styleClass="w-full"
             (onChange)="load()"
-            (keydown.enter)="load()"
-          ></p-select>
+          />
         </div>
-        <button
-          type="submit"
-          class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-        >
-          Run
-        </button>
-        @if (error()) {
-          <span class="text-sm text-rose-700 dark:text-rose-300">{{ error() }}</span>
+        <p-button type="submit" label="Run report" icon="pi pi-play" [loading]="loading()" />
+        @if (rows().length > 0) {
+          <span class="erp-list-page__count">{{ rows().length }} item(s)</span>
         }
       </form>
 
-      <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table class="cp-data-grid__table">
-          <thead>
+      @if (error()) {
+        <p class="erp-list-page__alert">{{ error() }}</p>
+      }
+
+      @if (loading()) {
+        <p class="erp-list-page__loading">Loading report…</p>
+      } @else {
+        <p-table
+          [value]="rows()"
+          [rows]="15"
+          [paginator]="rows().length > 15"
+          dataKey="id"
+          styleClass="cp-data-grid"
+          [scrollable]="true"
+          scrollHeight="flex"
+        >
+          <ng-template #header>
             <tr>
               <th>ID</th>
               <th>Title</th>
               <th>Barcode</th>
               <th>Group ID</th>
             </tr>
-          </thead>
-          <tbody>
-            @if (loading()) {
-              <tr>
-                <td colspan="4" class="cp-data-grid__empty">Loading…</td>
-              </tr>
-            } @else if (rows().length === 0) {
-              <tr>
-                <td colspan="4" class="cp-data-grid__empty">No rows.</td>
-              </tr>
-            } @else {
-              @for (r of rows(); track r.id) {
-                <tr>
-                  <td>{{ r.id }}</td>
-                  <td>{{ r.title }}</td>
-                  <td>{{ r.barcode }}</td>
-                  <td>{{ r.itemGroupId }}</td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
+          </ng-template>
+          <ng-template #body let-r>
+            <tr>
+              <td>{{ r.id }}</td>
+              <td><strong>{{ r.title }}</strong></td>
+              <td>{{ r.barcode }}</td>
+              <td>{{ r.itemGroupId }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="4" class="cp-data-grid__empty">Select a group and run the report.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
     </div>
   `,
 })
@@ -91,9 +103,7 @@ export class StockItemsByGroupReportPageComponent implements OnInit, AfterViewIn
   });
 
   readonly selectInput = viewChild<Select>('selectInput');
-
   readonly groups = signal<LookupDTO[]>([]);
-
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly rows = signal<ItemDTO[]>([]);
@@ -106,9 +116,7 @@ export class StockItemsByGroupReportPageComponent implements OnInit, AfterViewIn
   }
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.selectInput()?.focus();
-    }, 50);
+    setTimeout(() => this.selectInput()?.focus(), 50);
   }
 
   load(): void {
@@ -135,4 +143,3 @@ export class StockItemsByGroupReportPageComponent implements OnInit, AfterViewIn
       });
   }
 }
-

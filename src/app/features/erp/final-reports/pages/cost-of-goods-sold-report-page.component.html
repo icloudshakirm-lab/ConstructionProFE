@@ -1,0 +1,76 @@
+<div class="erp-list-page">
+  <header class="erp-list-page__header">
+    <div>
+      <p-tag value="Final Reports" severity="info" />
+      <h1>Cost of goods sold</h1>
+      <p class="erp-list-page__subtitle">Opening stock, direct costs, and closing stock for the period.</p>
+    </div>
+  </header>
+
+  <div class="erp-list-page__toolbar">
+    <div class="erp-list-page__field">
+      <label for="cogs-from">From</label>
+      <input id="cogs-from" type="datetime-local" class="erp-doc__input" [value]="fromDateLocal()" (input)="onFromDateInput($event)" />
+    </div>
+    <div class="erp-list-page__field">
+      <label for="cogs-to">To</label>
+      <input id="cogs-to" type="datetime-local" class="erp-doc__input" [value]="toDateLocal()" (input)="onToDateInput($event)" />
+    </div>
+    <p-button label="Refresh" icon="pi pi-refresh" (onClick)="load()" [loading]="loading()" />
+  </div>
+
+  @if (error()) {
+    <p class="erp-list-page__alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="erp-list-page__loading">Loading report…</p>
+  } @else if (report(); as r) {
+    @if (r.fromDate && r.toDate) {
+      <p class="erp-list-page__subtitle">
+        Period: {{ r.fromDate | date: 'mediumDate' }} — {{ r.toDate | date: 'mediumDate' }}
+      </p>
+    }
+
+    <p-table [value]="tradingExpenseLines()" dataKey="ledgerId" styleClass="cp-data-grid">
+      <ng-template #header>
+        <tr>
+          <th>Code</th>
+          <th>Direct cost</th>
+          <th class="erp-list-page__num">Amount</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-line>
+        <tr>
+          <td><strong>{{ line.code }}</strong></td>
+          <td>{{ line.name }}</td>
+          <td class="erp-list-page__num">{{ line.amount | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="3" class="cp-data-grid__empty">No direct cost lines in this period.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <dl class="erp-dialog__detail-grid erp-doc__section">
+      <div>
+        <dt>Opening stock</dt>
+        <dd class="erp-list-page__num">{{ openingStock() | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Direct costs (purchases, etc.)</dt>
+        <dd class="erp-list-page__num">{{ totalTradingExpenses() | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Less: Closing stock</dt>
+        <dd class="erp-list-page__num">({{ closingStock() | number: '1.2-2' }})</dd>
+      </div>
+      <div>
+        <dt>Cost of goods sold</dt>
+        <dd class="erp-list-page__num"><strong>{{ costOfGoodsSold() | number: '1.2-2' }}</strong></dd>
+      </div>
+    </dl>
+  }
+</div>

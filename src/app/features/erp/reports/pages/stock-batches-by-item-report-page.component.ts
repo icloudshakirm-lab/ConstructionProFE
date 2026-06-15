@@ -1,87 +1,99 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, DestroyRef, inject, signal, viewChild, AfterViewInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, viewChild, AfterViewInit, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { Select } from 'primeng/select';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ReportsApiService } from '../../../../core/api/reports-api.service';
 import { LookupsApiService } from '../../../../core/api/lookups-api.service';
 import type { BatchDTO, LookupDTO } from '../../../../core/api/erp-api.models';
-import { Select } from 'primeng/select';
-import { OnInit } from '@angular/core';
 
 @Component({
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, Select],
+  imports: [DecimalPipe, ReactiveFormsModule, RouterLink, Button, Select, TableModule, Tag],
   template: `
-    <div class="mx-auto max-w-5xl space-y-4">
-      <header class="space-y-1">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Batches by item</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/batches-by-item/(itemId)</p>
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
+        <div>
+          <p-tag value="Reports · Stock" severity="info" />
+          <h1>Batches by item</h1>
+          <p class="erp-list-page__subtitle">View batch-level stock for a selected item.</p>
+        </div>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Back to reports" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/reports" />
+        </div>
       </header>
 
-      <form class="flex flex-wrap items-end gap-3" [formGroup]="form" (ngSubmit)="load()">
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Item</label>
+      <form class="erp-list-page__toolbar" [formGroup]="form" (ngSubmit)="load()">
+        <div class="erp-list-page__field">
+          <label for="bb-item">Item</label>
           <p-select
             #selectInput
+            inputId="bb-item"
             formControlName="itemId"
             [options]="items()"
             optionLabel="name"
             optionValue="id"
             [filter]="true"
             filterBy="name"
-            placeholder="Select an Item"
-            styleClass="w-64"
+            placeholder="Select an item"
+            appendTo="body"
+            styleClass="w-full"
             (onChange)="load()"
-            (keydown.enter)="load()"
-          ></p-select>
+          />
         </div>
-        <button
-          type="submit"
-          class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-        >
-          Run
-        </button>
-        @if (error()) {
-          <span class="text-sm text-rose-700 dark:text-rose-300">{{ error() }}</span>
+        <p-button type="submit" label="Run report" icon="pi pi-play" [loading]="loading()" />
+        @if (rows().length > 0) {
+          <span class="erp-list-page__count">{{ rows().length }} batch(es)</span>
         }
       </form>
 
-      <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table class="cp-data-grid__table">
-          <thead>
+      @if (error()) {
+        <p class="erp-list-page__alert">{{ error() }}</p>
+      }
+
+      @if (loading()) {
+        <p class="erp-list-page__loading">Loading report…</p>
+      } @else {
+        <p-table
+          [value]="rows()"
+          [rows]="15"
+          [paginator]="rows().length > 15"
+          dataKey="id"
+          styleClass="cp-data-grid"
+          [scrollable]="true"
+          scrollHeight="flex"
+        >
+          <ng-template #header>
             <tr>
               <th>ID</th>
               <th>Batch #</th>
               <th>MFG</th>
               <th>EXP</th>
-              <th>Available</th>
-              <th>Allocated</th>
+              <th class="erp-list-page__num">Available</th>
+              <th class="erp-list-page__num">Allocated</th>
             </tr>
-          </thead>
-          <tbody>
-            @if (loading()) {
-              <tr>
-                <td colspan="6" class="cp-data-grid__empty">Loading…</td>
-              </tr>
-            } @else if (rows().length === 0) {
-              <tr>
-                <td colspan="6" class="cp-data-grid__empty">No rows.</td>
-              </tr>
-            } @else {
-              @for (r of rows(); track r.id) {
-                <tr>
-                  <td>{{ r.id }}</td>
-                  <td>{{ r.batchNumber }}</td>
-                  <td>{{ r.manufacturingDate }}</td>
-                  <td>{{ r.expiryDate ?? '—' }}</td>
-                  <td>{{ r.availableQuantity | number: '1.2-2' }}</td>
-                  <td>{{ r.allocatedQuantity | number: '1.2-2' }}</td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
+          </ng-template>
+          <ng-template #body let-r>
+            <tr>
+              <td>{{ r.id }}</td>
+              <td><strong>{{ r.batchNumber }}</strong></td>
+              <td>{{ r.manufacturingDate }}</td>
+              <td>{{ r.expiryDate ?? '—' }}</td>
+              <td class="erp-list-page__num">{{ r.availableQuantity | number: '1.2-2' }}</td>
+              <td class="erp-list-page__num">{{ r.allocatedQuantity | number: '1.2-2' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="6" class="cp-data-grid__empty">Select an item and run the report.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
     </div>
   `,
 })
@@ -96,9 +108,7 @@ export class StockBatchesByItemReportPageComponent implements OnInit, AfterViewI
   });
 
   readonly selectInput = viewChild<Select>('selectInput');
-
   readonly items = signal<LookupDTO[]>([]);
-
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly rows = signal<BatchDTO[]>([]);
@@ -111,9 +121,7 @@ export class StockBatchesByItemReportPageComponent implements OnInit, AfterViewI
   }
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.selectInput()?.focus();
-    }, 50);
+    setTimeout(() => this.selectInput()?.focus(), 50);
   }
 
   load(): void {
@@ -140,4 +148,3 @@ export class StockBatchesByItemReportPageComponent implements OnInit, AfterViewI
       });
   }
 }
-

@@ -1,5 +1,8 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { TillAssignmentsApiService } from '../../../../core/api/till-assignments-api.service';
 import type { TillAssignmentDTO } from '../../../../core/api/erp-api.models';
 import { TillAssignmentFormDialogComponent } from '../components/till-assignment-form-dialog.component';
@@ -7,7 +10,7 @@ import { TillAssignmentFormDialogComponent } from '../components/till-assignment
 @Component({
   standalone: true,
   selector: 'app-till-assignment-list-page',
-  imports: [CommonModule, TillAssignmentFormDialogComponent],
+  imports: [CommonModule, Button, TableModule, Tag, TillAssignmentFormDialogComponent],
   templateUrl: './till-assignment-list-page.component.html',
 })
 export class TillAssignmentListPageComponent implements OnInit {

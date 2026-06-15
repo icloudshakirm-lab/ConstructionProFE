@@ -1,6 +1,9 @@
 ﻿import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ReportsApiService } from '../../../../core/api/reports-api.service';
 import type { BalanceSheetLineDto, BalanceSheetReportDto } from '../../../../core/api/erp-api.models';
 import {
@@ -12,7 +15,7 @@ import {
 
 @Component({
   standalone: true,
-  imports: [DecimalPipe, DatePipe],
+  imports: [DecimalPipe, DatePipe, Button, TableModule, Tag],
   templateUrl: './balance-sheet-report-page.component.html',
 })
 export class BalanceSheetReportPageComponent {

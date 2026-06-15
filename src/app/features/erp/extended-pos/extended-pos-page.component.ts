@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   HostListener,
@@ -14,6 +15,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Button } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
 import { debounceTime, startWith } from 'rxjs';
 import { ItemsApiService } from '../../../core/api/items-api.service';
 import { TransactionsApiService } from '../../../core/api/transactions-api.service';
@@ -46,7 +51,7 @@ import {
 @Component({
   selector: 'app-extended-pos-page',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule],
+  imports: [DecimalPipe, ReactiveFormsModule, Button, Dialog, Select, Tag],
   templateUrl: './extended-pos-page.component.html',
   styleUrl: './extended-pos-page.component.css',
 })
@@ -91,6 +96,9 @@ export class ExtendedPosPageComponent implements OnInit, AfterViewInit {
   readonly itemSearchResults = signal<ItemDTO[]>([]);
   readonly allAvailableItems = signal<ItemDTO[]>([]);
   readonly allLedgers = signal<LedgerDTO[]>([]);
+  readonly ledgerOptions = computed(() =>
+    this.allLedgers().map((l) => ({ label: `${l.code} — ${l.name}`, value: l.id })),
+  );
   readonly isEditMode = signal(false);
   readonly transactionId = signal<number | null>(null);
   readonly voucherNumber = signal('');
@@ -116,7 +124,7 @@ export class ExtendedPosPageComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private handleOkAfterPrint(): void {
+  handleOkAfterPrint(): void {
     if (!this.isPrintedTimenotOut) return;
     this.isVisibleAfterPrint.set(false);
     this.voidAll();
@@ -125,6 +133,28 @@ export class ExtendedPosPageComponent implements OnInit, AfterViewInit {
       this.isPrintedTimenotOut = true;
     }, 500);
     this.focusScan();
+  }
+
+  onAfterPrintDialogChange(open: boolean): void {
+    if (!open) {
+      this.handleOkAfterPrint();
+      return;
+    }
+    this.isVisibleAfterPrint.set(true);
+  }
+
+  onRecallDialogChange(open: boolean): void {
+    this.isVisibleRecall.set(open);
+    if (!open) {
+      this.focusScan();
+    }
+  }
+
+  onSearchDialogChange(open: boolean): void {
+    this.isVisibleSearchModal.set(open);
+    if (!open) {
+      this.focusScan();
+    }
   }
 
   private customKeyEvent(event: KeyboardEvent): void {

@@ -1,18 +1,14 @@
-<div class="space-y-4">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<div class="erp-list-page">
+  <header class="erp-list-page__header">
     <div>
-      <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Till Assignments</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400">Track which users are assigned to which tills and when.</p>
+      <p-tag value="POS Setup" severity="info" />
+      <h1>Till assignments</h1>
+      <p class="erp-list-page__subtitle">Track which users are assigned to which tills and when.</p>
     </div>
-    <button
-      type="button"
-      class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-[var(--p-primary-color)] px-3 py-2 text-sm font-medium text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-      (click)="openNew()"
-    >
-      <i class="pi pi-user-plus" aria-hidden="true"></i>
-      Assign Till
-    </button>
-  </div>
+    <div class="erp-list-page__header-actions">
+      <p-button label="Assign till" icon="pi pi-user-plus" (onClick)="openNew()" />
+    </div>
+  </header>
 
   <app-till-assignment-form-dialog
     [visible]="formVisible()"
@@ -22,49 +18,48 @@
   />
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-list-page__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading assignments…</p>
   } @else {
-    <div class="cp-data-grid">
-      <table class="cp-data-grid__table">
-        <thead>
-          <tr>
-            <th>Till ID</th>
-            <th>User ID</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.id) {
-            <tr>
-              <td>#{{ row.tillId }}</td>
-              <td>{{ row.userId }}</td>
-              <td>{{ row.startAt | date:'short' }}</td>
-              <td>{{ row.endAt ? (row.endAt | date:'short') : 'Ongoing' }}</td>
-              <td>
-                <button
-                  type="button"
-                  class="cp-data-grid__link"
-                  (click)="openEdit(row.id)"
-                >
-                  Edit
-                </button>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5" class="cp-data-grid__empty">No assignments yet.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <p-table
+      [value]="rows()"
+      [rows]="10"
+      [paginator]="rows().length > 10"
+      dataKey="id"
+      styleClass="cp-data-grid"
+      [scrollable]="true"
+      scrollHeight="flex"
+    >
+      <ng-template #header>
+        <tr>
+          <th>Till ID</th>
+          <th>User ID</th>
+          <th>Start time</th>
+          <th>End time</th>
+          <th style="width: 5rem">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td><strong>#{{ row.tillId }}</strong></td>
+          <td>{{ row.userId }}</td>
+          <td>{{ row.startAt | date: 'short' }}</td>
+          <td>{{ row.endAt ? (row.endAt | date: 'short') : 'Ongoing' }}</td>
+          <td>
+            <div class="cp-data-grid__row-actions">
+              <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row.id)" />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="5" class="cp-data-grid__empty">No assignments yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
   }
 </div>

@@ -1,107 +1,67 @@
-<form
-  class="pos-page mx-auto max-w-6xl space-y-6"
-  [formGroup]="form"
-  (ngSubmit)="onScanSubmit($event)"
->
-  <div class="flex flex-wrap items-start justify-between gap-4">
-    <div class="min-w-0">
-      <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Point of sale</h2>
+<form class="erp-pos erp-doc" [formGroup]="form" (ngSubmit)="onScanSubmit($event)">
+  <header class="erp-pos__header">
+    <div>
+      <p-tag [value]="isEditMode() ? 'POS · Edit' : 'POS · Sales'" severity="info" />
+      <div class="erp-pos__header-meta">
+        <h1>Point of sale</h1>
         @if (voucherNumber()) {
-          <div class="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 dark:border-emerald-900 dark:bg-emerald-950/40">
-            <span class="text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-500">Voucher</span>
-            <span class="font-mono text-base font-bold text-emerald-700 dark:text-emerald-400">#{{ voucherNumber() }}</span>
+          <div class="erp-pos__voucher">
+            <span>Voucher</span>
+            <strong>#{{ voucherNumber() }}</strong>
           </div>
         }
       </div>
-      <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-        Scan or type a barcode and press <kbd class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:border-slate-600 dark:bg-slate-800">Enter</kbd>. Sales mode adds
-        quantity; return mode adds to the return line for that item (or starts one). Use
-        <span class="font-medium">−</span> / <span class="font-medium">+</span> to adjust quantities.
+      <p class="erp-list-page__subtitle">
+        Scan or type a barcode and press <kbd>Enter</kbd>. Use <strong>−</strong> / <strong>+</strong> to adjust quantities.
+        Keyboard: <kbd>F3</kbd> search, <kbd>F4</kbd> return mode, <kbd>F7</kbd> recall.
       </p>
     </div>
-    <div class="flex flex-wrap items-center gap-3">
-      <button
-        type="button"
-        class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors"
-        [class.border-rose-300]="salesReturnMode"
-        [class.bg-rose-50]="salesReturnMode"
-        [class.dark:border-rose-800]="salesReturnMode"
-        [class.dark:bg-rose-950/40]="salesReturnMode"
-        [class.border-slate-300]="!salesReturnMode"
-        [class.bg-white]="!salesReturnMode"
-        [class.dark:border-slate-600]="!salesReturnMode"
-        [class.dark:bg-slate-900]="!salesReturnMode"
-        [attr.aria-pressed]="salesReturnMode"
-        (click)="toggleSalesReturnMode()"
-      >
-        <span
-          class="inline-block h-2 w-2 rounded-full"
-          [class.bg-rose-500]="salesReturnMode"
-          [class.bg-slate-300]="!salesReturnMode"
-          aria-hidden="true"
-        ></span>
-        <span class="text-slate-800 dark:text-slate-100">Sales return (F4)</span>
-      </button>
-      <button
-        type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        (click)="clearCart()"
-      >
-        Clear cart
-      </button>
+    <div class="erp-pos__header-actions">
+      <p-button
+        [label]="salesReturnMode ? 'Return mode on' : 'Sales return (F4)'"
+        [icon]="salesReturnMode ? 'pi pi-replay' : 'pi pi-undo'"
+        [severity]="salesReturnMode ? 'danger' : 'secondary'"
+        [outlined]="!salesReturnMode"
+        (onClick)="toggleSalesReturnMode()"
+      />
+      <p-button label="Clear cart" icon="pi pi-trash" severity="secondary" [outlined]="true" (onClick)="clearCart()" />
     </div>
-  </div>
+  </header>
 
-  <div
-    class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,18.5rem)] lg:gap-8"
-  >
-    <div class="min-w-0 space-y-4">
-      <label for="pos-barcode" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Barcode / SKU</label>
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <input
-          #barcodeInput
-          id="pos-barcode"
-          type="text"
-          formControlName="scanInput"
-          autocomplete="off"
-          autocorrect="off"
-          spellcheck="false"
-          placeholder="Scan barcode or type SKU, then Enter"
-          class="min-h-12 w-full flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 text-base font-mono tracking-wide text-slate-900 shadow-inner outline-none ring-[var(--p-primary-color)] focus:border-[var(--p-primary-color)] focus:ring-2 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-          (keydown)="onBarcodeScanKeydown($event)"
-        />
-        <button
-          type="submit"
-          class="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[var(--p-primary-color)] px-6 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-        >
-          Add scan
-        </button>
-        <button
-          type="button"
-          class="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-          title="Jump to payment (keyboard: Numpad +)"
-          (click)="focusPaymentPanel()"
-        >
-          Payment
-        </button>
+  <div class="erp-pos__layout">
+    <main class="erp-pos__main">
+      <div class="erp-doc__field">
+        <label for="pos-barcode" class="erp-doc__label">Barcode / SKU</label>
+        <div class="erp-pos__scan-row">
+          <input
+            #barcodeInput
+            id="pos-barcode"
+            type="text"
+            formControlName="scanInput"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="Scan barcode or type SKU, then Enter"
+            class="erp-doc__input erp-pos__scan-input erp-doc__field--grow"
+            (keydown)="onBarcodeScanKeydown($event)"
+          />
+          <div class="erp-pos__scan-actions">
+            <p-button type="submit" label="Add scan" icon="pi pi-barcode" />
+            <p-button label="Payment" icon="pi pi-wallet" severity="secondary" [outlined]="true" (onClick)="focusPaymentPanel()" />
+          </div>
+        </div>
       </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400">
-        Resolves items via <span class="font-medium">GET /items/by-barcode/…</span> first; if the server returns 404, demo
-        SKUs <span class="font-mono">SKU-1001</span>–<span class="font-mono">SKU-2002</span> and sample EANs
-        <span class="font-mono">5012345678901</span>–<span class="font-mono">5012345678905</span> still work offline.
+
+      <p class="erp-pos__hint">
+        Resolves via API barcode lookup; offline demo SKUs <code>SKU-1001</code>–<code>SKU-2002</code> still work on 404.
       </p>
-      <div class="min-h-[4.75rem] pt-1" aria-live="polite">
+
+      <div class="erp-pos__selected-wrap" aria-live="polite">
         @if (scanError()) {
-          <p
-            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
-            role="alert"
-          >
-            {{ scanError() }}
-          </p>
+          <p class="erp-doc__alert" role="alert">{{ scanError() }}</p>
         } @else {
-          <div class="flex flex-col gap-1.5">
-            <label for="pos-selected-item" class="text-sm font-medium text-slate-700 dark:text-slate-300">Selected item</label>
+          <div class="erp-doc__field">
+            <label for="pos-selected-item" class="erp-doc__label">Selected item</label>
             <input
               id="pos-selected-item"
               type="text"
@@ -109,25 +69,19 @@
               tabindex="-1"
               [value]="selectedItemLabel()"
               placeholder="—"
-              class="min-h-11 w-full cursor-default rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 shadow-inner placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
+              class="erp-doc__input"
             />
           </div>
         }
       </div>
 
       @if (salesReturnMode) {
-        <p class="text-xs text-rose-800 dark:text-rose-200/90">
-          Return mode: each scan adds 1 to the return quantity for that item (same row, no duplicates). Sale lines stay
-          above returns.
+        <p class="erp-pos__hint erp-pos__hint--warn">
+          Return mode: each scan adds to the return quantity for that item. Sale lines stay above returns.
         </p>
       }
 
-      <p class="text-xs text-slate-500 dark:text-slate-400">
-        Keyboard: Tab to <span class="font-medium">Payment</span> (or press the <span class="font-medium">Payment</span> button /
-        Numpad +), <span class="font-medium">Enter</span> on Card or Cash → received amount → <span class="font-medium">Enter</span> to print.
-      </p>
-
-      <div class="pos-cart-wrap overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+      <div class="erp-pos__cart">
         <table class="cp-data-grid__table">
           <thead>
             <tr>
@@ -135,74 +89,42 @@
               <th>Item</th>
               <th>Batch</th>
               <th>Qty</th>
-              <th>Rate (ex GST)</th>
-              <th>Amount (ex GST)</th>
-              <th></th>
+              <th class="erp-list-page__num">Rate (ex GST)</th>
+              <th class="erp-list-page__num">Amount</th>
+              <th style="width: 5rem"></th>
             </tr>
           </thead>
           <tbody formArrayName="lines">
             @if (lineGroups.length === 0) {
-              <tr class="pos-empty-row">
-                <td colspan="7" class="cp-data-grid__empty">
-                  Cart is empty. Scan a barcode to add the first line.
-                </td>
+              <tr>
+                <td colspan="7" class="cp-data-grid__empty">Cart is empty. Scan a barcode to add the first line.</td>
               </tr>
             }
             @for (line of lineGroups; track trackByLineId($index, line); let i = $index) {
               <tr
-                class="border-b border-slate-100 dark:border-slate-800"
-                [class.bg-rose-50/70]="isReturnLine(line)"
-                [class.dark:bg-rose-950/25]="isReturnLine(line)"
+                [class.erp-pos__cart-row--return]="isReturnLine(line)"
                 [formGroupName]="i"
               >
                 <td>
-                  <span
-                    class="inline-flex rounded px-2 py-0.5 text-xs font-medium"
-                    [class.bg-slate-100]="!isReturnLine(line)"
-                    [class.text-slate-800]="!isReturnLine(line)"
-                    [class.dark:bg-slate-800]="!isReturnLine(line)"
-                    [class.dark:text-slate-100]="!isReturnLine(line)"
-                    [class.bg-rose-100]="isReturnLine(line)"
-                    [class.text-rose-900]="isReturnLine(line)"
-                    [class.dark:bg-rose-900/60]="isReturnLine(line)"
-                    [class.dark:text-rose-100]="isReturnLine(line)"
-                  >
+                  <span class="erp-pos__line-badge" [class.erp-pos__line-badge--return]="isReturnLine(line)">
                     {{ isReturnLine(line) ? 'Return' : 'Sale' }}
                   </span>
                 </td>
-                <td class="max-w-[14rem] px-3 py-2 font-medium text-slate-800 dark:text-slate-100">
-                  {{ line.get('itemName')?.value }}
-                </td>
-                <td class="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">
-                  {{ batchLabel(line.get('batch')?.value) }}
-                </td>
+                <td><strong>{{ line.get('itemName')?.value }}</strong></td>
+                <td>{{ batchLabel(line.get('batch')?.value) }}</td>
                 <td>
-                  <div class="flex items-center gap-1">
-                    <button
-                      type="button"
-                      class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-                      (click)="decrementQty(i)"
-                      [attr.aria-label]="'Decrease quantity for ' + line.get('itemName')?.value"
-                    >
-                      −
-                    </button>
+                  <div class="erp-pos__qty">
+                    <p-button icon="pi pi-minus" [rounded]="true" [text]="true" size="small" (onClick)="decrementQty(i)" />
                     <input
                       type="number"
                       formControlName="qty"
                       min="0.01"
                       step="1"
-                      class="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-sm tabular-nums dark:border-slate-600 dark:bg-slate-950"
+                      class="erp-doc__input erp-pos__qty-input"
                       (blur)="onQtyBlur(line)"
                       (keydown.enter)="$event.preventDefault()"
                     />
-                    <button
-                      type="button"
-                      class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-                      (click)="incrementQty(i)"
-                      [attr.aria-label]="'Increase quantity for ' + line.get('itemName')?.value"
-                    >
-                      +
-                    </button>
+                    <p-button icon="pi pi-plus" [rounded]="true" [text]="true" size="small" (onClick)="incrementQty(i)" />
                   </div>
                 </td>
                 <td>
@@ -211,21 +133,13 @@
                     formControlName="rate"
                     min="0"
                     step="0.01"
-                    class="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-950"
+                    class="erp-doc__input erp-doc__input--amount"
                     (keydown.enter)="$event.preventDefault()"
                   />
                 </td>
+                <td class="erp-list-page__num">{{ line.get('amount')?.value | number: '1.2-2' }}</td>
                 <td>
-                  {{ line.get('amount')?.value | number: '1.2-2' }}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    class="rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-                    (click)="removeRow(i)"
-                  >
-                    Remove
-                  </button>
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" size="small" (onClick)="removeRow(i)" />
                 </td>
               </tr>
             }
@@ -233,93 +147,65 @@
         </table>
       </div>
 
-      <section class="space-y-2" aria-labelledby="pos-json-heading">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h3 id="pos-json-heading" class="text-base font-semibold text-slate-800 dark:text-slate-100">Cart (JSON)</h3>
-          <button
-            type="button"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            (click)="copyJson()"
-          >
-            Copy JSON
-          </button>
+      <section class="erp-doc__json" aria-labelledby="pos-json-heading">
+        <div class="erp-doc__json-head">
+          <h3 id="pos-json-heading">Cart (JSON)</h3>
+          <p-button label="Copy JSON" icon="pi pi-copy" size="small" [outlined]="true" (onClick)="copyJson()" />
         </div>
-        <pre
-          class="max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-900 p-4 text-xs text-emerald-100 dark:border-slate-700"
-          >{{ dataJson() }}</pre
-        >
+        <pre class="erp-doc__json-pre">{{ dataJson() }}</pre>
       </section>
-    </div>
+    </main>
 
     <aside
-      class="pos-payment-panel w-full shrink-0 space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/50 lg:sticky lg:top-4"
+      class="erp-pos__payment"
       aria-label="Payment"
       (focusin)="loadNextVoucherNumber()"
       (mousedown)="loadNextVoucherNumber()"
     >
-      <div class="space-y-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-          Line rates and amounts are <span class="font-medium">excluding GST</span>. GST is calculated on the subtotal below.
-        </p>
-        <div class="flex flex-col gap-3">
-          <div class="flex items-end justify-between gap-4">
-            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Subtotal (ex GST)</span>
-            <p class="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ netTotal() | number: '1.2-2' }}</p>
-          </div>
-          <div class="flex items-end justify-between gap-4">
-            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">GST ({{ posGstRatePercent }}%)</span>
-            <p class="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ gstAmount() | number: '1.2-2' }}</p>
-          </div>
-          <div class="flex items-end justify-between gap-4 border-t border-slate-200 pt-3 dark:border-slate-700">
-            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Total (inc. GST)</span>
-            <p class="text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ grandTotalIncGst() | number: '1.2-2' }}</p>
-          </div>
+      <p class="erp-pos__hint">Line rates exclude GST. GST ({{ posGstRatePercent }}%) is calculated on the subtotal.</p>
+
+      <div class="erp-pos__totals">
+        <div class="erp-pos__total-row">
+          <span>Subtotal (ex GST)</span>
+          <strong>{{ netTotal() | number: '1.2-2' }}</strong>
+        </div>
+        <div class="erp-pos__total-row">
+          <span>GST ({{ posGstRatePercent }}%)</span>
+          <strong>{{ gstAmount() | number: '1.2-2' }}</strong>
+        </div>
+        <div class="erp-pos__total-row erp-pos__total-row--grand">
+          <span>Total (inc. GST)</span>
+          <strong>{{ grandTotalIncGst() | number: '1.2-2' }}</strong>
         </div>
       </div>
 
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Payment</h3>
+      <h3 class="erp-pos__payment-title">Payment</h3>
 
-      <fieldset class="space-y-2 border-0 p-0">
-        <legend class="text-sm font-medium text-slate-700 dark:text-slate-300">Payment options</legend>
-        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4" role="radiogroup" aria-label="Card or cash">
-          <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-800 dark:text-slate-100">
-            <input
-              #paymentRadioCard
-              type="radio"
-              formControlName="paymentMethod"
-              value="card"
-              class="h-4 w-4 accent-[var(--p-primary-color)]"
-              (keydown.enter)="onPaymentRadioKeydown($event)"
-            />
-            Card
-          </label>
-          <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-800 dark:text-slate-100">
-            <input
-              type="radio"
-              formControlName="paymentMethod"
-              value="cash"
-              class="h-4 w-4 accent-[var(--p-primary-color)]"
-              (keydown.enter)="onPaymentRadioKeydown($event)"
-            />
-            Cash
-          </label>
-        </div>
+      <fieldset class="erp-pos__radios">
+        <legend>Payment method</legend>
+        <label>
+          <input
+            #paymentRadioCard
+            type="radio"
+            formControlName="paymentMethod"
+            value="card"
+            (keydown.enter)="onPaymentRadioKeydown($event)"
+          />
+          Card
+        </label>
+        <label>
+          <input type="radio" formControlName="paymentMethod" value="cash" (keydown.enter)="onPaymentRadioKeydown($event)" />
+          Cash
+        </label>
       </fieldset>
 
-      <div class="space-y-1.5">
-        <label for="pos-paid-amount" class="text-sm font-medium text-slate-700 dark:text-slate-300">Paid amount</label>
-        <input
-          id="pos-paid-amount"
-          type="text"
-          readonly
-          tabindex="-1"
-          [value]="paidAmount() | number: '1.2-2'"
-          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-        />
+      <div class="erp-doc__field">
+        <label for="pos-paid-amount" class="erp-doc__label">Paid amount</label>
+        <input id="pos-paid-amount" type="text" readonly tabindex="-1" [value]="paidAmount() | number: '1.2-2'" class="erp-doc__input erp-doc__input--amount" />
       </div>
 
-      <div class="space-y-1.5">
-        <label for="pos-received" class="text-sm font-medium text-slate-700 dark:text-slate-300">Received amount</label>
+      <div class="erp-doc__field">
+        <label for="pos-received" class="erp-doc__label">Received amount</label>
         <input
           #receivedAmountInput
           id="pos-received"
@@ -328,214 +214,154 @@
           min="0"
           step="0.01"
           placeholder="0.00"
+          class="erp-doc__input erp-doc__input--amount"
           [readonly]="isCardPayment()"
-          [class.cursor-not-allowed]="isCardPayment()"
-          [class.bg-slate-100]="isCardPayment()"
-          [class.dark:bg-slate-900/80]="isCardPayment()"
-          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
           (keydown.enter)="onReceivedKeydown($event)"
         />
       </div>
 
-      <div class="space-y-1.5">
-        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Balance to return</span>
-        <p
-          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-        >
-          {{ balanceToReturn() | number: '1.2-2' }}
-        </p>
+      <div class="erp-doc__field">
+        <span class="erp-doc__label">Balance to return</span>
+        <p class="erp-doc__input erp-doc__input--amount" style="margin: 0">{{ balanceToReturn() | number: '1.2-2' }}</p>
       </div>
 
-      <div class="space-y-3 pt-2">
-        <div class="space-y-1.5">
-          <label for="pos-dr-ledger" class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">DR Ledger (Debit)</label>
-          <select id="pos-dr-ledger" formControlName="drLedgerId" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-            <option [value]="null">Select Ledger</option>
-            @for (l of allLedgers(); track l.id) {
-              <option [value]="l.id">{{ l.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="space-y-1.5">
-          <label for="pos-cr-ledger" class="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">CR Ledger (Credit)</label>
-          <select id="pos-cr-ledger" formControlName="crLedgerId" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-            <option [value]="null">Select Ledger</option>
-            @for (l of allLedgers(); track l.id) {
-              <option [value]="l.id">{{ l.name }}</option>
-            }
-          </select>
-        </div>
+      <div class="erp-doc__field">
+        <label for="pos-dr-ledger" class="erp-doc__label">DR ledger (debit)</label>
+        <p-select
+          inputId="pos-dr-ledger"
+          formControlName="drLedgerId"
+          [options]="ledgerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select ledger"
+          [filter]="true"
+          filterBy="label"
+          appendTo="body"
+          styleClass="w-full"
+        />
+      </div>
+      <div class="erp-doc__field">
+        <label for="pos-cr-ledger" class="erp-doc__label">CR ledger (credit)</label>
+        <p-select
+          inputId="pos-cr-ledger"
+          formControlName="crLedgerId"
+          [options]="ledgerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select ledger"
+          [filter]="true"
+          filterBy="label"
+          appendTo="body"
+          styleClass="w-full"
+        />
       </div>
 
       @if (saveError()) {
-        <div class="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/30 dark:text-rose-200 border border-rose-200 dark:border-rose-900/50">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-exclamation-circle"></i>
-            <span class="font-medium">Save failed:</span>
-          </div>
-          <p class="mt-1 opacity-90">{{ saveError() }}</p>
-        </div>
+        <p class="erp-doc__alert">{{ saveError() }}</p>
       }
 
-      <button
+      <p-button
         id="pos-print-bill"
-        type="button"
-        class="w-full relative overflow-hidden rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98] dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+        label="Print bill"
+        icon="pi pi-print"
+        styleClass="w-full"
+        [loading]="isSaving()"
         [disabled]="isSaving() || lineGroups.length === 0"
-        (click)="printBill()"
-      >
-        <div class="flex items-center justify-center gap-2">
-          @if (isSaving()) {
-            <i class="pi pi-spin pi-spinner text-slate-500"></i>
-            <span>Saving transaction...</span>
-          } @else {
-            <i class="pi pi-print opacity-70"></i>
-            <span>Print bill</span>
-          }
-        </div>
-      </button>
+        (onClick)="printBill()"
+      />
     </aside>
   </div>
 
-  <!-- After Print Overlay (from posDoc.md logic) -->
-  @if (isVisibleAfterPrint()) {
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
-      (click)="isVisibleAfterPrint.set(false); voidAll(); focusScan()"
-    >
-      <div class="max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl dark:bg-slate-900">
-        <div class="mb-4 flex justify-center">
-          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-            <i class="pi pi-check text-3xl"></i>
-          </div>
-        </div>
-        <h3 class="mb-2 text-xl font-bold text-slate-900 dark:text-slate-50">Transaction Complete</h3>
-        <p class="mb-6 text-sm text-slate-600 dark:text-slate-400">
-          Receipt has been sent to the printer. Press any key to start a new sale.
-        </p>
-        <button
-          type="button"
-          class="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
-        >
-          OK (Any Key)
-        </button>
-      </div>
+  <p-dialog
+    header="Transaction complete"
+    [visible]="isVisibleAfterPrint()"
+    (visibleChange)="onAfterPrintDialogChange($event)"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    styleClass="erp-dialog"
+    [style]="{ width: 'min(calc(100vw - 2rem), 24rem)' }"
+  >
+    <div class="erp-pos__modal-success">
+      <i class="pi pi-check"></i>
+      <h3>Sale completed</h3>
+      <p>Receipt sent to printer. Press OK or any key to start a new sale.</p>
+      <p-button label="OK" icon="pi pi-check" (onClick)="handleOkAfterPrint()" />
     </div>
-  }
+  </p-dialog>
 
-  <!-- Recall Modal Placeholder -->
-  @if (isVisibleRecall()) {
-    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold">Recall Transaction (F7)</h3>
-          <button (click)="isVisibleRecall.set(false); focusScan()" class="text-slate-400 hover:text-slate-600">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-        <div class="space-y-2">
-          <div
-            class="p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-            [class.ring-2]="recallSelectedIndex() === 0"
-            [class.ring-emerald-500]="recallSelectedIndex() === 0"
+  <p-dialog
+    header="Recall transaction (F7)"
+    [visible]="isVisibleRecall()"
+    (visibleChange)="onRecallDialogChange($event)"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    styleClass="erp-dialog"
+    [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
+  >
+    <div class="erp-pos__recall-item" [class.erp-pos__recall-item--active]="recallSelectedIndex() === 0">
+      <div style="display: flex; justify-content: space-between; font-weight: 600"><span>#INV-001</span><span>1,200.00</span></div>
+      <div class="erp-list-page__subtitle">2026-04-07 10:30 AM</div>
+    </div>
+    <div class="erp-pos__recall-item" [class.erp-pos__recall-item--active]="recallSelectedIndex() === 1" style="margin-top: 0.5rem">
+      <div style="display: flex; justify-content: space-between; font-weight: 600"><span>#INV-002</span><span>450.00</span></div>
+      <div class="erp-list-page__subtitle">2026-04-07 11:15 AM</div>
+    </div>
+    <p class="erp-pos__hint" style="margin-top: 0.75rem">Use ↑↓ to navigate and Enter to recall.</p>
+  </p-dialog>
+
+  <p-dialog
+    header="Search item (F3)"
+    [visible]="isVisibleSearchModal()"
+    (visibleChange)="onSearchDialogChange($event)"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    styleClass="erp-dialog"
+    [style]="{ width: 'min(calc(100vw - 2rem), 32rem)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+  >
+    <div class="erp-doc__field">
+      <label for="pos-item-search" class="erp-doc__label">Name or SKU</label>
+      <input
+        #itemSearchInput
+        id="pos-item-search"
+        type="text"
+        [value]="itemSearchQuery()"
+        (input)="updateSearchQuery($any($event.target).value)"
+        placeholder="Type item name or SKU…"
+        class="erp-doc__input"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="erp-pos__search-list">
+      @if (itemSearchResults().length === 0 && itemSearchQuery()) {
+        <p class="erp-list-page__empty-panel">No items match "{{ itemSearchQuery() }}"</p>
+      } @else if (itemSearchResults().length === 0) {
+        <p class="erp-list-page__empty-panel">Start typing to search products…</p>
+      } @else {
+        @for (item of itemSearchResults(); track item.id; let i = $index) {
+          <button
+            type="button"
+            class="erp-pos__search-item"
+            [class.erp-pos__search-item--active]="itemSearchSelectedIndex() === i"
+            (click)="selectSearchResult(item)"
           >
-            <div class="flex justify-between font-medium"><span>#INV-001</span> <span>1,200.00</span></div>
-            <div class="text-xs text-slate-500">2026-04-07 10:30 AM</div>
-          </div>
-          <div
-            class="p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-            [class.ring-2]="recallSelectedIndex() === 1"
-            [class.ring-emerald-500]="recallSelectedIndex() === 1"
-          >
-            <div class="flex justify-between font-medium"><span>#INV-002</span> <span>450.00</span></div>
-            <div class="text-xs text-slate-500">2026-04-07 11:15 AM</div>
-          </div>
-        </div>
-        <p class="mt-4 text-xs text-slate-500">Use ↑↓ to navigate and Enter to recall.</p>
-      </div>
-    </div>
-  }
-
-  <!-- Item Search Modal (F3) -->
-  @if (isVisibleSearchModal()) {
-    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-      <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-              <i class="pi pi-search text-xl"></i>
-            </div>
-            <div>
-              <h3 class="text-lg font-bold">Search Item (F3)</h3>
-              <p class="text-xs text-slate-500">Find products by name or SKU</p>
-            </div>
-          </div>
-          <button (click)="isVisibleSearchModal.set(false); focusScan()" class="text-slate-400 hover:text-slate-600 transition-colors">
-            <i class="pi pi-times"></i>
+            <span class="erp-pos__search-item-main">
+              <span class="erp-pos__search-icon"><i class="pi pi-tag"></i></span>
+              <span>
+                <strong>{{ item.name }}</strong>
+                <div class="erp-list-page__subtitle">{{ item.barcode || 'No barcode' }}</div>
+              </span>
+            </span>
           </button>
-        </div>
-
-        <div class="relative mb-4">
-          <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          <input
-            #itemSearchInput
-            type="text"
-            [value]="itemSearchQuery()"
-            (input)="updateSearchQuery($any($event.target).value)"
-            placeholder="Type item name or SKU..."
-            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-50"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          @if (itemSearchResults().length === 0 && itemSearchQuery()) {
-            <div class="flex flex-col items-center justify-center py-10 text-slate-400">
-              <i class="pi pi-info-circle text-4xl mb-2"></i>
-              <p>No items match "{{itemSearchQuery()}}"</p>
-            </div>
-          } @else if (itemSearchResults().length === 0) {
-            <div class="flex flex-col items-center justify-center py-10 text-slate-400">
-              <p>Start typing to search products...</p>
-            </div>
-          } @else {
-            <div class="space-y-1">
-              @for (item of itemSearchResults(); track item.id; let i = $index) {
-                <div
-                  (click)="selectSearchResult(item)"
-                  class="group flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-orange-50 dark:hover:bg-orange-900/10 cursor-pointer transition-all duration-200"
-                  [class.bg-orange-50]="itemSearchSelectedIndex() === i"
-                  [class.dark:bg-orange-900/20]="itemSearchSelectedIndex() === i"
-                  [class.border-orange-200]="itemSearchSelectedIndex() === i"
-                  [class.dark:border-orange-800]="itemSearchSelectedIndex() === i"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 text-slate-600 dark:text-slate-400 transition-colors">
-                      <i class="pi pi-tag"></i>
-                    </div>
-                    <div>
-                      <div class="font-bold text-slate-900 dark:text-white" [class.text-orange-600]="itemSearchSelectedIndex() === i" [class.dark:text-orange-400]="itemSearchSelectedIndex() === i">
-                        {{ item.name }}
-                      </div>
-                      <div class="text-xs text-slate-500">{{ item.barcode || 'No Barcode' }}</div>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-[10px] uppercase tracking-wider text-slate-400">Select to load details</div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-        <div class="mt-4 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
-          <div class="flex gap-4">
-            <span><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">↑↓</kbd> Navigate</span>
-            <span><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">Enter</kbd> Select</span>
-          </div>
-          <span><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">Esc</kbd> Close</span>
-        </div>
-      </div>
+        }
+      }
     </div>
-  }
+    <p class="erp-pos__hint" style="margin-top: 0.75rem">
+      <kbd>↑↓</kbd> navigate · <kbd>Enter</kbd> select · <kbd>Esc</kbd> close
+    </p>
+  </p-dialog>
 </form>

@@ -1,5 +1,8 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { TillsApiService } from '../../../../core/api/tills-api.service';
 import type { TillDTO } from '../../../../core/api/erp-api.models';
 import { TillFormDialogComponent } from '../components/till-form-dialog.component';
@@ -7,7 +10,7 @@ import { TillFormDialogComponent } from '../components/till-form-dialog.componen
 @Component({
   standalone: true,
   selector: 'app-till-list-page',
-  imports: [CommonModule, TillFormDialogComponent],
+  imports: [CommonModule, Button, TableModule, Tag, TillFormDialogComponent],
   templateUrl: './till-list-page.component.html',
 })
 export class TillListPageComponent implements OnInit {

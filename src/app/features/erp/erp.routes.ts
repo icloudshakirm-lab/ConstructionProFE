@@ -181,8 +181,9 @@ export const erpRoutes: Routes = [
   {
     path: 'final-reports/cost-of-goods-sold',
     loadComponent: () =>
-      import('./placeholder/placeholder-page.component').then((m) => m.PlaceholderPageComponent),
-    data: { title: 'Cost of Goods Sold' }
+      import('./final-reports/pages/cost-of-goods-sold-report-page.component').then(
+        (m) => m.CostOfGoodsSoldReportPageComponent
+      )
   },
   {
     path: 'final-reports/balance-sheet',

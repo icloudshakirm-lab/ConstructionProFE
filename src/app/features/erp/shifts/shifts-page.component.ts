@@ -1,25 +1,26 @@
-import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { Button } from 'primeng/button';
+import { Tag } from 'primeng/tag';
 
 @Component({
   standalone: true,
   selector: 'app-shifts-page',
-  imports: [CommonModule],
+  imports: [Button, Tag],
   template: `
-    <div class="space-y-6 p-6">
-      <div class="flex justify-between items-center">
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Shift Management</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Track cashier shifts, opening cash, and shift closings (Z-Reports).</p>
+          <p-tag value="Administration · POS" severity="info" />
+          <h1>Shift management</h1>
+          <p class="erp-list-page__subtitle">Track cashier shifts, opening cash, and shift closings (Z-reports).</p>
         </div>
-        <button class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] px-4 py-2 rounded-lg text-sm font-medium">Open New Shift</button>
-      </div>
-
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 text-center">
-        <div class="flex flex-col items-center gap-2">
-          <i class="pi pi-clock text-4xl text-slate-300"></i>
-          <p class="text-slate-500">History of worker shifts and cash reconciliations will appear here.</p>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Open new shift" icon="pi pi-plus" [disabled]="true" title="Shift API pending" />
         </div>
+      </header>
+      <div class="erp-list-page__empty-panel">
+        <i class="pi pi-clock" style="font-size: 2rem; margin-bottom: 0.5rem; display: block"></i>
+        History of worker shifts and cash reconciliations will appear here.
       </div>
     </div>
   `,

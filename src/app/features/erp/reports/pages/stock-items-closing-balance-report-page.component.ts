@@ -1,6 +1,10 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { ReportsApiService } from '../../../../core/api/reports-api.service';
 import type { ItemClosingBalanceDto } from '../../../../core/api/erp-api.models';
 
@@ -11,70 +15,76 @@ function toDatetimeLocalValue(d: Date): string {
 
 @Component({
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, RouterLink, Button, TableModule, Tag],
   template: `
-    <div class="mx-auto max-w-5xl space-y-4">
-      <header class="space-y-1">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Items closing balance</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/stock/items-closing-balance?toDate=…</p>
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
+        <div>
+          <p-tag value="Reports · Stock" severity="info" />
+          <h1>Items closing balance</h1>
+          <p class="erp-list-page__subtitle">Available stock quantities as of a selected date.</p>
+        </div>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Back to reports" icon="pi pi-arrow-left" [text]="true" routerLink="/erp/reports" />
+        </div>
       </header>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-          <span class="font-medium">Up to date</span>
+      <div class="erp-list-page__toolbar">
+        <div class="erp-list-page__field">
+          <label for="sicb-to">Up to date</label>
           <input
+            id="sicb-to"
             type="datetime-local"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+            class="erp-doc__input"
             [value]="toDateLocal()"
             (input)="onToDateInput($event)"
           />
-        </label>
-        <button
-          type="button"
-          class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-          (click)="load()"
-        >
-          Refresh
-        </button>
-        @if (error()) {
-          <span class="text-sm text-rose-700 dark:text-rose-300">{{ error() }}</span>
+        </div>
+        <p-button label="Refresh" icon="pi pi-refresh" (onClick)="load()" [loading]="loading()" />
+        @if (rows().length > 0) {
+          <span class="erp-list-page__count">{{ rows().length }} item(s)</span>
         }
       </div>
 
-      <div class="overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table class="cp-data-grid__table">
-          <thead>
+      @if (error()) {
+        <p class="erp-list-page__alert">{{ error() }}</p>
+      }
+
+      @if (loading()) {
+        <p class="erp-list-page__loading">Loading report…</p>
+      } @else {
+        <p-table
+          [value]="rows()"
+          [rows]="15"
+          [paginator]="rows().length > 15"
+          dataKey="itemId"
+          styleClass="cp-data-grid"
+          [scrollable]="true"
+          scrollHeight="flex"
+        >
+          <ng-template #header>
             <tr>
               <th>Item ID</th>
               <th>Barcode</th>
               <th>Title</th>
-              <th>Current qty</th>
+              <th class="erp-list-page__num">Current qty</th>
             </tr>
-          </thead>
-          <tbody>
-            @if (loading()) {
-              <tr>
-                <td colspan="4" class="cp-data-grid__empty">Loading…</td>
-              </tr>
-            } @else if (rows().length === 0) {
-              <tr>
-                <td colspan="4" class="cp-data-grid__empty">No rows.</td>
-              </tr>
-            } @else {
-              @for (r of rows(); track r.itemId) {
-                <tr>
-                  <td>{{ r.itemId }}</td>
-                  <td>{{ r.barcode }}</td>
-                  <td>{{ r.title }}</td>
-                  <td>
-                    {{ r.currentAvailableQuantity | number: '1.2-2' }}
-                  </td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
+          </ng-template>
+          <ng-template #body let-r>
+            <tr>
+              <td>{{ r.itemId }}</td>
+              <td>{{ r.barcode }}</td>
+              <td><strong>{{ r.title }}</strong></td>
+              <td class="erp-list-page__num">{{ r.currentAvailableQuantity | number: '1.2-2' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="4" class="cp-data-grid__empty">No rows for this date.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
     </div>
   `,
 })
@@ -82,9 +92,7 @@ export class StockItemsClosingBalanceReportPageComponent {
   private readonly api = inject(ReportsApiService);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Value for `datetime-local` input (local). */
   readonly toDateLocal = signal(toDatetimeLocalValue(new Date()));
-
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly rows = signal<ItemClosingBalanceDto[]>([]);
@@ -122,4 +130,3 @@ export class StockItemsClosingBalanceReportPageComponent {
       });
   }
 }
-

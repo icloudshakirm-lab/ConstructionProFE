@@ -1,72 +1,55 @@
-<div class="mx-auto max-w-3xl space-y-4">
-  <header class="space-y-1 text-center">
-    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">Trading and Profit &amp; Loss Account</h2>
-    <p class="text-xs text-slate-500 dark:text-slate-400">GET /reports/financial/profit-and-loss</p>
+<div class="erp-list-page">
+  <header class="erp-list-page__header">
+    <div>
+      <p-tag value="Final Reports" severity="info" />
+      <h1>Trading and Profit &amp; Loss</h1>
+      <p class="erp-list-page__subtitle">Vertical trading account followed by profit and loss for the period.</p>
+    </div>
   </header>
 
-  <div class="flex flex-wrap items-end justify-center gap-3">
-    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-      <span class="font-medium">From</span>
-      <input
-        type="datetime-local"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-        [value]="fromDateLocal()"
-        (input)="onFromDateInput($event)"
-      />
-    </label>
-    <label class="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-      <span class="font-medium">To</span>
-      <input
-        type="datetime-local"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-        [value]="toDateLocal()"
-        (input)="onToDateInput($event)"
-      />
-    </label>
-    <button
-      type="button"
-      class="rounded-lg bg-[var(--p-primary-color)] px-4 py-2 text-sm font-semibold text-[var(--p-primary-contrast-color)] shadow-sm hover:opacity-95"
-      (click)="load()"
-    >
-      Refresh
-    </button>
+  <div class="erp-list-page__toolbar">
+    <div class="erp-list-page__field">
+      <label for="pl-from">From</label>
+      <input id="pl-from" type="datetime-local" class="erp-doc__input" [value]="fromDateLocal()" (input)="onFromDateInput($event)" />
+    </div>
+    <div class="erp-list-page__field">
+      <label for="pl-to">To</label>
+      <input id="pl-to" type="datetime-local" class="erp-doc__input" [value]="toDateLocal()" (input)="onToDateInput($event)" />
+    </div>
+    <p-button label="Refresh" icon="pi pi-refresh" (onClick)="load()" [loading]="loading()" />
   </div>
 
   @if (error()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-      {{ error() }}
-    </p>
+    <p class="erp-list-page__alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="text-center text-sm text-slate-500">Loading…</p>
+    <p class="erp-list-page__loading">Loading report…</p>
   } @else if (report(); as r) {
     @if (r.fromDate && r.toDate) {
-      <p class="text-center text-sm text-slate-600 dark:text-slate-400">
+      <p class="erp-list-page__subtitle" style="text-align: center">
         For the period {{ r.fromDate | date: 'mediumDate' }} to {{ r.toDate | date: 'mediumDate' }}
       </p>
     }
 
-    <div class="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <table class="pl-statement min-w-full text-sm text-slate-800 dark:text-slate-100">
+    <div class="erp-doc__section">
+      <table class="pl-statement cp-data-grid__table">
         <thead>
-          <tr class="border-b border-slate-200 dark:border-slate-700">
+          <tr>
             <th>Particulars</th>
-            <th>Amount</th>
+            <th class="erp-list-page__num">Amount</th>
           </tr>
         </thead>
         <tbody>
-          <!-- I. Trading Account -->
           <tr class="pl-section-head">
             <td colspan="2">I. Trading Account</td>
           </tr>
-
           <tr class="pl-subhead">
             <td colspan="2">Credit — Sales</td>
           </tr>
           @for (line of incomeLines(); track line.ledgerId) {
             <tr class="pl-line">
-              <td>{{ line.name }} <span class="font-mono text-xs text-slate-400">({{ line.code }})</span></td>
+              <td>{{ line.name }} <span class="erp-list-page__subtitle">({{ line.code }})</span></td>
               <td class="pl-amount">{{ line.amount | number: '1.2-2' }}</td>
             </tr>
           } @empty {
@@ -78,7 +61,6 @@
             <td>Total sales</td>
             <td class="pl-amount">{{ r.totalIncome | number: '1.2-2' }}</td>
           </tr>
-
           <tr class="pl-subhead">
             <td colspan="2">Debit — Cost of goods sold</td>
           </tr>
@@ -88,7 +70,7 @@
           </tr>
           @for (line of tradingExpenseLines(); track line.ledgerId) {
             <tr class="pl-line">
-              <td>{{ line.name }} <span class="font-mono text-xs text-slate-400">({{ line.code }})</span></td>
+              <td>{{ line.name }} <span class="erp-list-page__subtitle">({{ line.code }})</span></td>
               <td class="pl-amount">{{ line.amount | number: '1.2-2' }}</td>
             </tr>
           }
@@ -100,29 +82,24 @@
             <td>Cost of goods sold</td>
             <td class="pl-amount" [class.pl-negative]="costOfGoodsSold() < 0">{{ costOfGoodsSold() | number: '1.2-2' }}</td>
           </tr>
-
           <tr class="pl-total">
             <td>Gross profit / (loss) (c/d to P&amp;L)</td>
             <td class="pl-amount" [class.pl-negative]="grossProfit() < 0">{{ grossProfit() | number: '1.2-2' }}</td>
           </tr>
-
-          <!-- II. Profit & Loss Account -->
           <tr class="pl-section-head">
             <td colspan="2">II. Profit &amp; Loss Account</td>
           </tr>
-
           <tr class="pl-line">
             <td>Gross profit / (loss) b/f</td>
             <td class="pl-amount" [class.pl-negative]="grossProfit() < 0">{{ grossProfit() | number: '1.2-2' }}</td>
           </tr>
-
           @if (indirectExpenseLines().length > 0) {
             <tr class="pl-subhead">
               <td colspan="2">Less: Indirect expenses</td>
             </tr>
             @for (line of indirectExpenseLines(); track line.ledgerId) {
               <tr class="pl-line">
-                <td>{{ line.name }} <span class="font-mono text-xs text-slate-400">({{ line.code }})</span></td>
+                <td>{{ line.name }} <span class="erp-list-page__subtitle">({{ line.code }})</span></td>
                 <td class="pl-amount">{{ line.amount | number: '1.2-2' }}</td>
               </tr>
             }
@@ -131,14 +108,12 @@
               <td class="pl-amount">{{ totalIndirectExpenses() | number: '1.2-2' }}</td>
             </tr>
           }
-
           @if (showNetAdjustment()) {
             <tr class="pl-line">
               <td>Adjustment (stock / other)</td>
               <td class="pl-amount" [class.pl-negative]="netAdjustment() < 0">{{ netAdjustment() | number: '1.2-2' }}</td>
             </tr>
           }
-
           <tr class="pl-grand">
             <td>Net profit / (loss) for the period</td>
             <td class="pl-amount" [class.pl-negative]="netProfit() < 0">{{ netProfit() | number: '1.2-2' }}</td>
@@ -146,10 +121,5 @@
         </tbody>
       </table>
     </div>
-
-    <p class="text-center text-xs text-slate-500 dark:text-slate-400">
-      Format: vertical Trading Account (sales − cost of goods sold) then Profit &amp; Loss Account (gross profit − indirect
-      expenses). Net profit matches API: total income − total expenses.
-    </p>
   }
 </div>

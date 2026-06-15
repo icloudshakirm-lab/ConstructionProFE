@@ -8,6 +8,11 @@
   min-height: min(70vh, 640px);
 }
 
+.erp-list-page--full {
+  width: 100%;
+  max-width: none;
+}
+
 .erp-list-page__header {
   display: flex;
   flex-wrap: wrap;
@@ -51,6 +56,7 @@
   flex-direction: column;
   gap: 0.3rem;
   min-width: 0;
+  flex: 1 1 14rem;
 
   label {
     font-size: 0.8125rem;
@@ -89,6 +95,190 @@
 .erp-list-page__num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.erp-list-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.erp-list-page__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.erp-list-page__summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  span {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--p-text-muted-color);
+  }
+
+  strong {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  em {
+    font-style: normal;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--p-text-muted-color);
+  }
+
+  &--end {
+    text-align: right;
+  }
+}
+
+.erp-list-page__voucher-card {
+  width: 100%;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  overflow: hidden;
+}
+
+.erp-list-page__condensed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Nested line grid inside condensed voucher cards — flat, full width */
+.erp-list-page__voucher-card .p-datatable.cp-data-grid--nested,
+.erp-list-page__voucher-card .cp-data-grid--nested.p-datatable {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--p-content-border-color);
+  background: transparent;
+
+  .p-datatable-wrapper {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .p-datatable-table {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .p-datatable-thead > tr > th,
+  .p-datatable-tbody > tr > td {
+    white-space: normal;
+  }
+}
+
+.erp-list-page__voucher-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+  background: color-mix(in srgb, var(--p-primary-color) 4%, var(--cp-panel-bg));
+}
+
+.erp-list-page__voucher-head-main {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.erp-list-page__voucher-no {
+  font-size: 1rem;
+}
+
+.erp-list-page__voucher-head-total {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.erp-list-page__voucher-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.erp-list-page__voucher-desc {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+  border-bottom: 1px solid var(--p-content-border-color);
+  font-style: italic;
+}
+
+.erp-list-page__voucher-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid var(--p-content-border-color);
+}
+
+.erp-list-page__empty-panel {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--p-text-muted-color);
+  border: 1px dashed var(--p-content-border-color);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.erp-config-tree-panel {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  background: var(--cp-panel-bg);
+  min-height: 12rem;
+}
+
+.erp-config-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.erp-config-tree-node__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.erp-config-tree-node__value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--p-green-500) 10%, var(--cp-panel-bg));
+  color: var(--p-green-700);
+  border: 1px solid color-mix(in srgb, var(--p-green-500) 25%, transparent);
 }
 
 /* Inventory hub */

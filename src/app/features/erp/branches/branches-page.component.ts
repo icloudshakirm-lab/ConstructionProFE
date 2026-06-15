@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Button } from 'primeng/button';
+import { Tag } from 'primeng/tag';
 import { BranchesApiService } from '../../../core/api/branches-api.service';
 import { BranchDTO } from '../../../core/api/erp-api.models';
 import { BranchFormDialogComponent } from './components/branch-form-dialog.component';
@@ -8,47 +9,40 @@ import { BranchFormDialogComponent } from './components/branch-form-dialog.compo
 @Component({
   standalone: true,
   selector: 'app-branches-page',
-  imports: [CommonModule, Button, BranchFormDialogComponent],
+  imports: [CommonModule, Button, Tag, BranchFormDialogComponent],
   template: `
-    <div class="space-y-6 p-6">
-      <div class="flex justify-between items-center">
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Branch & Store Management</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Configure your business locations, branches, and physical stores.</p>
+          <p-tag value="Administration" severity="info" />
+          <h1>Branches &amp; stores</h1>
+          <p class="erp-list-page__subtitle">Configure business locations, branches, and physical stores.</p>
         </div>
-        <p-button label="Add Branch" icon="pi pi-plus" (onClick)="showAddDialog()" />
-      </div>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Add branch" icon="pi pi-plus" (onClick)="showAddDialog()" />
+        </div>
+      </header>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (branch of branches(); track branch.id) {
-          <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer" (click)="editBranch(branch)">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                <i class="pi pi-building text-blue-600 dark:text-blue-400"></i>
-              </div>
-              <div>
-                <h3 class="font-bold text-slate-900 dark:text-slate-50">{{ branch.name }}</h3>
-                <p class="text-xs text-slate-500 font-mono">{{ branch.code }}</p>
-              </div>
-            </div>
-            @if (branch.address || branch.city) {
-              <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                {{ branch.address }}@if(branch.address && branch.city){, }{{ branch.city }}
-              </p>
-            }
-            <div class="flex gap-2">
-              <span [class]="branch.isActive ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-50 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400'" class="px-2 py-1 text-xs rounded-full">
-                {{ branch.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </div>
-          </div>
-        } @empty {
-          <div class="col-span-full py-12 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-            <i class="pi pi-building text-4xl text-slate-300 mb-4"></i>
-            <p class="text-slate-500">No branches found. Click "Add Branch" to create one.</p>
-          </div>
-        }
-      </div>
+      @if (branches().length === 0) {
+        <div class="erp-list-page__empty-panel">
+          <i class="pi pi-building" style="font-size: 2rem; margin-bottom: 0.5rem; display: block"></i>
+          No branches yet. Click <strong>Add branch</strong> to create one.
+        </div>
+      } @else {
+        <div class="erp-inv-hub">
+          @for (branch of branches(); track branch.id) {
+            <button type="button" class="erp-inv-hub__card" style="text-align: left; cursor: pointer; border: none" (click)="editBranch(branch)">
+              <div class="erp-inv-hub__icon"><i class="pi pi-building"></i></div>
+              <h2>{{ branch.name }}</h2>
+              <p class="font-mono">{{ branch.code }}</p>
+              @if (branch.address || branch.city) {
+                <p>{{ branch.address }}@if (branch.address && branch.city) {, }{{ branch.city }}</p>
+              }
+              <p-tag [value]="branch.isActive ? 'Active' : 'Inactive'" [severity]="branch.isActive ? 'success' : 'secondary'" />
+            </button>
+          }
+        </div>
+      }
     </div>
 
     <app-branch-form-dialog
