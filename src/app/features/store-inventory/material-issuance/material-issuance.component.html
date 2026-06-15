@@ -1,0 +1,421 @@
+<div class="material-issuance-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="material-issuance-page__header">
+    <div>
+      <p-tag value="Store & Inventory" severity="info" />
+      <h1>Material Issuance</h1>
+      <p class="material-issuance-page__subtitle">
+        Issue materials to sites and cost codes with every line tagged to a BOQ item — track material budget,
+        consumption, and variance against contract quantities for project P&amp;L control.
+      </p>
+    </div>
+    <div class="material-issuance-page__header-actions">
+      <p-button label="Create issuance" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="material-issuance-page__toolbar">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="projectFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="projectFilter()"
+      (ngModelChange)="projectFilter.set($event)"
+      placeholder="Project"
+      [style]="{ minWidth: 'min(200px, 36vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="material-issuance-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search issue no., requisition, BOQ code, material…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="material-issuance-page__count">{{ filteredRecords().length }} issuance(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredRecords()"
+    [rows]="10"
+    [paginator]="filteredRecords().length > 10"
+    dataKey="id"
+    styleClass="material-issuance-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Issuance</th>
+        <th>Project / Site</th>
+        <th>Cost code</th>
+        <th>BOQ tags</th>
+        <th>Lines</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.material-issuance-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ row.issueNumber }}</strong>
+          <small>{{ row.issueDate }} · {{ row.requisitionRef || 'No SR ref' }}</small>
+        </td>
+        <td>
+          <span class="material-issuance-page__assignment">{{ projectName(row.projectId) }}</span>
+          <small>{{ siteName(row.siteId) }}</small>
+        </td>
+        <td>{{ row.costCode }}</td>
+        <td>
+          @for (code of linesPreview(row.lines); track code.boqItemCode) {
+            <p-tag [value]="code.boqItemCode" severity="secondary" styleClass="material-issuance-page__boq-tag" />
+          }
+          @if (row.lines.length > 2) {
+            <small>+{{ row.lines.length - 2 }}</small>
+          }
+          @if (!row.lines.length) {
+            <span>—</span>
+          }
+        </td>
+        <td>{{ row.lines.length }}</td>
+        <td>AED {{ totalAmount(row) | number:'1.0-0' }}</td>
+        <td><p-tag [value]="row.status" [severity]="statusSeverity(row.status)" /></td>
+        <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
+        <td>
+          <div class="material-issuance-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" title="Details" (onClick)="openDetail(row)" />
+            @if (row.status !== 'issued') {
+              <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row)" />
+              <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" title="Delete" (onClick)="requestDelete(row)" />
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="9">No material issuances match your filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(720px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  @if (formError()) {
+    <p class="material-issuance-page__form-error">{{ formError() }}</p>
+  }
+  <form class="material-issuance-page__form" [formGroup]="issuanceForm" (ngSubmit)="saveIssuance()">
+    <div class="material-issuance-page__form-grid">
+      <div class="material-issuance-page__field">
+        <label for="issueNumber">Issue number</label>
+        <input id="issueNumber" pInputText formControlName="issueNumber" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="issueDate">Issue date</label>
+        <input id="issueDate" type="date" pInputText formControlName="issueDate" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="projectId">Project</label>
+        <p-select inputId="projectId" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" (onChange)="onProjectChange()" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="siteId">Site</label>
+        <p-select inputId="siteId" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="warehouse">Warehouse / store</label>
+        <p-select inputId="warehouse" formControlName="warehouse" [options]="warehouseOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="costCode">Cost code</label>
+        <p-select inputId="costCode" formControlName="costCode" [options]="costCodeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="requisitionRef">Site requisition ref</label>
+        <input id="requisitionRef" pInputText formControlName="requisitionRef" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="requestedBy">Requested by</label>
+        <input id="requestedBy" pInputText formControlName="requestedBy" />
+      </div>
+      <div class="material-issuance-page__field material-issuance-page__field--full">
+        <label for="remarks">Remarks</label>
+        <textarea id="remarks" pTextarea formControlName="remarks" rows="2"></textarea>
+      </div>
+    </div>
+    <p class="material-issuance-page__form-hint">After saving, add material lines in the detail view — each line must be tagged to a BOQ item.</p>
+    <div class="material-issuance-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+      <p-button type="submit" label="Save" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Material issuance details"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(920px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailRecord(); as r) {
+    <div class="material-issuance-page__detail-header">
+      <div>
+        <h2>{{ r.issueNumber }}</h2>
+        <p>{{ projectName(r.projectId) }} · {{ siteName(r.siteId) }} · {{ r.costCode }}</p>
+      </div>
+      <div class="material-issuance-page__detail-badges">
+        <p-tag [value]="r.status" [severity]="statusSeverity(r.status)" />
+        <p-tag [value]="approvalLabel(r.approvalStatus)" [severity]="approvalSeverity(r.approvalStatus)" />
+        <p-tag [value]="'AED ' + (totalAmount(r) | number:'1.0-0')" severity="info" />
+      </div>
+    </div>
+
+    <div class="material-issuance-page__detail-actions">
+      @if (canSubmit(r)) {
+        <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(r)" />
+      }
+      @if (canApprove(r)) {
+        <p-button label="Approve" icon="pi pi-check" severity="success" (onClick)="approveIssuance(r)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectIssuance(r)" />
+      }
+      @if (canPostIssue(r)) {
+        <p-button label="Post issuance" icon="pi pi-box" severity="success" (onClick)="issueMaterials(r)" />
+      }
+      @if (r.status !== 'issued') {
+        <p-button label="Edit header" icon="pi pi-pencil" [outlined]="true" (onClick)="openEdit(r); closeDetail()" />
+      }
+      <p-button label="Add challan" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(r)" />
+    </div>
+
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0">Issue lines</p-tab>
+        <p-tab value="1">BOQ budget &amp; consumption</p-tab>
+        <p-tab value="2">Overview</p-tab>
+        <p-tab value="3">Documents</p-tab>
+        <p-tab value="4">Audit</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="0">
+          @if (r.status !== 'issued') {
+            <div class="material-issuance-page__tab-toolbar">
+              <p-button label="Add material line (BOQ tag)" icon="pi pi-plus" size="small" (onClick)="openAddLine()" />
+            </div>
+          }
+          <p-table [value]="r.lines" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Material</th>
+                <th>BOQ tag</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>BOQ budget</th>
+                @if (r.status !== 'issued') {
+                  <th style="width: 6rem"></th>
+                }
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>
+                  <strong>{{ row.materialName }}</strong>
+                  <small>{{ row.materialCode }}</small>
+                </td>
+                <td>
+                  <p-tag [value]="row.boqItemCode" severity="info" />
+                  <small>{{ row.boqDescription }} · {{ row.boqSection }}</small>
+                </td>
+                <td>{{ row.issuedQty | number:'1.0-2' }} {{ row.unit }}</td>
+                <td>{{ row.unitRate | number:'1.2-2' }}</td>
+                <td>AED {{ lineTotal(row) | number:'1.0-0' }}</td>
+                <td>AED {{ row.boqBudgetAmount | number:'1.0-0' }}</td>
+                @if (r.status !== 'issued') {
+                  <td>
+                    <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEditLine(row)" />
+                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteLine(row)" />
+                  </td>
+                }
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td [attr.colspan]="r.status !== 'issued' ? 7 : 6">No lines — add materials tagged to BOQ items.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+
+        <p-tabpanel value="1">
+          <p class="material-issuance-page__boq-intro">
+            Budget vs consumption by BOQ line — includes previously issued materials plus this issuance.
+          </p>
+          <p-table [value]="boqConsumption()" dataKey="boqItemId">
+            <ng-template #header>
+              <tr>
+                <th>BOQ item</th>
+                <th>Budget (AED)</th>
+                <th>Previously consumed</th>
+                <th>This issuance</th>
+                <th>Total after issue</th>
+                <th>Remaining</th>
+                <th>Variance</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr [class.material-issuance-page__row--over-budget]="row.variancePct > 0">
+                <td>
+                  <strong>{{ row.boqItemCode }}</strong>
+                  <small>{{ row.boqDescription }}</small>
+                </td>
+                <td>{{ row.budgetAmount | number:'1.0-0' }}</td>
+                <td>{{ row.consumedAmount | number:'1.0-0' }}</td>
+                <td>{{ row.thisIssuanceAmount | number:'1.0-0' }}</td>
+                <td>{{ (row.consumedAmount + row.thisIssuanceAmount) | number:'1.0-0' }}</td>
+                <td [class.material-issuance-page__negative]="row.remainingAmount < 0">
+                  {{ row.remainingAmount | number:'1.0-0' }}
+                </td>
+                <td>
+                  <p-tag
+                    [value]="row.variancePct + '%'"
+                    [severity]="varianceTagSeverity(row.variancePct)"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr><td colspan="7">Add issue lines with BOQ tags to see budget impact.</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+
+        <p-tabpanel value="2">
+          <dl class="material-issuance-page__detail-grid">
+            <dt>Warehouse</dt><dd>{{ r.warehouse }}</dd>
+            <dt>Site requisition</dt><dd>{{ r.requisitionRef || '—' }}</dd>
+            <dt>Requested by</dt><dd>{{ r.requestedBy }}</dd>
+            <dt>Issued by</dt><dd>{{ r.issuedBy || '—' }}</dd>
+            <dt>Issue date</dt><dd>{{ r.issueDate }}</dd>
+            <dt>Total amount</dt><dd>AED {{ totalAmount(r) | number:'1.0-0' }}</dd>
+            <dt>Remarks</dt><dd>{{ r.remarks || '—' }}</dd>
+          </dl>
+        </p-tabpanel>
+
+        <p-tabpanel value="3">
+          <p-table [value]="r.attachments" dataKey="id">
+            <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
+            <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
+            <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+
+        <p-tabpanel value="4">
+          <ul class="material-issuance-page__audit">
+            @for (entry of r.audit; track entry.at + entry.action) {
+              <li><strong>{{ entry.action }}</strong><span>{{ entry.by }} · {{ entry.at }}</span></li>
+            }
+          </ul>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+</p-dialog>
+
+<p-dialog
+  [header]="lineFormHeader()"
+  [visible]="lineFormVisible()"
+  (visibleChange)="lineFormVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(520px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeLineForm()"
+>
+  @if (lineFormError()) {
+    <p class="material-issuance-page__form-error">{{ lineFormError() }}</p>
+  }
+  <form class="material-issuance-page__form" [formGroup]="lineForm" (ngSubmit)="saveLine()">
+    <div class="material-issuance-page__form-grid">
+      <div class="material-issuance-page__field material-issuance-page__field--full">
+        <label for="materialCode">Material</label>
+        <p-select
+          inputId="materialCode"
+          formControlName="materialCode"
+          [options]="materialOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+          (onChange)="onMaterialChange()"
+        />
+      </div>
+      <div class="material-issuance-page__field material-issuance-page__field--full">
+        <label for="boqItemId">BOQ tag (budget line)</label>
+        <p-select
+          inputId="boqItemId"
+          formControlName="boqItemId"
+          [options]="boqOptions"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+          (onChange)="onBoqChange()"
+        />
+        <small class="material-issuance-page__field-hint">Issuance is charged to this BOQ line for budget tracking.</small>
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="issuedQty">Issued quantity</label>
+        <p-inputnumber inputId="issuedQty" formControlName="issuedQty" [min]="0" [style]="{ width: '100%' }" (onInput)="onBoqChange()" />
+      </div>
+      <div class="material-issuance-page__field">
+        <label for="unitRate">Unit rate (AED)</label>
+        <p-inputnumber inputId="unitRate" formControlName="unitRate" [min]="0" mode="decimal" [minFractionDigits]="2" [style]="{ width: '100%' }" />
+      </div>
+    </div>
+    <div class="material-issuance-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeLineForm()" />
+      <p-button type="submit" label="Save line" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog header="Delete issuance" [visible]="deleteConfirmVisible()" (visibleChange)="deleteConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(420px, 96vw)' }">
+  @if (recordToDelete(); as target) {
+    <p>Delete <strong>{{ target.issueNumber }}</strong>?</p>
+    <div class="material-issuance-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>

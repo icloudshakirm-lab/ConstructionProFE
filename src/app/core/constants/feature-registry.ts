@@ -141,9 +141,10 @@ export const FEATURE_MODULES: FeatureModule[] = [
       {
         id: 'material-issuance',
         title: 'Material Issuance',
-        description: 'Issue materials to sites or cost codes with approval workflow.',
+        description: 'Issue materials to sites or cost codes with BOQ tagging for budget and consumption tracking.',
         icon: 'pi pi-send',
-        highlights: ['Site requisition', 'Approval', 'Cost code']
+        highlights: ['BOQ tagging', 'Budget vs consumption', 'Site requisition'],
+        component: 'material-issuance'
       },
       {
         id: 'stock-transfers',
@@ -293,6 +294,39 @@ export const FEATURE_MODULES: FeatureModule[] = [
         icon: 'pi pi-truck',
         highlights: ['Supplier master', 'Payment terms', 'Performance'],
         component: 'partners-directory'
+      }
+    ]
+  },
+  {
+    id: 'bidding',
+    title: 'Bidding & Tenders',
+    description: 'Bid planning for inward opportunities, client tenders, and outward sublet packages to contractors.',
+    icon: 'pi pi-file-edit',
+    routePath: 'bidding',
+    pages: [
+      {
+        id: 'bid-planning',
+        title: 'Bid Planning',
+        description: 'Plan inward project opportunities — qualify, go/no-go, and mobilize bid teams before tendering.',
+        icon: 'pi pi-calendar-plus',
+        highlights: ['Pipeline', 'Go/no-go', 'Convert to bid'],
+        component: 'bid-planning'
+      },
+      {
+        id: 'inward-bids',
+        title: 'Inward Bids',
+        description: 'Tenders to clients to win projects — estimates, bonds, submission, and award tracking.',
+        icon: 'pi pi-arrow-down-left',
+        highlights: ['Client tenders', 'Bid value', 'Win / loss'],
+        component: 'bids-register'
+      },
+      {
+        id: 'outward-bids',
+        title: 'Outward Bids',
+        description: 'Sublet packages to contractors and sub-contractors — invite, compare quotes, and award.',
+        icon: 'pi pi-arrow-up-right',
+        highlights: ['Trade packages', 'Quotations', 'Award'],
+        component: 'bids-register'
       }
     ]
   },

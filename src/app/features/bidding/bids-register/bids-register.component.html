@@ -1,0 +1,396 @@
+<div class="bids-register-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="bids-register-page__header">
+    <div>
+      <p-tag value="Bidding & Tenders" severity="info" />
+      <h1>{{ pageTitle }}</h1>
+      <p class="bids-register-page__subtitle">{{ pageSubtitle }}</p>
+    </div>
+    <div class="bids-register-page__header-actions">
+      <p-button [label]="addButtonLabel()" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="bids-register-page__toolbar">
+    <p-select
+      [options]="statusFilterOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(150px, 28vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    @if (!isInward) {
+      <p-select
+        [options]="projectFilterOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="projectFilter()"
+        (ngModelChange)="projectFilter.set($event)"
+        placeholder="Project"
+        [style]="{ minWidth: 'min(200px, 36vw)' }"
+      />
+    }
+    <p-iconfield iconPosition="left" class="bids-register-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        [placeholder]="isInward ? 'Search project, client, tender ref…' : 'Search package, trade, bid no…'"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="bids-register-page__count">{{ filteredRecords().length }} record(s)</span>
+  </section>
+
+  <p-table
+    [value]="filteredRecords()"
+    [rows]="10"
+    [paginator]="filteredRecords().length > 10"
+    dataKey="id"
+    styleClass="bids-register-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Bid</th>
+        @if (isInward) {
+          <th>Client</th>
+          <th>Bid value</th>
+          <th>Deadline</th>
+        } @else {
+          <th>Project / Site</th>
+          <th>Trade</th>
+          <th>Budget</th>
+          <th>Closing</th>
+        }
+        <th>Manager</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.bids-register-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ displayName(row) }}</strong>
+          <small>{{ row.bidNumber }}</small>
+        </td>
+        @if (isInward) {
+          <td>{{ row.clientName }}</td>
+          <td>{{ row.currency }} {{ row.bidValue | number }}</td>
+          <td>{{ row.submissionDeadline }}</td>
+        } @else {
+          <td>
+            <span class="bids-register-page__assignment">{{ projectName(row.projectId) }}</span>
+            <small>{{ siteName(row.siteId) }}</small>
+          </td>
+          <td>{{ row.tradePackage }}</td>
+          <td>{{ row.currency }} {{ row.targetBudget | number }}</td>
+          <td>{{ row.closingDate }}</td>
+        }
+        <td>{{ row.bidManager }}</td>
+        <td><p-tag [value]="statusLabel(row)" [severity]="statusSeverity(row)" /></td>
+        <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
+        <td>
+          <div class="bids-register-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEdit(row)" />
+            <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="requestDelete(row)" />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td [attr.colspan]="isInward ? 8 : 8">No bids match your filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(760px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  @if (formError()) {
+    <p class="bids-register-page__form-error">{{ formError() }}</p>
+  }
+  @if (isInward) {
+    <form class="bids-register-page__form" [formGroup]="inwardForm" (ngSubmit)="saveBid()">
+      <div class="bids-register-page__form-grid">
+        <div class="bids-register-page__field"><label for="ibBidNo">Bid number</label><input id="ibBidNo" pInputText formControlName="bidNumber" /></div>
+        <div class="bids-register-page__field">
+          <label for="ibStatus">Status</label>
+          <p-select inputId="ibStatus" formControlName="inwardStatus" [options]="inwardFormStatusOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field bids-register-page__field--full"><label for="ibProject">Project name</label><input id="ibProject" pInputText formControlName="projectName" /></div>
+        <div class="bids-register-page__field"><label for="ibClient">Client</label><input id="ibClient" pInputText formControlName="clientName" /></div>
+        <div class="bids-register-page__field"><label for="ibTender">Tender reference</label><input id="ibTender" pInputText formControlName="tenderReference" /></div>
+        <div class="bids-register-page__field">
+          <label for="ibType">Bid type</label>
+          <p-select inputId="ibType" formControlName="bidType" [options]="inwardTypeOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field"><label for="ibDeadline">Submission deadline</label><input id="ibDeadline" type="date" pInputText formControlName="submissionDeadline" /></div>
+        <div class="bids-register-page__field"><label for="ibSubmitted">Submitted date</label><input id="ibSubmitted" type="date" pInputText formControlName="submittedDate" /></div>
+        <div class="bids-register-page__field"><label for="ibValue">Bid value</label><p-inputnumber inputId="ibValue" formControlName="bidValue" [min]="0" [style]="{ width: '100%' }" /></div>
+        <div class="bids-register-page__field">
+          <label for="ibCurrency">Currency</label>
+          <p-select inputId="ibCurrency" formControlName="currency" [options]="currencyOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field"><label for="ibMargin">Margin (%)</label><p-inputnumber inputId="ibMargin" formControlName="marginPct" [min]="0" [max]="100" [style]="{ width: '100%' }" /></div>
+        <div class="bids-register-page__field"><label for="ibManager">Bid manager</label><input id="ibManager" pInputText formControlName="bidManager" /></div>
+        <div class="bids-register-page__field bids-register-page__field--check">
+          <p-checkbox inputId="ibBond" formControlName="bondRequired" [binary]="true" />
+          <label for="ibBond">Bid bond required</label>
+        </div>
+        <div class="bids-register-page__field"><label for="ibBondAmt">Bond amount</label><p-inputnumber inputId="ibBondAmt" formControlName="bondAmount" [min]="0" [style]="{ width: '100%' }" /></div>
+        <div class="bids-register-page__field bids-register-page__field--full"><label for="ibCompetitors">Competitors</label><input id="ibCompetitors" pInputText formControlName="competitors" /></div>
+        <div class="bids-register-page__field bids-register-page__field--full"><label for="ibScope">Scope summary</label><textarea id="ibScope" pTextarea formControlName="scopeSummary" rows="3"></textarea></div>
+      </div>
+      <div class="bids-register-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  } @else {
+    <form class="bids-register-page__form" [formGroup]="outwardForm" (ngSubmit)="saveBid()">
+      <div class="bids-register-page__form-grid">
+        <div class="bids-register-page__field"><label for="obBidNo">Package bid no.</label><input id="obBidNo" pInputText formControlName="bidNumber" /></div>
+        <div class="bids-register-page__field">
+          <label for="obStatus">Status</label>
+          <p-select inputId="obStatus" formControlName="outwardStatus" [options]="outwardFormStatusOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field bids-register-page__field--full"><label for="obPackage">Package name</label><input id="obPackage" pInputText formControlName="packageName" /></div>
+        <div class="bids-register-page__field">
+          <label for="obProject">Project</label>
+          <p-select inputId="obProject" formControlName="projectId" [options]="projectFormOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" (onChange)="onOutwardProjectChange()" />
+        </div>
+        <div class="bids-register-page__field">
+          <label for="obSite">Site</label>
+          <p-select inputId="obSite" formControlName="siteId" [options]="siteFormOptions()" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field">
+          <label for="obTrade">Trade package</label>
+          <p-select inputId="obTrade" formControlName="tradePackage" [options]="tradePackageOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field"><label for="obInvite">Invitation date</label><input id="obInvite" type="date" pInputText formControlName="invitationDate" /></div>
+        <div class="bids-register-page__field"><label for="obClose">Closing date</label><input id="obClose" type="date" pInputText formControlName="closingDate" /></div>
+        <div class="bids-register-page__field"><label for="obBudget">Target budget</label><p-inputnumber inputId="obBudget" formControlName="targetBudget" [min]="0" [style]="{ width: '100%' }" /></div>
+        <div class="bids-register-page__field">
+          <label for="obCurrency">Currency</label>
+          <p-select inputId="obCurrency" formControlName="currency" [options]="currencyOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field"><label for="obManager">Bid manager</label><input id="obManager" pInputText formControlName="bidManager" /></div>
+        <div class="bids-register-page__field bids-register-page__field--full">
+          <label for="obPartners">Invite contractors / sub-contractors</label>
+          <p-multiselect inputId="obPartners" formControlName="invitedPartners" [options]="partnerOptions" optionLabel="label" optionValue="value" display="chip" [style]="{ width: '100%' }" />
+        </div>
+        <div class="bids-register-page__field bids-register-page__field--full"><label for="obScope">Scope of work</label><textarea id="obScope" pTextarea formControlName="scopeSummary" rows="3"></textarea></div>
+      </div>
+      <div class="bids-register-page__form-actions">
+        <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+        <p-button type="submit" label="Save" icon="pi pi-check" />
+      </div>
+    </form>
+  }
+</p-dialog>
+
+<p-dialog
+  header="Bid details"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(900px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailRecord(); as r) {
+    <div class="bids-register-page__detail-header">
+      <div>
+        <h2>{{ displayName(r) }}</h2>
+        <p>{{ r.bidNumber }} · {{ r.bidManager }}</p>
+      </div>
+      <div class="bids-register-page__detail-badges">
+        <p-tag [value]="statusLabel(r)" [severity]="statusSeverity(r)" />
+        <p-tag [value]="approvalLabel(r.approvalStatus)" [severity]="approvalSeverity(r.approvalStatus)" />
+      </div>
+    </div>
+
+    <div class="bids-register-page__detail-actions">
+      @if (canSubmit(r)) {
+        <p-button label="Submit for approval" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(r)" />
+      }
+      @if (canApprove(r)) {
+        <p-button label="Approve" icon="pi pi-check" severity="success" (onClick)="approveBid(r)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectBid(r)" />
+      }
+      @if (canInvite(r)) {
+        <p-button label="Issue invitations" icon="pi pi-envelope" [outlined]="true" (onClick)="issueInvitations(r)" />
+      }
+      <p-button label="Edit" icon="pi pi-pencil" [outlined]="true" (onClick)="openEdit(r); closeDetail()" />
+      <p-button label="Add document" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(r)" />
+    </div>
+
+    <p-tabs value="0">
+      <p-tablist>
+        <p-tab value="0">Overview</p-tab>
+        @if (!isInward) {
+          <p-tab value="1">Quotations</p-tab>
+        }
+        <p-tab [value]="isInward ? '1' : '2'">Documents</p-tab>
+        <p-tab [value]="isInward ? '2' : '3'">Audit</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="0">
+          <dl class="bids-register-page__detail-grid">
+            @if (isInward) {
+              <dt>Client</dt><dd>{{ r.clientName }}</dd>
+              <dt>Tender ref</dt><dd>{{ r.tenderReference }}</dd>
+              <dt>Bid type</dt><dd>{{ bidTypeLabel(r.bidType) }}</dd>
+              <dt>Bid value</dt><dd>{{ r.currency }} {{ r.bidValue | number }}</dd>
+              <dt>Margin</dt><dd>{{ r.marginPct }}%</dd>
+              <dt>Deadline</dt><dd>{{ r.submissionDeadline }}</dd>
+              <dt>Submitted</dt><dd>{{ r.submittedDate || '—' }}</dd>
+              <dt>Bid bond</dt><dd>{{ r.bondRequired ? (r.currency + ' ' + (r.bondAmount | number)) : 'Not required' }}</dd>
+              <dt>Competitors</dt><dd>{{ r.competitors || '—' }}</dd>
+              <dt>Bid plan link</dt><dd>{{ r.bidPlanId || '—' }}</dd>
+            } @else {
+              <dt>Project</dt><dd>{{ projectName(r.projectId) }}</dd>
+              <dt>Site</dt><dd>{{ siteName(r.siteId) }}</dd>
+              <dt>Trade</dt><dd>{{ r.tradePackage }}</dd>
+              <dt>Target budget</dt><dd>{{ r.currency }} {{ r.targetBudget | number }}</dd>
+              <dt>Invitation</dt><dd>{{ r.invitationDate }}</dd>
+              <dt>Closing</dt><dd>{{ r.closingDate }}</dd>
+              <dt>Invited partners</dt>
+              <dd>
+                @for (pid of r.invitedPartners ?? []; track pid) {
+                  <p-tag [value]="partnerLabel(pid)" severity="secondary" styleClass="bids-register-page__partner-tag" />
+                } @empty { — }
+              </dd>
+              <dt>Awarded to</dt>
+              <dd>
+                @if (r.awardedPartnerId) {
+                  {{ partnerLabel(r.awardedPartnerId) }} · {{ r.currency }} {{ r.awardedValue | number }}
+                } @else {
+                  Not yet awarded
+                }
+              </dd>
+            }
+            <dt>Scope</dt><dd>{{ r.scopeSummary }}</dd>
+          </dl>
+        </p-tabpanel>
+        @if (!isInward) {
+          <p-tabpanel value="1">
+            <div class="bids-register-page__tab-toolbar">
+              <p-button label="Add quotation" icon="pi pi-plus" size="small" (onClick)="openAddQuotation()" />
+            </div>
+            <p-table [value]="r.quotations ?? []" dataKey="id">
+              <ng-template #header>
+                <tr>
+                  <th>Partner</th>
+                  <th>Type</th>
+                  <th>Quoted</th>
+                  <th>Valid (days)</th>
+                  <th>Compliant</th>
+                  <th>Rank</th>
+                  <th style="width: 6rem"></th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
+                <tr>
+                  <td>{{ row.partnerName }}</td>
+                  <td>{{ row.partnerType }}</td>
+                  <td>{{ row.currency }} {{ row.quotedValue | number }}</td>
+                  <td>{{ row.validityDays }}</td>
+                  <td>
+                    @if (row.compliant) { <p-tag value="Yes" severity="success" /> }
+                    @else { <p-tag value="No" severity="danger" /> }
+                  </td>
+                  <td>{{ row.rank ?? '—' }}</td>
+                  <td>
+                    @if (!r.awardedPartnerId && row.compliant) {
+                      <p-button label="Award" size="small" (onClick)="awardPackage(r, row)" />
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="7">No quotations received yet.</td></tr>
+              </ng-template>
+            </p-table>
+          </p-tabpanel>
+        }
+        <p-tabpanel [value]="isInward ? '1' : '2'">
+          <p-table [value]="r.attachments" dataKey="id">
+            <ng-template #header><tr><th>Document</th><th>Type</th><th>Uploaded</th></tr></ng-template>
+            <ng-template #body let-row><tr><td>{{ row.name }}</td><td>{{ row.type }}</td><td>{{ row.uploadedAt }}</td></tr></ng-template>
+            <ng-template #emptymessage><tr><td colspan="3">No documents attached.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel [value]="isInward ? '2' : '3'">
+          <ul class="bids-register-page__audit">
+            @for (entry of r.audit; track entry.at + entry.action) {
+              <li><strong>{{ entry.action }}</strong><span>{{ entry.by }} · {{ entry.at }}</span></li>
+            }
+          </ul>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  }
+</p-dialog>
+
+<p-dialog header="Add quotation" [visible]="childFormVisible()" (visibleChange)="childFormVisible.set($event)" [modal]="true" [style]="{ width: 'min(480px, 96vw)' }" (onHide)="closeChildForm()">
+  @if (childFormError()) { <p class="bids-register-page__form-error">{{ childFormError() }}</p> }
+  <form class="bids-register-page__form" [formGroup]="quotationForm" (ngSubmit)="saveQuotation()">
+    <div class="bids-register-page__form-grid">
+      <div class="bids-register-page__field bids-register-page__field--full"><label for="qtPartner">Partner name</label><input id="qtPartner" pInputText formControlName="partnerName" /></div>
+      <div class="bids-register-page__field">
+        <label for="qtType">Partner type</label>
+        <p-select inputId="qtType" formControlName="partnerType" [options]="[{label:'Contractor',value:'contractor'},{label:'Sub-contractor',value:'subcontractor'},{label:'Vendor',value:'vendor'}]" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bids-register-page__field"><label for="qtValue">Quoted value</label><p-inputnumber inputId="qtValue" formControlName="quotedValue" [min]="0" [style]="{ width: '100%' }" /></div>
+      <div class="bids-register-page__field"><label for="qtValid">Validity (days)</label><p-inputnumber inputId="qtValid" formControlName="validityDays" [min]="1" [style]="{ width: '100%' }" /></div>
+      <div class="bids-register-page__field"><label for="qtDate">Received date</label><input id="qtDate" type="date" pInputText formControlName="receivedDate" /></div>
+      <div class="bids-register-page__field bids-register-page__field--check">
+        <p-checkbox inputId="qtCompliant" formControlName="compliant" [binary]="true" />
+        <label for="qtCompliant">Technically compliant</label>
+      </div>
+      <div class="bids-register-page__field bids-register-page__field--full"><label for="qtNotes">Notes</label><input id="qtNotes" pInputText formControlName="notes" /></div>
+    </div>
+    <div class="bids-register-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeChildForm()" />
+      <p-button type="submit" label="Save" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog header="Delete bid" [visible]="deleteConfirmVisible()" (visibleChange)="deleteConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(420px, 96vw)' }">
+  @if (recordToDelete(); as target) {
+    <p>Delete <strong>{{ displayName(target) }}</strong> ({{ target.bidNumber }})?</p>
+    <div class="bids-register-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>

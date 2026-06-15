@@ -23,7 +23,10 @@ export type FeaturePageComponent =
   | 'hr-attendance'
   | 'payroll'
   | 'partners-directory'
-  | 'daily-progress';
+  | 'daily-progress'
+  | 'bid-planning'
+  | 'bids-register'
+  | 'material-issuance';
 
 export interface FeaturePage {
   id: string;

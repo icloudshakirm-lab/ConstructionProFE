@@ -1,0 +1,288 @@
+<div class="bid-planning-page">
+  <p-breadcrumb [model]="breadcrumbs()" [home]="{ icon: 'pi pi-home', routerLink: '/dashboard' }" />
+
+  <header class="bid-planning-page__header">
+    <div>
+      <p-tag value="Bidding & Tenders" severity="info" />
+      <h1>Bid Planning</h1>
+      <p class="bid-planning-page__subtitle">
+        Plan inward project opportunities before tendering — qualify leads, run go/no-go, assign bid teams, and convert
+        approved plans into inward bids.
+      </p>
+    </div>
+    <div class="bid-planning-page__header-actions">
+      <p-button label="Add opportunity" icon="pi pi-plus" (onClick)="openCreate()" />
+      <p-button label="Export CSV" icon="pi pi-download" [outlined]="true" (onClick)="exportCsv()" />
+    </div>
+  </header>
+
+  <section class="bid-planning-page__toolbar">
+    <p-select
+      [options]="statusFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      placeholder="Status"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="approvalFilterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="approvalFilter()"
+      (ngModelChange)="approvalFilter.set($event)"
+      placeholder="Approval"
+      [style]="{ minWidth: 'min(170px, 32vw)' }"
+    />
+    <p-select
+      [options]="sectorFilterOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="sectorFilter()"
+      (ngModelChange)="sectorFilter.set($event)"
+      placeholder="Sector"
+      [style]="{ minWidth: 'min(180px, 34vw)' }"
+    />
+    <p-iconfield iconPosition="left" class="bid-planning-page__search">
+      <p-inputicon styleClass="pi pi-search" />
+      <input
+        type="text"
+        pInputText
+        placeholder="Search opportunity, client, code, manager…"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </p-iconfield>
+    <span class="bid-planning-page__count">{{ filteredPlans().length }} opportunity(ies)</span>
+  </section>
+
+  <p-table
+    [value]="filteredPlans()"
+    [rows]="10"
+    [paginator]="filteredPlans().length > 10"
+    dataKey="id"
+    styleClass="bid-planning-page__table"
+    [scrollable]="true"
+    scrollHeight="flex"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Opportunity</th>
+        <th>Client</th>
+        <th>Est. value</th>
+        <th>Bid due</th>
+        <th>Win %</th>
+        <th>Status</th>
+        <th>Approval</th>
+        <th style="width: 10rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr
+        [class.bid-planning-page__row--active]="selectedId() === row.id"
+        (click)="selectedId.set(row.id)"
+      >
+        <td>
+          <strong>{{ row.opportunityName }}</strong>
+          <small>{{ row.planCode }} · {{ row.sector }}</small>
+        </td>
+        <td>{{ row.clientName }}</td>
+        <td>{{ row.currency }} {{ row.estimatedValue | number }}</td>
+        <td>
+          {{ row.bidDueDate }}
+          @if (dueInDays(row.bidDueDate) >= 0 && row.status !== 'converted' && row.status !== 'no_go') {
+            <small>{{ dueInDays(row.bidDueDate) }} days left</small>
+          }
+        </td>
+        <td>{{ row.winProbabilityPct }}%</td>
+        <td><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)" /></td>
+        <td><p-tag [value]="approvalLabel(row.approvalStatus)" [severity]="approvalSeverity(row.approvalStatus)" /></td>
+        <td>
+          <div class="bid-planning-page__row-actions" (click)="$event.stopPropagation()">
+            <p-button icon="pi pi-eye" [rounded]="true" [text]="true" (onClick)="openDetail(row)" />
+            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openEdit(row)" />
+            <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="requestDelete(row)" />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="8">No bid opportunities match your filters.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="formDialogHeader()"
+  [visible]="formVisible()"
+  (visibleChange)="formVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(720px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeForm()"
+>
+  @if (formError()) {
+    <p class="bid-planning-page__form-error">{{ formError() }}</p>
+  }
+  <form class="bid-planning-page__form" [formGroup]="planForm" (ngSubmit)="savePlan()">
+    <div class="bid-planning-page__form-grid">
+      <div class="bid-planning-page__field">
+        <label for="planCode">Plan code</label>
+        <input id="planCode" pInputText formControlName="planCode" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="status">Status</label>
+        <p-select inputId="status" formControlName="status" [options]="formStatusOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bid-planning-page__field bid-planning-page__field--full">
+        <label for="opportunityName">Opportunity name</label>
+        <input id="opportunityName" pInputText formControlName="opportunityName" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="clientName">Client</label>
+        <input id="clientName" pInputText formControlName="clientName" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="sector">Sector</label>
+        <p-select inputId="sector" formControlName="sector" [options]="sectorOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="estimatedValue">Estimated value</label>
+        <p-inputnumber inputId="estimatedValue" formControlName="estimatedValue" [min]="0" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="currency">Currency</label>
+        <p-select inputId="currency" formControlName="currency" [options]="currencyOptions" optionLabel="label" optionValue="value" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="location">Location</label>
+        <input id="location" pInputText formControlName="location" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="rfpReceivedDate">RFP received</label>
+        <input id="rfpReceivedDate" type="date" pInputText formControlName="rfpReceivedDate" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="bidDueDate">Bid due date</label>
+        <input id="bidDueDate" type="date" pInputText formControlName="bidDueDate" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="winProbabilityPct">Win probability (%)</label>
+        <p-inputnumber inputId="winProbabilityPct" formControlName="winProbabilityPct" [min]="0" [max]="100" [style]="{ width: '100%' }" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="bidManager">Bid manager</label>
+        <input id="bidManager" pInputText formControlName="bidManager" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="estimator">Estimator</label>
+        <input id="estimator" pInputText formControlName="estimator" />
+      </div>
+      <div class="bid-planning-page__field">
+        <label for="goNoGoDate">Go/no-go date</label>
+        <input id="goNoGoDate" type="date" pInputText formControlName="goNoGoDate" />
+      </div>
+      <div class="bid-planning-page__field bid-planning-page__field--full">
+        <label for="scopeSummary">Scope summary</label>
+        <textarea id="scopeSummary" pTextarea formControlName="scopeSummary" rows="3"></textarea>
+      </div>
+      <div class="bid-planning-page__field bid-planning-page__field--full">
+        <label for="risks">Risks / notes</label>
+        <textarea id="risks" pTextarea formControlName="risks" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="bid-planning-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="closeForm()" />
+      <p-button type="submit" label="Save" icon="pi pi-check" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Bid plan details"
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: 'min(760px, 96vw)' }"
+  [draggable]="false"
+  (onHide)="closeDetail()"
+>
+  @if (detailPlan(); as p) {
+    <div class="bid-planning-page__detail-header">
+      <div>
+        <h2>{{ p.opportunityName }}</h2>
+        <p>{{ p.planCode }} · {{ p.clientName }} · {{ p.location }}</p>
+      </div>
+      <div class="bid-planning-page__detail-badges">
+        <p-tag [value]="statusLabel(p.status)" [severity]="statusSeverity(p.status)" />
+        <p-tag [value]="approvalLabel(p.approvalStatus)" [severity]="approvalSeverity(p.approvalStatus)" />
+      </div>
+    </div>
+
+    <div class="bid-planning-page__detail-actions">
+      @if (canSubmit(p)) {
+        <p-button label="Submit for go/no-go" icon="pi pi-send" [outlined]="true" (onClick)="submitForApproval(p)" />
+      }
+      @if (canApprove(p)) {
+        <p-button label="Approve (Go)" icon="pi pi-check" severity="success" (onClick)="approvePlan(p)" />
+        <p-button label="Reject" icon="pi pi-times" severity="danger" [outlined]="true" (onClick)="rejectPlan(p)" />
+      }
+      @if (canMarkPlanned(p)) {
+        <p-button label="Mark planned to bid" icon="pi pi-calendar" [outlined]="true" (onClick)="markPlanned(p)" />
+      }
+      @if (canConvert(p)) {
+        <p-button label="Convert to inward bid" icon="pi pi-arrow-right" (onClick)="convertToInwardBid(p)" />
+      }
+      <p-button label="Edit" icon="pi pi-pencil" [outlined]="true" (onClick)="openEdit(p); closeDetail()" />
+      <p-button label="Add RFP document" icon="pi pi-paperclip" [text]="true" (onClick)="mockAddAttachment(p)" />
+    </div>
+
+    <dl class="bid-planning-page__detail-grid">
+      <dt>Sector</dt><dd>{{ p.sector }}</dd>
+      <dt>Estimated value</dt><dd>{{ p.currency }} {{ p.estimatedValue | number }}</dd>
+      <dt>Win probability</dt><dd>{{ p.winProbabilityPct }}%</dd>
+      <dt>RFP received</dt><dd>{{ p.rfpReceivedDate }}</dd>
+      <dt>Bid due</dt><dd>{{ p.bidDueDate }}</dd>
+      <dt>Go/no-go date</dt><dd>{{ p.goNoGoDate || '—' }}</dd>
+      <dt>Bid manager</dt><dd>{{ p.bidManager }}</dd>
+      <dt>Estimator</dt><dd>{{ p.estimator || '—' }}</dd>
+      <dt>Linked inward bid</dt>
+      <dd>
+        @if (p.linkedInwardBidId) {
+          {{ p.linkedInwardBidId }} — create in Inward Bids
+        } @else {
+          Not yet converted
+        }
+      </dd>
+      <dt>Scope</dt><dd>{{ p.scopeSummary }}</dd>
+      <dt>Risks</dt><dd>{{ p.risks || '—' }}</dd>
+    </dl>
+
+    @if (p.attachments.length) {
+      <h3>Documents</h3>
+      <ul class="bid-planning-page__doc-list">
+        @for (att of p.attachments; track att.id) {
+          <li>{{ att.name }} · {{ att.uploadedAt }}</li>
+        }
+      </ul>
+    }
+
+    <h3>Audit</h3>
+    <ul class="bid-planning-page__audit">
+      @for (entry of p.audit; track entry.at + entry.action) {
+        <li><strong>{{ entry.action }}</strong><span>{{ entry.by }} · {{ entry.at }}</span></li>
+      }
+    </ul>
+  }
+</p-dialog>
+
+<p-dialog header="Delete opportunity" [visible]="deleteConfirmVisible()" (visibleChange)="deleteConfirmVisible.set($event)" [modal]="true" [style]="{ width: 'min(420px, 96vw)' }">
+  @if (planToDelete(); as target) {
+    <p>Delete <strong>{{ target.opportunityName }}</strong>? This cannot be undone.</p>
+    <div class="bid-planning-page__form-actions">
+      <p-button label="Cancel" [text]="true" (onClick)="cancelDelete()" />
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" (onClick)="confirmDelete()" />
+    </div>
+  }
+</p-dialog>

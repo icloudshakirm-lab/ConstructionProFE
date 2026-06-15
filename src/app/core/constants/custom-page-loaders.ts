@@ -97,5 +97,17 @@ export const CUSTOM_PAGE_LOADERS: Record<FeaturePageComponent, PageLoader> = {
   'daily-progress': () =>
     import('../../features/site-mobile/daily-progress/daily-progress.component').then(
       (m) => m.DailyProgressComponent
+    ),
+  'bid-planning': () =>
+    import('../../features/bidding/bid-planning/bid-planning.component').then(
+      (m) => m.BidPlanningComponent
+    ),
+  'bids-register': () =>
+    import('../../features/bidding/bids-register/bids-register.component').then(
+      (m) => m.BidsRegisterComponent
+    ),
+  'material-issuance': () =>
+    import('../../features/store-inventory/material-issuance/material-issuance.component').then(
+      (m) => m.MaterialIssuanceComponent
     )
 };
