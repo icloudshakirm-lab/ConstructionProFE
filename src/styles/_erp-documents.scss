@@ -138,6 +138,12 @@ html.app-dark .erp-doc__badge--mfg {
   color: var(--p-text-color);
 }
 
+.erp-doc__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
 .erp-doc__input {
   width: 100%;
   font: inherit;

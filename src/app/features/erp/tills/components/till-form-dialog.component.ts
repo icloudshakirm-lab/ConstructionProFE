@@ -32,39 +32,26 @@ import type { GodownDTO } from '../../../../core/api/erp-api.models';
       [closable]="true"
       [draggable]="false"
       [resizable]="false"
+      styleClass="erp-dialog"
       [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
     >
       @if (error()) {
-        <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {{ error() }}
-        </p>
+        <p class="erp-doc__alert">{{ error() }}</p>
       }
 
-      <form [formGroup]="form" (ngSubmit)="$event.preventDefault()" class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label for="till-code" class="text-sm font-medium text-slate-700 dark:text-slate-300">Code</label>
-          <input
-            id="till-code"
-            type="text"
-            formControlName="code"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-            placeholder="e.g. TILL-001"
-          />
+      <form [formGroup]="form" (ngSubmit)="$event.preventDefault()" class="erp-dialog__form">
+        <div class="erp-doc__field">
+          <label for="till-code" class="erp-doc__label">Code</label>
+          <input id="till-code" type="text" formControlName="code" class="erp-doc__input" placeholder="e.g. TILL-001" />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="till-name" class="text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
-          <input
-            id="till-name"
-            type="text"
-            formControlName="name"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-            placeholder="e.g. Main POS Till"
-          />
+        <div class="erp-doc__field">
+          <label for="till-name" class="erp-doc__label">Name</label>
+          <input id="till-name" type="text" formControlName="name" class="erp-doc__input" placeholder="e.g. Main POS Till" />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="till-warehouse" class="text-sm font-medium text-slate-700 dark:text-slate-300">Warehouse / Godown</label>
+        <div class="erp-doc__field">
+          <label for="till-warehouse" class="erp-doc__label">Warehouse / Godown</label>
           <p-select
             id="till-warehouse"
             [options]="warehouseOptions()"
@@ -77,28 +64,24 @@ import type { GodownDTO } from '../../../../core/api/erp-api.models';
           />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="till-desc" class="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-          <textarea
-            id="till-desc"
-            formControlName="description"
-            rows="3"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-          ></textarea>
+        <div class="erp-doc__field">
+          <label for="till-desc" class="erp-doc__label">Description</label>
+          <textarea id="till-desc" formControlName="description" rows="3" class="erp-doc__input"></textarea>
         </div>
 
         @if (isEdit) {
-          <div class="flex items-center gap-3 py-2">
-            <p-toggleSwitch formControlName="isActive" id="isActive" />
-            <label for="isActive" class="text-sm font-medium text-slate-700 dark:text-slate-300">Is Active</label>
+          <div class="erp-doc__field" style="flex-direction: row; align-items: center; gap: 0.75rem">
+            <p-toggleSwitch formControlName="isActive" inputId="isActive" />
+            <label for="isActive" class="erp-doc__label" style="margin: 0">Is active</label>
           </div>
         }
 
-        <div class="mt-2 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-          <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
+        <div class="erp-dialog__actions">
+          <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
           <p-button
             type="button"
             [label]="isEdit ? 'Update' : 'Create'"
+            icon="pi pi-check"
             [loading]="saving()"
             [disabled]="form.invalid || saving()"
             (onClick)="submit()"
@@ -108,6 +91,9 @@ import type { GodownDTO } from '../../../../core/api/erp-api.models';
     </p-dialog>
   `,
   styles: [`
+    :host ::ng-deep .p-dialog-content {
+      overflow-y: visible;
+    }
     :host ::ng-deep .p-select {
       width: 100%;
     }

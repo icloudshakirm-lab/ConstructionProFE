@@ -1,25 +1,28 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { Button } from 'primeng/button';
+import { Tag } from 'primeng/tag';
 
 @Component({
   standalone: true,
   selector: 'app-pos-counters-page',
-  imports: [CommonModule],
+  imports: [CommonModule, Button, Tag],
   template: `
-    <div class="space-y-6 p-6">
-      <div class="flex justify-between items-center">
+    <div class="erp-list-page">
+      <header class="erp-list-page__header">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">POS Counters</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Register and manage physical point-of-sale terminals and cash drawers.</p>
+          <p-tag value="POS Setup" severity="info" />
+          <h1>POS counters</h1>
+          <p class="erp-list-page__subtitle">Register and manage physical point-of-sale terminals and cash drawers.</p>
         </div>
-        <button class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)] px-4 py-2 rounded-lg text-sm font-medium">Add Counter</button>
-      </div>
+        <div class="erp-list-page__header-actions">
+          <p-button label="Add counter" icon="pi pi-plus" [disabled]="true" />
+        </div>
+      </header>
 
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 text-center">
-        <div class="flex flex-col items-center gap-2">
-          <i class="pi pi-desktop text-4xl text-slate-300"></i>
-          <p class="text-slate-500">Connect and manage your hardware terminals here.</p>
-        </div>
+      <div class="erp-list-page__empty-panel">
+        <i class="pi pi-desktop" style="font-size: 2rem; margin-bottom: 0.5rem; display: block"></i>
+        Connect and manage your hardware terminals here. Counter management API pending.
       </div>
     </div>
   `,

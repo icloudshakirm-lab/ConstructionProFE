@@ -23,45 +23,36 @@
 
   @if (loading()) {
     <p class="erp-list-page__loading">Loading tills…</p>
+  } @else if (rows().length === 0) {
+    <div class="erp-list-page__empty-panel">
+      <i class="pi pi-calculator" style="font-size: 2rem; margin-bottom: 0.5rem; display: block"></i>
+      No tills yet. Click <strong>New till</strong> to create one.
+    </div>
   } @else {
-    <p-table
-      [value]="rows()"
-      [rows]="10"
-      [paginator]="rows().length > 10"
-      dataKey="id"
-      styleClass="cp-data-grid"
-      [scrollable]="true"
-      scrollHeight="flex"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Code</th>
-          <th>Name</th>
-          <th>Warehouse</th>
-          <th>Status</th>
-          <th style="width: 5rem">Actions</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-row>
-        <tr>
-          <td><strong>{{ row.code }}</strong></td>
-          <td>{{ row.name }}</td>
-          <td>#{{ row.warehouseId }}</td>
-          <td>
-            <p-tag [value]="row.isActive ? 'Active' : 'Inactive'" [severity]="row.isActive ? 'success' : 'secondary'" />
-          </td>
-          <td>
-            <div class="cp-data-grid__row-actions">
-              <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" title="Edit" (onClick)="openEdit(row.id)" />
+    <div class="erp-entity-cards">
+      @for (till of rows(); track till.id) {
+        <button type="button" class="erp-entity-cards__card" (click)="openEdit(till.id)">
+          <div class="erp-entity-cards__row">
+            <div class="erp-entity-cards__icon"><i class="pi pi-calculator"></i></div>
+            <div class="erp-entity-cards__main">
+              <div class="erp-entity-cards__title-row">
+                <span class="erp-entity-cards__title">{{ till.name }}</span>
+                <p-tag
+                  [value]="till.isActive ? 'Active' : 'Inactive'"
+                  [severity]="till.isActive ? 'success' : 'secondary'"
+                />
+              </div>
+              <div class="erp-entity-cards__meta">
+                <span><strong>Code</strong>{{ till.code }}</span>
+                <span><strong>Warehouse</strong>#{{ till.warehouseId }}</span>
+              </div>
+              @if (till.description) {
+                <p class="erp-entity-cards__desc">{{ till.description }}</p>
+              }
             </div>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="5" class="cp-data-grid__empty">No tills yet.</td>
-        </tr>
-      </ng-template>
-    </p-table>
+          </div>
+        </button>
+      }
+    </div>
   }
 </div>

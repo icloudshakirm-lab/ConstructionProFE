@@ -32,17 +32,16 @@ import type { TillDTO } from '../../../../core/api/erp-api.models';
       [closable]="true"
       [draggable]="false"
       [resizable]="false"
+      styleClass="erp-dialog"
       [style]="{ width: 'min(calc(100vw - 2rem), 28rem)' }"
     >
       @if (error()) {
-        <p class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {{ error() }}
-        </p>
+        <p class="erp-doc__alert">{{ error() }}</p>
       }
 
-      <form [formGroup]="form" (ngSubmit)="$event.preventDefault()" class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label for="asg-till" class="text-sm font-medium text-slate-700 dark:text-slate-300">Till</label>
+      <form [formGroup]="form" (ngSubmit)="$event.preventDefault()" class="erp-dialog__form">
+        <div class="erp-doc__field">
+          <label for="asg-till" class="erp-doc__label">Till</label>
           <p-select
             id="asg-till"
             [options]="tillOptions()"
@@ -55,20 +54,14 @@ import type { TillDTO } from '../../../../core/api/erp-api.models';
           />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="asg-user" class="text-sm font-medium text-slate-700 dark:text-slate-300">User ID</label>
-          <input
-            id="asg-user"
-            type="text"
-            formControlName="userId"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-            placeholder="Enter User ID"
-          />
-          <p class="text-[10px] text-slate-500">Currently manual ID entry. User lookup pending.</p>
+        <div class="erp-doc__field">
+          <label for="asg-user" class="erp-doc__label">User ID</label>
+          <input id="asg-user" type="text" formControlName="userId" class="erp-doc__input" placeholder="Enter user ID" />
+          <p class="erp-doc__hint">Manual ID entry until user lookup is available.</p>
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="asg-start" class="text-sm font-medium text-slate-700 dark:text-slate-300">Start Time</label>
+        <div class="erp-doc__field">
+          <label for="asg-start" class="erp-doc__label">Start time</label>
           <p-datepicker
             id="asg-start"
             formControlName="startAt"
@@ -79,8 +72,8 @@ import type { TillDTO } from '../../../../core/api/erp-api.models';
           />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="asg-end" class="text-sm font-medium text-slate-700 dark:text-slate-300">End Time (Optional)</label>
+        <div class="erp-doc__field">
+          <label for="asg-end" class="erp-doc__label">End time (optional)</label>
           <p-datepicker
             id="asg-end"
             formControlName="endAt"
@@ -91,21 +84,17 @@ import type { TillDTO } from '../../../../core/api/erp-api.models';
           />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="asg-notes" class="text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>
-          <textarea
-            id="asg-notes"
-            formControlName="notes"
-            rows="3"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-          ></textarea>
+        <div class="erp-doc__field">
+          <label for="asg-notes" class="erp-doc__label">Notes</label>
+          <textarea id="asg-notes" formControlName="notes" rows="3" class="erp-doc__input"></textarea>
         </div>
 
-        <div class="mt-2 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-          <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" (onClick)="cancel()" />
+        <div class="erp-dialog__actions">
+          <p-button type="button" label="Cancel" severity="secondary" [text]="true" (onClick)="cancel()" />
           <p-button
             type="button"
             [label]="isEdit ? 'Update' : 'Assign'"
+            icon="pi pi-check"
             [loading]="saving()"
             [disabled]="form.invalid || saving()"
             (onClick)="submit()"
@@ -115,6 +104,9 @@ import type { TillDTO } from '../../../../core/api/erp-api.models';
     </p-dialog>
   `,
   styles: [`
+    :host ::ng-deep .p-dialog-content {
+      overflow-y: visible;
+    }
     :host ::ng-deep .p-select, :host ::ng-deep .p-datepicker {
       width: 100%;
     }
