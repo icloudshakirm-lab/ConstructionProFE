@@ -1,0 +1,1601 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "meta": {
+    "title": "ConstructPro — Construction Platform Backend Specification",
+    "version": "1.1.0",
+    "lastAudited": "2026-06-15",
+    "generatedFor": "ConstructionProFE frontend mock data → real backend",
+    "scope": "All construction / project / site / BOQ / store / bidding / HR / site-mobile modules",
+    "excluded": "ERP module (NetLedgers) — already has backend at /transactions, /ledgers, /costcenters, etc.",
+    "baseUrlSuggestion": "/api/v1/construction",
+    "notes": [
+      "Unify project IDs: frontend uses P-001 (project-management) AND tower-a (BOQ). Add projects.legacyBoqSlug and map both to one row.",
+      "Cost centers in ERP should map 1:1 to projects via projects.erpCostCenterId for job-mileage / job-cost-matrix reports.",
+      "Material issuance posts to ERP inventory separately (future integration); this API owns project/site/BOQ context.",
+      "All monetary amounts: decimal(18,4). All dates: ISO-8601 UTC. IDs: string (UUID or business code per table)."
+    ]
+  },
+  "erpIntegration": {
+    "description": "Read-only links — ERP owns accounting; construction platform owns project operational data",
+    "mappings": [
+      {
+        "constructionEntity": "projects",
+        "erpEntity": "cost_centers",
+        "field": "projects.erpCostCenterId → cost_centers.id",
+        "purpose": "Job cost matrix columns = projects; cost categories = project cost breakdown"
+      },
+      {
+        "constructionEntity": "cost_codes",
+        "erpEntity": "cost_categories",
+        "field": "cost_codes.erpCostCategoryId → cost_categories.id",
+        "purpose": "CIV-01, STR-01 etc. map to ERP cost categories under project cost center"
+      },
+      {
+        "constructionEntity": "material_catalog",
+        "erpEntity": "items",
+        "field": "material_catalog.erpItemId → items.id",
+        "purpose": "Stock issue / construction invoice material lines"
+      },
+      {
+        "constructionEntity": "partners",
+        "erpEntity": "ledgers",
+        "field": "partners.erpLedgerId (optional)",
+        "purpose": "Subcontractor / vendor party account"
+      },
+      {
+        "constructionEntity": "construction_invoices",
+        "erpEntity": "transactions",
+        "field": "construction_invoices.erpTransactionId → transactions.id",
+        "purpose": "ConstructionSales voucher created in ERP; FE stores projectId + line refs"
+      }
+    ],
+    "erpEndpointsAlreadyExist": [
+      "GET/POST /costcenters",
+      "GET/POST /costcategories",
+      "GET/POST /transactions",
+      "GET /reports/financial/profit-and-loss",
+      "GET /reports/financial/job-cost-matrix (FE expects; implement when cost center on child lines exists)"
+    ]
+  },
+  "coverageAudit": {
+    "summary": "v1.0 covered core operational entities. v1.1 adds coverage audit, shared patterns, HR/attendance detail, collaboration, documents, GIS/Gantt, billing placeholders, and registry-only planned modules.",
+    "implementedInFrontend": {
+      "fullyModeled": [
+        "projects-register → projects",
+        "sites-management → sites, geofences, site_contacts",
+        "projects-sites-org-chart → projects.sites embedded (same as sites)",
+        "boq-creation → boq_sections, boq_line_items, item_code_catalog",
+        "boq-revisions → boq_revisions, boq_revision_line_snapshots",
+        "material-issuance → material_issuances, material_issue_lines, material_catalog",
+        "material-consumption → material_consumption, consumption_issuance_refs",
+        "bid-planning → bid_plans",
+        "bids-register → bids, bid_quotations, bid_invited_partners",
+        "partners-directory → partners, partner_contacts, partner_certifications",
+        "qa-qc-inspections → qa_inspections, qa_inspection_history",
+        "daily-progress → daily_site_reports, dsr_quantity_lines, dsr_photos",
+        "employee-records → employees (full HR fields)",
+        "hr-attendance → attendance_records",
+        "payroll → payroll_runs, payroll_line_items, payroll_project_allocations",
+        "gps-tracking → gps_trackers, gps_telemetry_points",
+        "vehicle-tracking → fleet_vehicles, vehicle_telemetry_snapshots",
+        "project-wbs → wbs_tasks (from site_milestones)",
+        "drawing-viewer → drawings",
+        "approval-workflows → workflow_definitions (diagram JSON)",
+        "collaboration → project_notes, todos, contract_milestones, comm_messages",
+        "project-overview → project_stakeholder_groups (generated UI; store as JSON or normalized)",
+        "sites-map → site map coords on sites + site_photos",
+        "project-gis-planner → project_gis_geometries",
+        "site-status-gis → site_progress_features (GeoJSON features)",
+        "gantt-chart → gantt_schedules, gantt_tasks (currently standalone demo schedule)"
+      ],
+      "partiallyModeled": [
+        "construction-project-invoice → construction_invoices (FE in ERP module; schema here for construction BE bridge)",
+        "job-cost-matrix → ERP report; construction BE must post costCenterId on transactions",
+        "org-chart / milestones-page → overlaps site_milestones + contract_milestones"
+      ],
+      "erpExcluded": [
+        "All /erp/* routes — transactions, ledgers, items, godowns, cost centers API already exist"
+      ]
+    },
+    "registryOnlyNotYetInFrontend": [
+      { "module": "project-management", "pages": ["progress-tracking", "daily-site-reports (duplicate of site-mobile DSR)", "delays-issues"] },
+      { "module": "store-inventory", "pages": ["material-receiving", "stock-transfers", "warehouse-management", "reorder-levels"] },
+      { "module": "resource-management", "pages": ["labor-management", "attendance", "equipment-allocation", "machinery-usage", "subcontractors"] },
+      { "module": "procurement", "pages": ["purchase-requisitions", "rfqs", "vendor-quotations", "purchase-orders", "grns"] },
+      { "module": "cost-control", "pages": ["budget-vs-actual", "material-cost", "labor-cost", "equipment-cost", "profitability"] },
+      { "module": "equipment-management", "pages": ["excavators", "cranes", "dumpers", "generators", "fuel-consumption", "maintenance", "service-history", "breakdown-reports"] },
+      { "module": "hr-payroll", "pages": ["leave-management", "overtime"] },
+      { "module": "document-management", "pages": ["boqs (doc repo)", "contracts", "site-photos (doc album)"] },
+      { "module": "site-mobile", "pages": ["mobile-attendance", "upload-photos", "material-requests", "equipment-locations", "geofencing (partially in sites geofences)"] },
+      { "module": "boq-billing", "pages": ["boq-vs-actual", "client-billing", "progress-billing", "running-bills", "ipcs", "client-invoices", "retention-tracking"] }
+    ],
+    "gapsInV1_0NowAddressedInV1_1": [
+      "users / auth principals",
+      "shared entity_audit_log + entity_attachments polymorphic pattern",
+      "attendance_records (HR)",
+      "full employees fields + education + work_history",
+      "payroll_line_items detail",
+      "partner_contacts, partner_certifications, tradeLicense fields",
+      "bids.bidNumber, bondRequired, bondAmount, competitors, bidManager",
+      "item_code_catalog (BOQ item master catalog)",
+      "drawings register",
+      "workflow_definitions with diagram JSON",
+      "gantt_schedules + gantt_tasks",
+      "project_gis_geometries, site_progress_features",
+      "collaboration: notes, todos, messages, contract_milestones",
+      "material_requisitions (site mobile material-requests)",
+      "BOQ billing chain: ipcs, progress_bills, client_invoices, retention",
+      "procurement chain placeholders",
+      "equipment asset register placeholders",
+      "leave_requests, overtime_records"
+    ],
+    "stillRequiresDesignDecision": [
+      "Unify project IDs P-001 vs tower-a — use projects.legacyBoqSlug",
+      "Stakeholder org chart: store as JSON blob vs normalized stakeholder_entities table",
+      "Procurement PO/GRN: duplicate ERP inventory-transactions or link to ERP API only",
+      "Site photos: site_photos table vs document-management album",
+      "Gantt: one schedule per project vs global demo schedule"
+    ]
+  },
+  "enums": {
+    "ApprovalStatus": ["draft", "pending_approval", "approved", "rejected"],
+    "ProjectLifecycleStatus": ["Active", "Planned", "Completed", "On Hold"],
+    "MilestoneStatus": ["Not Started", "In Progress", "At Risk", "Completed", "Delayed"],
+    "SiteOperationalStatus": ["Active", "Mobilizing", "Closed"],
+    "GeofenceZoneType": ["polygon", "circle", "corridor"],
+    "IssuanceStatus": ["draft", "pending_approval", "issued", "cancelled"],
+    "ConsumptionStatus": ["on_track", "warning", "over_budget"],
+    "BoqRevisionStatus": ["draft", "pending", "approved", "superseded"],
+    "BoqDiffChange": ["added", "removed", "modified", "unchanged"],
+    "InspectionStatus": [
+      "draft",
+      "task-assigned",
+      "work-completed",
+      "inspection-requested",
+      "under-inspection",
+      "approved",
+      "rework-required",
+      "corrective-action-done",
+      "re-inspection-requested",
+      "under-re-inspection",
+      "rejected"
+    ],
+    "BidPlanStatus": ["identified", "qualifying", "go", "no_go", "planned", "converted"],
+    "BidDirection": ["inward", "outward"],
+    "InwardBidType": ["lump_sum", "unit_rate", "cost_plus", "design_build"],
+    "InwardBidStatus": ["draft", "in_progress", "submitted", "won", "lost", "withdrawn"],
+    "OutwardBidStatus": ["draft", "invited", "evaluating", "awarded", "cancelled"],
+    "CompanyType": ["contractor", "subcontractor", "vendor"],
+    "PartnerStatus": ["Active", "Inactive", "Prequalified", "Blacklisted"],
+    "WeatherCondition": ["Clear", "Partly Cloudy", "Cloudy", "Rain", "Sandstorm", "High Wind"],
+    "WbsPriority": ["critical", "high", "medium", "low"],
+    "GpsTrackerType": ["staff", "asset"],
+    "GpsTrackerStatus": ["online", "idle", "offline", "alert"],
+    "VehicleType": ["tipper", "pickup", "van", "mixer", "flatbed"],
+    "VehicleFleetStatus": ["moving", "idle", "parked", "offline", "speeding"],
+    "EmployeeStatus": ["Active", "On Leave", "Probation", "Terminated"],
+    "EmploymentType": ["Full-time", "Part-time", "Contract", "Temporary"],
+    "PayrollRunStatus": ["draft", "pending_approval", "approved", "paid", "rejected"],
+    "SiteProgressStatus": [
+      "survey_layout",
+      "excavation",
+      "refilled",
+      "subbase_placed",
+      "compaction_done",
+      "compaction_test_passed",
+      "pipe_welding_done",
+      "pipe_laying_done",
+      "pipe_pressure_test",
+      "concrete_done",
+      "asphalt_pavement",
+      "road_reopened"
+    ],
+    "CostCodeCategory": ["material", "labour", "overhead", "subcontract", "equipment", "other"],
+    "ConstructionInvoiceLineKind": ["material", "service", "return"],
+    "AttendanceStatus": ["Present", "Absent", "Half Day", "On Leave", "Holiday"],
+    "PayrollSyncStatus": ["pending", "synced", "failed", "not_applicable"],
+    "ExceptionType": ["late_arrival", "early_departure", "missing_checkout", "wrong_project", "unapproved_overtime", "other"],
+    "Gender": ["Male", "Female", "Other", "Prefer not to say"],
+    "MaritalStatus": ["Single", "Married", "Divorced", "Widowed"],
+    "GovernmentIdType": ["national_id", "passport", "social_security"],
+    "TodoPriority": ["Low", "Medium", "High"],
+    "MessageChannel": ["Email", "SMS", "In-App", "WhatsApp"],
+    "DrawingFileFormat": ["dwg", "dxf"],
+    "SitePhotoCategory": ["Overview", "Progress", "Safety", "Quality", "Equipment"],
+    "StakeholderKind": ["role", "contractor", "subcontractor", "consultant", "client", "supplier", "authority", "vendor", "labor", "finance"],
+    "IpcStatus": ["draft", "qs_certified", "engineer_certified", "client_submitted", "approved", "paid"],
+    "RetentionReleaseStatus": ["held", "partial_release", "fully_released"],
+    "MaterialRequisitionStatus": ["draft", "submitted", "approved", "issued", "rejected"],
+    "DelayIssueType": ["delay", "rfi", "ncr", "safety", "other"],
+    "DelayIssueStatus": ["open", "in_review", "resolved", "closed"]
+  },
+  "lookupTables": {
+    "cost_codes": {
+      "table": "cost_codes",
+      "description": "Project cost codes — map to ERP cost categories for job mileage rows",
+      "columns": {
+        "code": { "type": "string", "pk": true, "example": "STR-01" },
+        "name": { "type": "string", "example": "Reinforcement" },
+        "category": { "type": "enum", "ref": "CostCodeCategory", "example": "material" },
+        "erpCostCategoryId": { "type": "integer", "nullable": true, "fk": "erp.cost_categories.id" }
+      },
+      "seed": [
+        { "code": "CIV-01", "name": "Substructure", "category": "other" },
+        { "code": "CIV-02", "name": "Superstructure", "category": "other" },
+        { "code": "STR-01", "name": "Reinforcement", "category": "material" },
+        { "code": "MEP-01", "name": "Electrical", "category": "subcontract" },
+        { "code": "MEP-02", "name": "Mechanical", "category": "subcontract" },
+        { "code": "FIN-01", "name": "Finishes", "category": "other" }
+      ]
+    },
+    "warehouses": {
+      "table": "warehouses",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "name": { "type": "string" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "erpGodownId": { "type": "integer", "nullable": true, "fk": "erp.godowns.id" }
+      },
+      "seed": [
+        { "id": "wh-ho", "name": "Central store — HO", "siteId": null },
+        { "id": "wh-s001", "name": "Site store — Basement Works", "siteId": "S-001" },
+        { "id": "wh-s002", "name": "Site store — Superstructure", "siteId": "S-002" },
+        { "id": "wh-s010", "name": "Site store — Warehouse Bay 2", "siteId": "S-010" }
+      ]
+    },
+    "units_of_measure": {
+      "seed": ["m²", "m³", "Kg", "Nos", "Ltr", "Rm", "MT", "LS", "Day", "Hour"]
+    },
+    "currencies": {
+      "seed": ["AED", "USD", "SAR"]
+    }
+  },
+  "entities": {
+    "projects": {
+      "description": "Master project register — hub for sites, BOQ, issuance, bids, DSR",
+      "table": "projects",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "P-001" },
+        "legacyBoqSlug": { "type": "string", "nullable": true, "unique": true, "example": "tower-a", "note": "Maps old BOQ project selector" },
+        "code": { "type": "string", "unique": true, "example": "TBA-2026" },
+        "name": { "type": "string", "example": "Tower Block A — Main Contract" },
+        "clientName": { "type": "string", "example": "Al Noor Developments" },
+        "clientId": { "type": "string", "nullable": true, "fk": "partners.id" },
+        "status": { "type": "enum", "ref": "ProjectLifecycleStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "contractValue": { "type": "decimal", "example": 128500000 },
+        "currency": { "type": "string", "example": "AED" },
+        "startDate": { "type": "date" },
+        "endDate": { "type": "date" },
+        "projectManager": { "type": "string" },
+        "scopeSummary": { "type": "text" },
+        "erpCostCenterId": { "type": "integer", "nullable": true, "fk": "erp.cost_centers.id" },
+        "createdAt": { "type": "datetime" },
+        "updatedAt": { "type": "datetime" }
+      },
+      "childTables": ["project_audit_log", "project_attachments"],
+      "api": {
+        "list": "GET /projects",
+        "get": "GET /projects/{id}",
+        "create": "POST /projects",
+        "update": "PUT /projects/{id}",
+        "delete": "DELETE /projects/{id}",
+        "sites": "GET /projects/{id}/sites",
+        "boq": "GET /projects/{id}/boq",
+        "consumption": "GET /projects/{id}/material-consumption"
+      }
+    },
+    "project_audit_log": {
+      "columns": {
+        "id": { "type": "uuid", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "at": { "type": "datetime" },
+        "action": { "type": "string" },
+        "byUserId": { "type": "string" }
+      }
+    },
+    "project_attachments": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "name": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "storageUrl": { "type": "string" },
+        "uploadedAt": { "type": "datetime" }
+      }
+    },
+    "sites": {
+      "table": "sites",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "S-001" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "parentSiteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "name": { "type": "string", "example": "Basement Works" },
+        "location": { "type": "string", "example": "Zone 3" },
+        "zoneCode": { "type": "string", "nullable": true },
+        "superintendent": { "type": "string", "nullable": true },
+        "progressPct": { "type": "decimal", "min": 0, "max": 100 },
+        "operationalStatus": { "type": "enum", "ref": "SiteOperationalStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "lat": { "type": "decimal", "nullable": true },
+        "lng": { "type": "decimal", "nullable": true }
+      },
+      "childTables": ["site_milestones", "site_contacts", "geofences", "site_photos"]
+    },
+    "site_milestones": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "name": { "type": "string" },
+        "status": { "type": "enum", "ref": "MilestoneStatus" },
+        "targetDate": { "type": "date", "nullable": true },
+        "priority": { "type": "enum", "ref": "WbsPriority", "nullable": true }
+      }
+    },
+    "wbs_tasks": {
+      "description": "Work breakdown tasks under site milestones",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "milestoneId": { "type": "string", "fk": "site_milestones.id" },
+        "name": { "type": "string" },
+        "responsiblePersonId": { "type": "string", "nullable": true, "fk": "employees.id" },
+        "priority": { "type": "enum", "ref": "WbsPriority" },
+        "dueDate": { "type": "date", "nullable": true }
+      }
+    },
+    "geofences": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "name": { "type": "string" },
+        "zoneType": { "type": "enum", "ref": "GeofenceZoneType" },
+        "radiusM": { "type": "decimal", "nullable": true },
+        "geometryGeoJson": { "type": "jsonb", "nullable": true },
+        "active": { "type": "boolean" },
+        "entryAlert": { "type": "boolean" },
+        "exitAlert": { "type": "boolean" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      }
+    },
+    "site_contacts": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "isPrimary": { "type": "boolean" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      }
+    },
+    "boq_sections": {
+      "description": "Hierarchical BOQ structure per project",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "sec-civil" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "parentSectionId": { "type": "string", "nullable": true, "fk": "boq_sections.id" },
+        "code": { "type": "string", "example": "CIV" },
+        "title": { "type": "string", "example": "Civil Works" },
+        "sortOrder": { "type": "integer" }
+      }
+    },
+    "boq_line_items": {
+      "description": "Contract BOQ budget lines — source for issuance tags and consumption",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "li-stl" },
+        "sectionId": { "type": "string", "fk": "boq_sections.id" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "itemNo": { "type": "string" },
+        "itemCode": { "type": "string", "example": "STL-001" },
+        "description": { "type": "string" },
+        "unit": { "type": "string" },
+        "budgetQty": { "type": "decimal" },
+        "budgetRate": { "type": "decimal" },
+        "budgetAmount": { "type": "decimal", "computed": "budgetQty * budgetRate" }
+      },
+      "api": {
+        "byProject": "GET /projects/{projectId}/boq/lines",
+        "bySection": "GET /boq/sections/{sectionId}/lines"
+      }
+    },
+    "boq_revisions": {
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "rev-ta-3" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "revisionNo": { "type": "integer" },
+        "title": { "type": "string" },
+        "status": { "type": "enum", "ref": "BoqRevisionStatus" },
+        "createdAt": { "type": "datetime" },
+        "createdByUserId": { "type": "string" },
+        "effectiveDate": { "type": "date", "nullable": true },
+        "approvedAt": { "type": "datetime", "nullable": true },
+        "approvedByUserId": { "type": "string", "nullable": true },
+        "changeSummary": { "type": "text", "nullable": true }
+      },
+      "childTables": ["boq_revision_line_snapshots"]
+    },
+    "boq_revision_line_snapshots": {
+      "columns": {
+        "id": { "type": "uuid", "pk": true },
+        "revisionId": { "type": "string", "fk": "boq_revisions.id" },
+        "sectionCode": { "type": "string" },
+        "itemCode": { "type": "string" },
+        "description": { "type": "string" },
+        "unit": { "type": "string" },
+        "qty": { "type": "decimal" },
+        "rate": { "type": "decimal" }
+      }
+    },
+    "material_catalog": {
+      "description": "Construction material master — links to BOQ item and ERP stock item",
+      "columns": {
+        "code": { "type": "string", "pk": true, "example": "MAT-STL-12" },
+        "name": { "type": "string" },
+        "unit": { "type": "string" },
+        "typicalRate": { "type": "decimal" },
+        "defaultBoqItemId": { "type": "string", "nullable": true, "fk": "boq_line_items.id" },
+        "erpItemId": { "type": "integer", "nullable": true, "fk": "erp.items.id" }
+      },
+      "seed": [
+        { "code": "MAT-CEM-50", "name": "Portland Cement 50kg", "unit": "Bag", "typicalRate": 18.5, "defaultBoqItemId": "li-b1" },
+        { "code": "MAT-STL-12", "name": "Rebar 12mm", "unit": "Kg", "typicalRate": 2.85, "defaultBoqItemId": "li-stl" },
+        { "code": "MAT-STL-16", "name": "Rebar 16mm", "unit": "Kg", "typicalRate": 2.9, "defaultBoqItemId": "li-stl" },
+        { "code": "MAT-FORM", "name": "Formwork plywood", "unit": "m²", "typicalRate": 45, "defaultBoqItemId": "li-rcc" }
+      ]
+    },
+    "material_issuances": {
+      "description": "Site material issue vouchers — tagged to project, site, BOQ, cost code",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "mis-001" },
+        "issueNumber": { "type": "string", "unique": true, "example": "MIN-2026-0142" },
+        "issueDate": { "type": "date" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "warehouseId": { "type": "string", "fk": "warehouses.id" },
+        "costCode": { "type": "string", "fk": "cost_codes.code" },
+        "requisitionRef": { "type": "string", "nullable": true },
+        "requestedByUserId": { "type": "string" },
+        "issuedByUserId": { "type": "string", "nullable": true },
+        "status": { "type": "enum", "ref": "IssuanceStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "remarks": { "type": "text", "nullable": true },
+        "erpTransactionId": { "type": "integer", "nullable": true, "note": "Stock-out transaction in ERP when posted" }
+      },
+      "childTables": ["material_issue_lines", "material_issuance_audit", "material_issuance_attachments"]
+    },
+    "material_issue_lines": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "issuanceId": { "type": "string", "fk": "material_issuances.id" },
+        "boqItemId": { "type": "string", "fk": "boq_line_items.id" },
+        "materialCode": { "type": "string", "fk": "material_catalog.code" },
+        "issuedQty": { "type": "decimal" },
+        "unitRate": { "type": "decimal" },
+        "lineAmount": { "type": "decimal", "computed": "issuedQty * unitRate" },
+        "boqBudgetQty": { "type": "decimal", "note": "Snapshot from BOQ at issue time" },
+        "boqBudgetAmount": { "type": "decimal" }
+      }
+    },
+    "material_consumption": {
+      "description": "Aggregated BOQ vs actual per project + cost code + BOQ line. Can be view or materialized table.",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "costCode": { "type": "string", "fk": "cost_codes.code" },
+        "boqItemId": { "type": "string", "fk": "boq_line_items.id" },
+        "budgetQty": { "type": "decimal" },
+        "budgetAmount": { "type": "decimal" },
+        "boqRate": { "type": "decimal" },
+        "consumedQty": { "type": "decimal" },
+        "consumedAmount": { "type": "decimal" },
+        "remainingQty": { "type": "decimal" },
+        "remainingAmount": { "type": "decimal" },
+        "varianceQtyPct": { "type": "decimal" },
+        "varianceAmountPct": { "type": "decimal" },
+        "status": { "type": "enum", "ref": "ConsumptionStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "lastUpdated": { "type": "datetime" },
+        "notes": { "type": "text", "nullable": true }
+      },
+      "childTables": ["consumption_issuance_refs"],
+      "api": {
+        "list": "GET /material-consumption?projectId=&costCode=&status=",
+        "rollup": "GET /projects/{projectId}/material-consumption/rollup"
+      }
+    },
+    "consumption_issuance_refs": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "consumptionId": { "type": "string", "fk": "material_consumption.id" },
+        "issuanceId": { "type": "string", "fk": "material_issuances.id" },
+        "issueNumber": { "type": "string" },
+        "issueDate": { "type": "date" },
+        "materialCode": { "type": "string" },
+        "qty": { "type": "decimal" },
+        "amount": { "type": "decimal" }
+      }
+    },
+    "construction_invoices": {
+      "description": "Construction project billing header — material + service lines; posts to ERP as ConstructionSales",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "invoiceNumber": { "type": "string", "unique": true },
+        "invoiceDate": { "type": "datetime" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "clientName": { "type": "string" },
+        "erpTransactionId": { "type": "integer", "nullable": true, "fk": "erp.transactions.id" },
+        "erpPartyLedgerId": { "type": "integer", "fk": "erp.ledgers.id" },
+        "erpMaterialSalesLedgerId": { "type": "integer", "fk": "erp.ledgers.id" },
+        "materialTotal": { "type": "decimal" },
+        "serviceTotal": { "type": "decimal" },
+        "totalAmount": { "type": "decimal" },
+        "status": { "type": "enum", "values": ["draft", "posted", "cancelled"] }
+      },
+      "childTables": ["construction_invoice_material_lines", "construction_invoice_service_lines"]
+    },
+    "construction_invoice_material_lines": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "invoiceId": { "type": "string", "fk": "construction_invoices.id" },
+        "lineKind": { "type": "enum", "ref": "ConstructionInvoiceLineKind" },
+        "erpItemId": { "type": "integer", "nullable": true },
+        "erpBatchId": { "type": "integer", "nullable": true },
+        "boqItemId": { "type": "string", "nullable": true, "fk": "boq_line_items.id" },
+        "description": { "type": "string" },
+        "qty": { "type": "decimal" },
+        "rate": { "type": "decimal" },
+        "amount": { "type": "decimal" },
+        "costCode": { "type": "string", "nullable": true, "fk": "cost_codes.code" }
+      }
+    },
+    "construction_invoice_service_lines": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "invoiceId": { "type": "string", "fk": "construction_invoices.id" },
+        "erpRevenueLedgerId": { "type": "integer", "fk": "erp.ledgers.id" },
+        "description": { "type": "string" },
+        "amount": { "type": "decimal" },
+        "costCode": { "type": "string", "nullable": true, "fk": "cost_codes.code" },
+        "boqItemId": { "type": "string", "nullable": true }
+      }
+    },
+    "partners": {
+      "description": "Contractors, subcontractors, vendors directory",
+      "columns": {
+        "id": { "type": "string", "pk": true, "example": "ptr-sub-01" },
+        "companyCode": { "type": "string", "unique": true },
+        "companyType": { "type": "enum", "ref": "CompanyType" },
+        "legalName": { "type": "string" },
+        "tradeName": { "type": "string", "nullable": true },
+        "status": { "type": "enum", "ref": "PartnerStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "parentContractorId": { "type": "string", "nullable": true, "fk": "partners.id" },
+        "erpLedgerId": { "type": "integer", "nullable": true },
+        "primaryContactName": { "type": "string" },
+        "primaryEmail": { "type": "string" },
+        "primaryPhone": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "paymentTerms": { "type": "string", "nullable": true },
+        "currency": { "type": "string" },
+        "creditLimit": { "type": "decimal", "nullable": true },
+        "tradeLicense": { "type": "string", "nullable": true },
+        "taxRegistration": { "type": "string", "nullable": true },
+        "commercialRegistration": { "type": "string", "nullable": true },
+        "bankName": { "type": "string", "nullable": true },
+        "iban": { "type": "string", "nullable": true },
+        "prequalificationExpiry": { "type": "date", "nullable": true },
+        "notes": { "type": "text", "nullable": true }
+      },
+      "childTables": ["partner_contacts", "partner_certifications"],
+      "junctionTables": ["partner_projects", "partner_specialties"]
+    },
+    "partner_projects": {
+      "columns": {
+        "partnerId": { "type": "string", "fk": "partners.id" },
+        "projectId": { "type": "string", "fk": "projects.id" }
+      },
+      "pk": ["partnerId", "projectId"]
+    },
+    "bid_plans": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "planCode": { "type": "string", "unique": true },
+        "opportunityName": { "type": "string" },
+        "clientName": { "type": "string" },
+        "sector": { "type": "string" },
+        "estimatedValue": { "type": "decimal" },
+        "currency": { "type": "string" },
+        "location": { "type": "string" },
+        "rfpReceivedDate": { "type": "date" },
+        "bidDueDate": { "type": "date" },
+        "status": { "type": "enum", "ref": "BidPlanStatus" },
+        "winProbabilityPct": { "type": "integer" },
+        "bidManager": { "type": "string" },
+        "estimator": { "type": "string" },
+        "goNoGoDate": { "type": "date", "nullable": true },
+        "scopeSummary": { "type": "text" },
+        "risks": { "type": "text", "nullable": true },
+        "linkedInwardBidId": { "type": "string", "nullable": true, "fk": "bids.id" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      }
+    },
+    "bids": {
+      "description": "Inward (client tenders) and outward (subcontract packages) — discriminator bidDirection",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "bidNumber": { "type": "string", "unique": true },
+        "bidDirection": { "type": "enum", "ref": "BidDirection" },
+        "bidManager": { "type": "string", "nullable": true },
+        "scopeSummary": { "type": "text", "nullable": true },
+        "currency": { "type": "string" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" },
+        "bidPlanId": { "type": "string", "nullable": true, "fk": "bid_plans.id" },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "projectName": { "type": "string", "nullable": true },
+        "clientName": { "type": "string", "nullable": true },
+        "tenderReference": { "type": "string", "nullable": true },
+        "bidType": { "type": "enum", "ref": "InwardBidType", "nullable": true },
+        "submissionDeadline": { "type": "date", "nullable": true },
+        "submittedDate": { "type": "date", "nullable": true },
+        "bidValue": { "type": "decimal", "nullable": true },
+        "marginPct": { "type": "decimal", "nullable": true },
+        "bondRequired": { "type": "boolean", "nullable": true },
+        "bondAmount": { "type": "decimal", "nullable": true },
+        "competitors": { "type": "text", "nullable": true },
+        "inwardStatus": { "type": "enum", "ref": "InwardBidStatus", "nullable": true },
+        "packageName": { "type": "string", "nullable": true },
+        "tradePackage": { "type": "string", "nullable": true },
+        "invitationDate": { "type": "date", "nullable": true },
+        "closingDate": { "type": "date", "nullable": true },
+        "targetBudget": { "type": "decimal", "nullable": true },
+        "awardedPartnerId": { "type": "string", "nullable": true, "fk": "partners.id" },
+        "awardedValue": { "type": "decimal", "nullable": true },
+        "outwardStatus": { "type": "enum", "ref": "OutwardBidStatus", "nullable": true }
+      },
+      "childTables": ["bid_quotations", "bid_invited_partners"]
+    },
+    "bid_quotations": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "bidId": { "type": "string", "fk": "bids.id" },
+        "partnerId": { "type": "string", "fk": "partners.id" },
+        "quotedValue": { "type": "decimal" },
+        "currency": { "type": "string" },
+        "validityDays": { "type": "integer" },
+        "receivedDate": { "type": "date" },
+        "compliant": { "type": "boolean" },
+        "rank": { "type": "integer", "nullable": true },
+        "notes": { "type": "text", "nullable": true }
+      }
+    },
+    "qa_inspections": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "refNo": { "type": "string", "unique": true, "example": "IR-2026-0142" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "siteName": { "type": "string" },
+        "wbsTaskId": { "type": "string", "nullable": true, "fk": "wbs_tasks.id" },
+        "workPackage": { "type": "string" },
+        "description": { "type": "text" },
+        "status": { "type": "enum", "ref": "InspectionStatus" },
+        "siteTeamAssignee": { "type": "string" },
+        "qaEngineer": { "type": "string" },
+        "requestedAt": { "type": "datetime", "nullable": true },
+        "inspectedAt": { "type": "datetime", "nullable": true },
+        "approvedAt": { "type": "datetime", "nullable": true },
+        "reworkCount": { "type": "integer", "default": 0 },
+        "correctiveActionNote": { "type": "text", "nullable": true }
+      },
+      "childTables": ["qa_inspection_history"]
+    },
+    "daily_site_reports": {
+      "description": "DSR — daily progress with BOQ quantity reporting",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "dsrNumber": { "type": "string", "unique": true },
+        "reportDate": { "type": "date" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "submittedByUserId": { "type": "string" },
+        "supervisorName": { "type": "string" },
+        "weather": { "type": "enum", "ref": "WeatherCondition" },
+        "temperatureC": { "type": "decimal", "nullable": true },
+        "humidityPct": { "type": "decimal", "nullable": true },
+        "windSpeedKmh": { "type": "decimal", "nullable": true },
+        "manpowerCount": { "type": "integer" },
+        "equipmentCount": { "type": "integer" },
+        "workSummary": { "type": "text" },
+        "safetyNotes": { "type": "text", "nullable": true },
+        "incidents": { "type": "text", "nullable": true },
+        "supervisorSignOff": { "type": "boolean" },
+        "signOffAt": { "type": "datetime", "nullable": true },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      },
+      "childTables": ["dsr_quantity_lines", "dsr_photos"]
+    },
+    "dsr_quantity_lines": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "dsrId": { "type": "string", "fk": "daily_site_reports.id" },
+        "boqItemId": { "type": "string", "fk": "boq_line_items.id" },
+        "plannedQty": { "type": "decimal" },
+        "reportedQty": { "type": "decimal" },
+        "cumulativeQty": { "type": "decimal" },
+        "remarks": { "type": "text", "nullable": true }
+      }
+    },
+    "employees": {
+      "description": "Full HR employee master — employee-records.data.ts",
+      "table": "employees",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "employeeCode": { "type": "string", "unique": true },
+        "firstName": { "type": "string" },
+        "middleName": { "type": "string", "nullable": true },
+        "lastName": { "type": "string" },
+        "dateOfBirth": { "type": "date", "nullable": true },
+        "gender": { "type": "enum", "ref": "Gender", "nullable": true },
+        "nationality": { "type": "string", "nullable": true },
+        "maritalStatus": { "type": "enum", "ref": "MaritalStatus", "nullable": true },
+        "personalEmail": { "type": "string", "nullable": true },
+        "personalPhone": { "type": "string", "nullable": true },
+        "workEmail": { "type": "string", "nullable": true },
+        "workPhone": { "type": "string", "nullable": true },
+        "emergencyContactName": { "type": "string", "nullable": true },
+        "emergencyContactPhone": { "type": "string", "nullable": true },
+        "governmentIdType": { "type": "enum", "ref": "GovernmentIdType", "nullable": true },
+        "governmentIdNumber": { "type": "string", "nullable": true },
+        "designation": { "type": "string" },
+        "department": { "type": "string", "nullable": true },
+        "grade": { "type": "string", "nullable": true },
+        "employmentType": { "type": "enum", "ref": "EmploymentType" },
+        "joinDate": { "type": "date", "nullable": true },
+        "confirmationDate": { "type": "date", "nullable": true },
+        "terminationDate": { "type": "date", "nullable": true },
+        "reportingManager": { "type": "string", "nullable": true },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "basicSalary": { "type": "decimal", "nullable": true },
+        "currency": { "type": "string", "nullable": true },
+        "bankName": { "type": "string", "nullable": true },
+        "bankAccountNumber": { "type": "string", "nullable": true },
+        "iban": { "type": "string", "nullable": true },
+        "presentAddress": { "type": "string", "nullable": true },
+        "permanentAddress": { "type": "string", "nullable": true },
+        "city": { "type": "string", "nullable": true },
+        "country": { "type": "string", "nullable": true },
+        "status": { "type": "enum", "ref": "EmployeeStatus" },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      },
+      "childTables": ["employee_education", "employee_work_history"]
+    },
+    "payroll_runs": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "runNumber": { "type": "string", "unique": true },
+        "periodMonth": { "type": "string", "example": "2026-05" },
+        "periodLabel": { "type": "string" },
+        "periodStart": { "type": "date" },
+        "periodEnd": { "type": "date" },
+        "status": { "type": "enum", "ref": "PayrollRunStatus" },
+        "employeeCount": { "type": "integer" },
+        "totalGross": { "type": "decimal" },
+        "totalNet": { "type": "decimal" },
+        "totalDeductions": { "type": "decimal" },
+        "currency": { "type": "string" },
+        "bankFileGenerated": { "type": "boolean" }
+      },
+      "childTables": ["payroll_line_items", "payroll_project_allocations"]
+    },
+    "payroll_project_allocations": {
+      "description": "Labour cost split to projects — feeds job mileage labour row",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "payrollLineId": { "type": "string", "fk": "payroll_line_items.id" },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "costCode": { "type": "string", "nullable": true, "fk": "cost_codes.code" },
+        "amount": { "type": "decimal" },
+        "hours": { "type": "decimal", "nullable": true }
+      }
+    },
+    "fleet_vehicles": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "name": { "type": "string" },
+        "plateNumber": { "type": "string", "unique": true },
+        "vehicleType": { "type": "enum", "ref": "VehicleType" },
+        "driverEmployeeId": { "type": "string", "nullable": true, "fk": "employees.id" },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "speedLimitKph": { "type": "integer" },
+        "deviceId": { "type": "string", "nullable": true }
+      }
+    },
+    "gps_trackers": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "name": { "type": "string" },
+        "trackerType": { "type": "enum", "ref": "GpsTrackerType" },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "status": { "type": "enum", "ref": "GpsTrackerStatus" },
+        "deviceId": { "type": "string" },
+        "lastLat": { "type": "decimal" },
+        "lastLng": { "type": "decimal" },
+        "lastUpdate": { "type": "datetime" }
+      },
+      "childTables": ["gps_telemetry_points"]
+    },
+    "approval_workflows": {
+      "description": "Generic approval engine used across entities",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "entityType": { "type": "string", "example": "material_issuance" },
+        "entityId": { "type": "string" },
+        "currentStep": { "type": "integer" },
+        "status": { "type": "enum", "ref": "ApprovalStatus" }
+      },
+      "childTables": ["approval_steps"]
+    },
+    "users": {
+      "description": "System users — referenced by audit byUserId fields across all modules",
+      "table": "users",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "email": { "type": "string", "unique": true },
+        "displayName": { "type": "string" },
+        "employeeId": { "type": "string", "nullable": true, "fk": "employees.id" },
+        "isActive": { "type": "boolean" }
+      }
+    },
+    "entity_audit_log": {
+      "description": "Polymorphic audit trail — replaces per-entity audit[] arrays in mock data",
+      "columns": {
+        "id": { "type": "uuid", "pk": true },
+        "entityType": { "type": "string", "example": "material_issuance" },
+        "entityId": { "type": "string" },
+        "at": { "type": "datetime" },
+        "action": { "type": "string" },
+        "byUserId": { "type": "string", "fk": "users.id" },
+        "note": { "type": "text", "nullable": true }
+      }
+    },
+    "entity_attachments": {
+      "description": "Polymorphic file attachments for any entity",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "name": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "storageUrl": { "type": "string" },
+        "uploadedAt": { "type": "datetime" },
+        "uploadedByUserId": { "type": "string", "nullable": true, "fk": "users.id" }
+      }
+    },
+    "item_code_catalog": {
+      "description": "BOQ item code master — ITEM_CODE_CATALOG in boq-creation.data.ts",
+      "columns": {
+        "code": { "type": "string", "pk": true, "example": "STL-001" },
+        "description": { "type": "string" },
+        "unit": { "type": "string" },
+        "typicalRate": { "type": "decimal" }
+      }
+    },
+    "partner_contacts": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "partnerId": { "type": "string", "fk": "partners.id" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    },
+    "partner_certifications": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "partnerId": { "type": "string", "fk": "partners.id" },
+        "name": { "type": "string" },
+        "issuer": { "type": "string" },
+        "validUntil": { "type": "date" },
+        "verified": { "type": "boolean" }
+      }
+    },
+    "partner_specialties": {
+      "columns": {
+        "partnerId": { "type": "string", "fk": "partners.id" },
+        "specialty": { "type": "string" }
+      },
+      "pk": ["partnerId", "specialty"]
+    },
+    "bid_invited_partners": {
+      "columns": {
+        "bidId": { "type": "string", "fk": "bids.id" },
+        "partnerId": { "type": "string", "fk": "partners.id" }
+      },
+      "pk": ["bidId", "partnerId"]
+    },
+    "qa_inspection_history": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "inspectionId": { "type": "string", "fk": "qa_inspections.id" },
+        "at": { "type": "datetime" },
+        "byUserId": { "type": "string" },
+        "action": { "type": "string" },
+        "note": { "type": "text", "nullable": true }
+      }
+    },
+    "dsr_photos": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "dsrId": { "type": "string", "fk": "daily_site_reports.id" },
+        "caption": { "type": "string" },
+        "album": { "type": "string", "nullable": true },
+        "capturedAt": { "type": "datetime" },
+        "gpsTag": { "type": "string", "nullable": true },
+        "storageUrl": { "type": "string" }
+      }
+    },
+    "site_photos": {
+      "description": "sites-map SiteCatalogPhoto",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "title": { "type": "string" },
+        "caption": { "type": "text", "nullable": true },
+        "category": { "type": "enum", "ref": "SitePhotoCategory" },
+        "takenAt": { "type": "datetime" },
+        "url": { "type": "string" },
+        "thumbnailUrl": { "type": "string", "nullable": true }
+      }
+    },
+    "attendance_records": {
+      "description": "HR attendance — hr-attendance.data.ts; feeds payroll and labour cost",
+      "table": "attendance_records",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "employeeId": { "type": "string", "fk": "employees.id" },
+        "attendanceDate": { "type": "date" },
+        "status": { "type": "enum", "ref": "AttendanceStatus" },
+        "checkIn": { "type": "time", "nullable": true },
+        "checkOut": { "type": "time", "nullable": true },
+        "workedHours": { "type": "decimal" },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "allocationPct": { "type": "decimal", "note": "Project cost allocation %" },
+        "exceptionType": { "type": "enum", "ref": "ExceptionType", "nullable": true },
+        "exceptionNotes": { "type": "text", "nullable": true },
+        "payrollSyncStatus": { "type": "enum", "ref": "PayrollSyncStatus" },
+        "payrollSyncAt": { "type": "datetime", "nullable": true },
+        "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+      }
+    },
+    "payroll_line_items": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "payrollRunId": { "type": "string", "fk": "payroll_runs.id" },
+        "employeeId": { "type": "string", "fk": "employees.id" },
+        "basicSalary": { "type": "decimal" },
+        "currency": { "type": "string" },
+        "daysWorked": { "type": "decimal" },
+        "daysInMonth": { "type": "integer" },
+        "overtimeHours": { "type": "decimal" },
+        "overtimePay": { "type": "decimal" },
+        "allowances": { "type": "decimal" },
+        "grossPay": { "type": "decimal" },
+        "statutoryDeductions": { "type": "decimal" },
+        "netPay": { "type": "decimal" }
+      }
+    },
+    "employee_education": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "employeeId": { "type": "string", "fk": "employees.id" },
+        "institution": { "type": "string" },
+        "qualification": { "type": "string" },
+        "fieldOfStudy": { "type": "string" },
+        "startYear": { "type": "integer" },
+        "endYear": { "type": "integer", "nullable": true },
+        "gradeOrGpa": { "type": "string" },
+        "verified": { "type": "boolean" }
+      }
+    },
+    "employee_work_history": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "employeeId": { "type": "string", "fk": "employees.id" },
+        "employer": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "startDate": { "type": "date" },
+        "endDate": { "type": "date", "nullable": true },
+        "location": { "type": "string" },
+        "reasonForLeaving": { "type": "string", "nullable": true },
+        "notes": { "type": "text", "nullable": true }
+      }
+    },
+    "drawings": {
+      "description": "Drawing register — drawings.data.ts",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "sheet": { "type": "string" },
+        "title": { "type": "string" },
+        "discipline": { "type": "string" },
+        "revision": { "type": "string" },
+        "format": { "type": "enum", "ref": "DrawingFileFormat" },
+        "fileUrl": { "type": "string" },
+        "updatedAt": { "type": "datetime" }
+      }
+    },
+    "workflow_definitions": {
+      "description": "Approval workflow diagram templates — workflow-diagram.model.ts",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "name": { "type": "string" },
+        "entityType": { "type": "string", "nullable": true },
+        "diagramJson": { "type": "jsonb", "note": "WorkflowDiagram: swimLanes, nodes, edges" },
+        "version": { "type": "integer" },
+        "isActive": { "type": "boolean" }
+      }
+    },
+    "gantt_schedules": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "name": { "type": "string" },
+        "baselineStart": { "type": "date", "nullable": true },
+        "baselineEnd": { "type": "date", "nullable": true }
+      },
+      "childTables": ["gantt_tasks"]
+    },
+    "gantt_tasks": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "scheduleId": { "type": "string", "fk": "gantt_schedules.id" },
+        "name": { "type": "string" },
+        "startDate": { "type": "date" },
+        "endDate": { "type": "date" },
+        "progressPct": { "type": "decimal" },
+        "dependencyIds": { "type": "string", "note": "Comma-separated task ids" },
+        "wbsTaskId": { "type": "string", "nullable": true, "fk": "wbs_tasks.id" }
+      }
+    },
+    "project_gis_geometries": {
+      "description": "User-drawn GIS sketches per project — GeoJSON + labels",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "name": { "type": "string" },
+        "geometryKind": { "type": "enum", "values": ["point", "polyline", "polygon"] },
+        "geoJson": { "type": "jsonb" },
+        "strokeColor": { "type": "string", "nullable": true },
+        "strokeWeight": { "type": "number", "nullable": true },
+        "labelsJson": { "type": "jsonb", "nullable": true }
+      }
+    },
+    "site_progress_features": {
+      "description": "GIS road/utility progress layers — site-status-gis",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "featureName": { "type": "string" },
+        "progressStatus": { "type": "enum", "ref": "SiteProgressStatus" },
+        "geoJson": { "type": "jsonb" },
+        "roadName": { "type": "string", "nullable": true }
+      }
+    },
+    "contract_milestones": {
+      "description": "Collaboration milestones — milestones.data.ts (contract-level, not site)",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "nullable": true, "fk": "sites.id" },
+        "name": { "type": "string" },
+        "plannedDate": { "type": "date" },
+        "forecastDate": { "type": "date", "nullable": true },
+        "status": { "type": "enum", "ref": "MilestoneStatus" },
+        "ownerUserId": { "type": "string", "nullable": true, "fk": "users.id" }
+      }
+    },
+    "project_notes": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "title": { "type": "string" },
+        "body": { "type": "text" },
+        "authorUserId": { "type": "string", "fk": "users.id" },
+        "pinned": { "type": "boolean" },
+        "updatedAt": { "type": "datetime" }
+      }
+    },
+    "todos": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "title": { "type": "string" },
+        "assigneeUserId": { "type": "string", "nullable": true, "fk": "users.id" },
+        "dueDate": { "type": "date", "nullable": true },
+        "priority": { "type": "enum", "ref": "TodoPriority" },
+        "completed": { "type": "boolean" }
+      }
+    },
+    "comm_messages": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+        "subject": { "type": "string" },
+        "body": { "type": "text" },
+        "fromUserId": { "type": "string", "fk": "users.id" },
+        "toUserIds": { "type": "jsonb", "note": "array of user ids" },
+        "channel": { "type": "enum", "ref": "MessageChannel" },
+        "sentAt": { "type": "datetime" },
+        "read": { "type": "boolean" }
+      }
+    },
+    "project_stakeholder_groups": {
+      "description": "Project overview radial diagram — optional JSON blob per project",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "groupId": { "type": "string", "example": "contractors" },
+        "title": { "type": "string" },
+        "entitiesJson": { "type": "jsonb", "note": "StakeholderEntity tree" }
+      }
+    },
+    "material_requisitions": {
+      "description": "Site material requests — site-mobile material-requests (not yet built in FE)",
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "requisitionNumber": { "type": "string", "unique": true },
+        "projectId": { "type": "string", "fk": "projects.id" },
+        "siteId": { "type": "string", "fk": "sites.id" },
+        "requestedByUserId": { "type": "string", "fk": "users.id" },
+        "urgency": { "type": "enum", "values": ["normal", "urgent", "critical"] },
+        "status": { "type": "enum", "ref": "MaterialRequisitionStatus" },
+        "requiredDate": { "type": "date", "nullable": true },
+        "remarks": { "type": "text", "nullable": true }
+      },
+      "childTables": ["material_requisition_lines"]
+    },
+    "material_requisition_lines": {
+      "columns": {
+        "id": { "type": "string", "pk": true },
+        "requisitionId": { "type": "string", "fk": "material_requisitions.id" },
+        "boqItemId": { "type": "string", "nullable": true, "fk": "boq_line_items.id" },
+        "materialCode": { "type": "string", "nullable": true, "fk": "material_catalog.code" },
+        "qty": { "type": "decimal" },
+        "unit": { "type": "string" }
+      }
+    },
+    "vehicle_telemetry_snapshots": {
+      "columns": {
+        "id": { "type": "uuid", "pk": true },
+        "vehicleId": { "type": "string", "fk": "fleet_vehicles.id" },
+        "status": { "type": "enum", "ref": "VehicleFleetStatus" },
+        "lat": { "type": "decimal" },
+        "lng": { "type": "decimal" },
+        "speedKph": { "type": "decimal" },
+        "idleMinutes": { "type": "integer", "nullable": true },
+        "odometerKm": { "type": "decimal", "nullable": true },
+        "fuelPct": { "type": "decimal", "nullable": true },
+        "recordedAt": { "type": "datetime" }
+      }
+    },
+    "gps_telemetry_points": {
+      "columns": {
+        "id": { "type": "uuid", "pk": true },
+        "trackerId": { "type": "string", "fk": "gps_trackers.id" },
+        "lat": { "type": "decimal" },
+        "lng": { "type": "decimal" },
+        "speedKph": { "type": "decimal", "nullable": true },
+        "headingDeg": { "type": "decimal", "nullable": true },
+        "batteryPct": { "type": "decimal", "nullable": true },
+        "recordedAt": { "type": "datetime" }
+      }
+    },
+    "plannedEntities": {
+      "description": "Schema stubs for feature-registry pages without FE mock data yet",
+      "boq_progress_bills": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "billNumber": { "type": "string" },
+          "periodStart": { "type": "date" },
+          "periodEnd": { "type": "date" },
+          "cumulativeCertifiedAmount": { "type": "decimal" },
+          "thisPeriodAmount": { "type": "decimal" },
+          "retentionHeld": { "type": "decimal" }
+        },
+        "childTables": ["boq_progress_bill_lines"]
+      },
+      "interim_payment_certificates": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "ipcNumber": { "type": "string", "unique": true },
+          "certifiedAmount": { "type": "decimal" },
+          "status": { "type": "enum", "ref": "IpcStatus" },
+          "qsCertifiedAt": { "type": "datetime", "nullable": true },
+          "engineerCertifiedAt": { "type": "datetime", "nullable": true },
+          "erpTransactionId": { "type": "integer", "nullable": true }
+        }
+      },
+      "client_invoices": {
+        "note": "Distinct from construction_invoices ERP bridge — tax invoice from certified IPC",
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "ipcId": { "type": "string", "fk": "interim_payment_certificates.id" },
+          "invoiceNumber": { "type": "string" },
+          "taxAmount": { "type": "decimal" },
+          "totalAmount": { "type": "decimal" },
+          "erpTransactionId": { "type": "integer", "nullable": true }
+        }
+      },
+      "retention_schedules": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "retentionPct": { "type": "decimal" },
+          "heldAmount": { "type": "decimal" },
+          "releaseMilestoneId": { "type": "string", "nullable": true },
+          "status": { "type": "enum", "ref": "RetentionReleaseStatus" }
+        }
+      },
+      "purchase_requisitions": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "prNumber": { "type": "string" },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "siteId": { "type": "string", "nullable": true },
+          "status": { "type": "enum", "ref": "ApprovalStatus" },
+          "erpPoId": { "type": "integer", "nullable": true, "note": "Link to ERP purchase order when created" }
+        }
+      },
+      "goods_receipt_notes": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "grnNumber": { "type": "string" },
+          "purchaseOrderId": { "type": "string", "nullable": true },
+          "warehouseId": { "type": "string", "fk": "warehouses.id" },
+          "receivedAt": { "type": "datetime" },
+          "qcHold": { "type": "boolean" }
+        }
+      },
+      "stock_transfers": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "transferNumber": { "type": "string" },
+          "fromWarehouseId": { "type": "string", "fk": "warehouses.id" },
+          "toWarehouseId": { "type": "string", "fk": "warehouses.id" },
+          "status": { "type": "enum", "values": ["draft", "in_transit", "received", "cancelled"] }
+        }
+      },
+      "equipment_assets": {
+        "description": "Parent for excavators/cranes/dumpers/generators modules",
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "assetCode": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "enum", "values": ["excavator", "crane", "dumper", "generator", "other"] },
+          "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+          "ownedOrHired": { "type": "enum", "values": ["owned", "hired"] },
+          "hourMeter": { "type": "decimal", "nullable": true }
+        },
+        "childTables": ["equipment_maintenance_logs", "fuel_issues", "breakdown_incidents"]
+      },
+      "leave_requests": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "employeeId": { "type": "string", "fk": "employees.id" },
+          "leaveType": { "type": "string" },
+          "startDate": { "type": "date" },
+          "endDate": { "type": "date" },
+          "status": { "type": "enum", "ref": "ApprovalStatus" }
+        }
+      },
+      "overtime_records": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "employeeId": { "type": "string", "fk": "employees.id" },
+          "workDate": { "type": "date" },
+          "hours": { "type": "decimal" },
+          "projectId": { "type": "string", "nullable": true, "fk": "projects.id" },
+          "costCode": { "type": "string", "nullable": true },
+          "approvalStatus": { "type": "enum", "ref": "ApprovalStatus" }
+        }
+      },
+      "delay_issues": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "siteId": { "type": "string", "nullable": true },
+          "type": { "type": "enum", "ref": "DelayIssueType" },
+          "title": { "type": "string" },
+          "description": { "type": "text" },
+          "status": { "type": "enum", "ref": "DelayIssueStatus" },
+          "rootCause": { "type": "text", "nullable": true },
+          "recoveryPlan": { "type": "text", "nullable": true }
+        }
+      },
+      "project_contracts": {
+        "columns": {
+          "id": { "type": "string", "pk": true },
+          "projectId": { "type": "string", "fk": "projects.id" },
+          "contractRef": { "type": "string" },
+          "partyPartnerId": { "type": "string", "fk": "partners.id" },
+          "value": { "type": "decimal" },
+          "currency": { "type": "string" },
+          "startDate": { "type": "date" },
+          "endDate": { "type": "date" },
+          "documentUrl": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  },
+  "reports": {
+    "job_cost_matrix": {
+      "description": "Job mileage — spend vs earn by project (cost center) and cost category. Implemented in ERP API; construction BE feeds allocations.",
+      "owner": "ERP backend",
+      "endpoint": "GET /reports/financial/job-cost-matrix?fromDate={iso}&toDate={iso}&view=cost-center|cost-category",
+      "prerequisite": "Every ERP child_transaction must carry costCenterId and optional costCategoryId when posted from construction modules",
+      "responseShape": {
+        "fromDate": "2026-06-01T00:00:00Z",
+        "toDate": "2026-06-30T23:59:59Z",
+        "viewMode": "cost-center",
+        "dataSource": "api",
+        "columns": [
+          { "key": "period-total", "label": "Period total", "kind": "period-total" },
+          {
+            "key": "cc-1",
+            "label": "Tower Block A",
+            "kind": "cost-center",
+            "costCenterId": 1,
+            "costCenterName": "Tower Block A"
+          },
+          {
+            "key": "cat-10",
+            "label": "Reinforcement",
+            "kind": "cost-category",
+            "costCenterId": 1,
+            "costCenterName": "Tower Block A",
+            "costCategoryId": 10,
+            "costCategoryName": "STR-01 Reinforcement"
+          }
+        ],
+        "rows": [
+          {
+            "key": "mat-total",
+            "label": "Total material",
+            "kind": "material-total",
+            "amounts": { "period-total": 450000, "cc-1": 320000, "cc-2": 130000 }
+          },
+          {
+            "key": "lab-total",
+            "label": "Total labour",
+            "kind": "labour-total",
+            "amounts": { "period-total": 180000, "cc-1": 120000, "cc-2": 60000 }
+          },
+          {
+            "key": "ovh-total",
+            "label": "Total overhead expense",
+            "kind": "overhead-total",
+            "amounts": { "period-total": 45000, "cc-1": 30000, "cc-2": 15000 }
+          },
+          {
+            "key": "exp-42",
+            "label": "Purchase — Steel",
+            "kind": "expense-ledger",
+            "ledgerId": 42,
+            "ledgerCode": "4.1.2",
+            "amounts": { "period-total": 280000, "cc-1": 200000, "cc-2": 80000 }
+          },
+          {
+            "key": "inc-15",
+            "label": "Contract Revenue — Tower A",
+            "kind": "income-ledger",
+            "ledgerId": 15,
+            "ledgerCode": "3.1.1",
+            "amounts": { "period-total": 850000, "cc-1": 850000, "cc-2": 0 }
+          },
+          {
+            "key": "net",
+            "label": "Net (income − expenses)",
+            "kind": "net-project",
+            "amounts": { "period-total": 175000, "cc-1": 400000, "cc-2": -225000 }
+          }
+        ]
+      },
+      "rowKinds": [
+        "section",
+        "material-total",
+        "labour-total",
+        "overhead-total",
+        "expense-ledger",
+        "income-ledger",
+        "subtotal-expense",
+        "subtotal-income",
+        "net-project"
+      ],
+      "dataSourcesForRows": {
+        "material-total": "Sum ERP expense/inventory lines where cost_code.category = material OR ledger group = purchases/COGS",
+        "labour-total": "Sum payroll_project_allocations + subcontract expense ledgers tagged labour",
+        "overhead-total": "Sum expense ledgers classified overhead (admin, utilities, etc.)",
+        "expense-ledger": "Each P&L expense ledger with amounts split by costCenterId column",
+        "income-ledger": "Each P&L income ledger — construction invoices, IPC, certified BOQ billings",
+        "net-project": "income - expenses per column"
+      }
+    },
+    "material_consumption_report": {
+      "owner": "Construction backend",
+      "endpoint": "GET /reports/material-consumption?projectId=&fromDate=&toDate=",
+      "responseShape": {
+        "projectId": "P-001",
+        "lines": [
+          {
+            "boqItemId": "li-stl",
+            "costCode": "STR-01",
+            "budgetQty": 120000,
+            "consumedQty": 48500,
+            "varianceQtyPct": -59.6,
+            "status": "on_track"
+          }
+        ]
+      }
+    },
+    "boq_vs_actual": {
+      "owner": "Construction backend",
+      "endpoint": "GET /reports/boq-vs-actual?projectId=&asOfDate=",
+      "note": "Planned in feature-registry; not yet in FE"
+    }
+  },
+  "seedData": {
+    "projects": [
+      {
+        "id": "P-001",
+        "legacyBoqSlug": "tower-a",
+        "code": "TBA-2026",
+        "name": "Tower Block A — Main Contract",
+        "clientName": "Al Noor Developments",
+        "status": "Active",
+        "approvalStatus": "approved",
+        "contractValue": 128500000,
+        "currency": "AED",
+        "startDate": "2026-01-15",
+        "endDate": "2027-12-31",
+        "projectManager": "Sarah Al Ketbi",
+        "erpCostCenterId": null,
+        "sites": [
+          { "id": "S-001", "name": "Basement Works", "location": "Zone 3", "progressPct": 85 },
+          { "id": "S-002", "name": "Superstructure", "location": "Zone 3", "progressPct": 35 },
+          { "id": "S-003", "name": "MEP Fit-out", "location": "Zone 3", "progressPct": 10 }
+        ]
+      },
+      {
+        "id": "P-002",
+        "legacyBoqSlug": "warehouse-p2",
+        "code": "WH-P2",
+        "name": "Warehouse Expansion — Phase 2",
+        "clientName": "Gulf Logistics",
+        "status": "Planned",
+        "contractValue": 42000000,
+        "currency": "AED"
+      },
+      {
+        "id": "P-003",
+        "legacyBoqSlug": "roadworks-c",
+        "code": "RWC-2026",
+        "name": "Roadworks Package — Section C",
+        "clientName": "City Municipality",
+        "status": "Active",
+        "contractValue": 67500000,
+        "currency": "AED"
+      }
+    ],
+    "material_issuance_sample": {
+      "id": "mis-001",
+      "issueNumber": "MIN-2026-0142",
+      "issueDate": "2026-05-28",
+      "projectId": "P-001",
+      "siteId": "S-002",
+      "warehouseId": "wh-s002",
+      "costCode": "STR-01",
+      "status": "issued",
+      "approvalStatus": "approved",
+      "lines": [
+        {
+          "id": "mil-001",
+          "boqItemId": "li-stl",
+          "materialCode": "MAT-STL-12",
+          "issuedQty": 12500,
+          "unitRate": 2.85,
+          "boqBudgetQty": 120000,
+          "boqBudgetAmount": 33600000
+        },
+        {
+          "id": "mil-002",
+          "boqItemId": "li-stl",
+          "materialCode": "MAT-STL-16",
+          "issuedQty": 8200,
+          "unitRate": 2.9,
+          "boqBudgetQty": 120000,
+          "boqBudgetAmount": 33600000
+        }
+      ]
+    },
+    "construction_invoice_sample": {
+      "invoiceNumber": "CPI-2026-0042",
+      "projectId": "P-001",
+      "clientName": "Al Noor Developments",
+      "materialTotal": 35625,
+      "serviceTotal": 125000,
+      "totalAmount": 160625,
+      "materialLines": [
+        {
+          "lineKind": "material",
+          "boqItemId": "li-stl",
+          "costCode": "STR-01",
+          "description": "Rebar 12mm — issued stock",
+          "qty": 12500,
+          "rate": 2.85,
+          "amount": 35625
+        }
+      ],
+      "serviceLines": [
+        {
+          "description": "Basement shuttering labour — May 2026",
+          "costCode": "CIV-01",
+          "amount": 75000,
+          "erpRevenueLedgerId": null
+        },
+        {
+          "description": "Site supervision — May 2026",
+          "costCode": "CIV-02",
+          "amount": 50000,
+          "erpRevenueLedgerId": null
+        }
+      ]
+    }
+  },
+  "apiSurfaceSummary": {
+    "projects": ["GET /projects", "GET /projects/{id}", "POST /projects", "PUT /projects/{id}"],
+    "sites": ["GET /projects/{id}/sites", "POST /sites", "PUT /sites/{id}"],
+    "boq": ["GET /projects/{id}/boq", "PUT /projects/{id}/boq", "GET /projects/{id}/boq/revisions"],
+    "material": [
+      "GET /material-issuances",
+      "POST /material-issuances",
+      "PUT /material-issuances/{id}",
+      "POST /material-issuances/{id}/approve",
+      "POST /material-issuances/{id}/post-to-erp"
+    ],
+    "consumption": ["GET /material-consumption", "GET /projects/{id}/material-consumption"],
+    "invoices": ["GET /construction-invoices", "POST /construction-invoices", "POST /construction-invoices/{id}/post-to-erp"],
+    "bidding": ["GET /bid-plans", "GET /bids", "POST /bids"],
+    "partners": ["GET /partners", "POST /partners"],
+    "qa": ["GET /qa-inspections", "POST /qa-inspections", "PUT /qa-inspections/{id}/status"],
+    "dsr": ["GET /daily-site-reports", "POST /daily-site-reports"],
+    "hr": ["GET /employees", "GET /payroll-runs", "POST /payroll-runs"],
+    "fleet": ["GET /fleet-vehicles", "GET /gps-trackers", "GET /gps-trackers/{id}/telemetry"],
+    "reports": [
+      "GET /reports/material-consumption",
+      "GET /reports/boq-vs-actual",
+      "ERP: GET /reports/financial/job-cost-matrix"
+    ]
+  },
+  "implementationPriority": [
+    "1. projects + sites + cost_codes (unify P-001 / tower-a)",
+    "2. boq_sections + boq_line_items",
+    "3. material_catalog + material_issuances + issue_lines",
+    "4. material_consumption rollup view",
+    "5. construction_invoices + ERP post bridge",
+    "6. payroll_project_allocations for labour column in job matrix",
+    "7. partners + bids",
+    "8. qa_inspections + daily_site_reports",
+    "9. fleet + gps telemetry",
+    "10. ERP: costCenterId on child_transactions + job-cost-matrix API"
+  ]
+}

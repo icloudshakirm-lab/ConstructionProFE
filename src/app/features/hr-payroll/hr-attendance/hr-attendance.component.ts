@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -79,7 +79,7 @@ interface AttendanceRow {
   templateUrl: './hr-attendance.component.html',
   styleUrl: './hr-attendance.component.scss'
 })
-export class HrAttendanceComponent {
+export class HrAttendanceComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
 
@@ -94,7 +94,7 @@ export class HrAttendanceComponent {
   readonly employeeOptions = employeeSelectOptions();
   readonly allSites = allSiteFormOptions();
 
-  readonly records = signal<AttendanceRecord[]>(initialAttendanceRecords());
+  readonly records = signal<AttendanceRecord[]>([]);
   readonly selectedDate = signal(todayIso());
   readonly statusFilter = signal('all');
   readonly syncFilter = signal<'all' | AttendanceRecord['payrollSyncStatus']>('all');
@@ -201,6 +201,12 @@ export class HrAttendanceComponent {
       ...this.allSites.filter((s) => s.projectId === projectId).map((s) => ({ label: s.label, value: s.value }))
     ];
   });
+
+  ngOnInit(): void {
+    console.warn(
+      '[HrAttendance] No attendance API in swagger yet — using empty list until backend adds endpoint.'
+    );
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

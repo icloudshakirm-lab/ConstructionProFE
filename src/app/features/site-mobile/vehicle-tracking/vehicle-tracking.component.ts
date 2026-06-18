@@ -7,6 +7,7 @@ import {
   computed,
   effect,
   inject,
+  OnInit,
   signal
 } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -28,6 +29,7 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { FleetVehiclesApiService } from '../../../core/api/project-planning';
 import { ThemeService } from '../../../core/services/theme.service';
 import { MAP_TILES } from '../../project-management/sites-map/sites-map.data';
 import {
@@ -81,10 +83,11 @@ import {
   templateUrl: './vehicle-tracking.component.html',
   styleUrl: './vehicle-tracking.component.scss'
 })
-export class VehicleTrackingComponent implements AfterViewInit, OnDestroy {
+export class VehicleTrackingComponent implements AfterViewInit, OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly themeService = inject(ThemeService);
   private readonly fb = inject(FormBuilder);
+  private readonly fleetVehiclesApi = inject(FleetVehiclesApiService);
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('mapFullscreenHost', { static: true }) mapFullscreenHost!: ElementRef<HTMLDivElement>;
@@ -96,7 +99,7 @@ export class VehicleTrackingComponent implements AfterViewInit, OnDestroy {
   readonly formVehicleTypeOptions = FLEET_FORM_VEHICLE_TYPE_OPTIONS;
   readonly driverEmployeeOptions = driverOperatorSelectOptions();
 
-  readonly vehicles = signal<FleetVehicle[]>(initialFleetVehicles());
+  readonly vehicles = signal<FleetVehicle[]>([]);
 
   readonly projectFilter = signal('all');
   readonly vehicleTypeFilter = signal('all');
@@ -196,6 +199,13 @@ export class VehicleTrackingComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       if (!this.mapReady) return;
       this.applyMapTheme(this.themeService.theme() === 'dark');
+    });
+  }
+
+  ngOnInit(): void {
+    this.fleetVehiclesApi.list().subscribe({
+      next: (data) => console.log('[VehicleTracking] GET /fleet-vehicles', data),
+      error: (err) => console.error('[VehicleTracking] GET /fleet-vehicles failed', err)
     });
   }
 

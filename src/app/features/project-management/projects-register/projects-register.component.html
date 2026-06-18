@@ -48,6 +48,13 @@
     <span class="projects-register-page__count">{{ filteredProjects().length }} project(s)</span>
   </section>
 
+  @if (loadError()) {
+    <p class="projects-register-page__error">{{ loadError() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="projects-register-page__loading">Loading projects…</p>
+  } @else {
   <p-table
     [value]="filteredProjects()"
     [rows]="10"
@@ -125,6 +132,7 @@
       </tr>
     </ng-template>
   </p-table>
+  }
 </div>
 
 <p-dialog

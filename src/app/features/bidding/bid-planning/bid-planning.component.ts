@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { BidPlansApiService } from '../../../core/api/project-planning';
 import {
   BID_PLAN_APPROVAL_FILTER_OPTIONS,
   BID_PLAN_FORM_STATUS_OPTIONS,
@@ -59,9 +60,10 @@ import {
   templateUrl: './bid-planning.component.html',
   styleUrl: './bid-planning.component.scss'
 })
-export class BidPlanningComponent {
+export class BidPlanningComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly bidPlansApi = inject(BidPlansApiService);
 
   readonly statusFilterOptions = BID_PLAN_STATUS_OPTIONS;
   readonly approvalFilterOptions = BID_PLAN_APPROVAL_FILTER_OPTIONS;
@@ -69,7 +71,7 @@ export class BidPlanningComponent {
   readonly formStatusOptions = BID_PLAN_FORM_STATUS_OPTIONS;
   readonly currencyOptions = CURRENCY_OPTIONS;
 
-  readonly plans = signal<BidPlanRecord[]>(initialBidPlans());
+  readonly plans = signal<BidPlanRecord[]>([]);
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | BidPlanRecord['approvalStatus']>('all');
   readonly sectorFilter = signal('all');
@@ -130,6 +132,13 @@ export class BidPlanningComponent {
   readonly formDialogHeader = computed(() =>
     this.formMode() === 'create' ? 'Add bid opportunity' : 'Edit bid opportunity'
   );
+
+  ngOnInit(): void {
+    this.bidPlansApi.list().subscribe({
+      next: (data) => console.log('[BidPlanning] GET /bid-plans', data),
+      error: (err) => console.error('[BidPlanning] GET /bid-plans failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

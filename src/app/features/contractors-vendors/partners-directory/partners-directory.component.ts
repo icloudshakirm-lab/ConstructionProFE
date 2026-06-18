@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { PartnersApiService } from '../../../core/api/project-planning';
 import {
   CURRENCY_OPTIONS,
   PAGE_COMPANY_TYPE,
@@ -84,9 +85,10 @@ type ChildKind = 'contact' | 'certification';
   templateUrl: './partners-directory.component.html',
   styleUrl: './partners-directory.component.scss'
 })
-export class PartnersDirectoryComponent {
+export class PartnersDirectoryComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly partnersApi = inject(PartnersApiService);
 
   readonly pageId = (this.route.snapshot.data['pageId'] as string) ?? 'contractors';
   readonly companyType = PAGE_COMPANY_TYPE[this.pageId] ?? 'contractor';
@@ -102,7 +104,7 @@ export class PartnersDirectoryComponent {
   readonly paymentTermsOptions = PAYMENT_TERMS_OPTIONS;
   readonly currencyOptions = CURRENCY_OPTIONS;
 
-  readonly partners = signal<PartnerRecord[]>(initialPartnerRecords());
+  readonly partners = signal<PartnerRecord[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | PartnerRecord['approvalStatus']>('all');
@@ -213,6 +215,13 @@ export class PartnersDirectoryComponent {
   readonly contractorFormOptions = computed(() =>
     contractorOptionsForForm(this.partners(), this.editingId() ?? undefined)
   );
+
+  ngOnInit(): void {
+    this.partnersApi.list().subscribe({
+      next: (data) => console.log('[PartnersDirectory] GET /partners', data),
+      error: (err) => console.error('[PartnersDirectory] GET /partners failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

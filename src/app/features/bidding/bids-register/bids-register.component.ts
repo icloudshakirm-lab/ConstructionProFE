@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { BidsApiService } from '../../../core/api/project-planning';
 import {
   BID_APPROVAL_FILTER_OPTIONS,
   CURRENCY_OPTIONS,
@@ -84,9 +85,10 @@ import {
   templateUrl: './bids-register.component.html',
   styleUrl: './bids-register.component.scss'
 })
-export class BidsRegisterComponent {
+export class BidsRegisterComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly bidsApi = inject(BidsApiService);
 
   readonly pageId = (this.route.snapshot.data['pageId'] as string) ?? 'inward-bids';
   readonly bidDirection: BidDirection = PAGE_BID_DIRECTION[this.pageId] ?? 'inward';
@@ -107,7 +109,7 @@ export class BidsRegisterComponent {
   readonly outwardFormStatusOptions = OUTWARD_FORM_STATUS_OPTIONS;
   readonly allSites = allSiteFormOptions();
 
-  readonly records = signal<BidRegisterRecord[]>(initialBidRegisters());
+  readonly records = signal<BidRegisterRecord[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | BidRegisterRecord['approvalStatus']>('all');
@@ -217,6 +219,13 @@ export class BidsRegisterComponent {
   readonly statusFilterOptions = computed(() =>
     this.isInward ? this.inwardStatusOptions : this.outwardStatusOptions
   );
+
+  ngOnInit(): void {
+    this.bidsApi.list().subscribe({
+      next: (data) => console.log('[BidsRegister] GET /bids', data),
+      error: (err) => console.error('[BidsRegister] GET /bids failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

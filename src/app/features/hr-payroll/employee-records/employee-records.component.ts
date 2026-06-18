@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { EmployeesApiService } from '../../../core/api/project-planning';
 import {
   CURRENCY_OPTIONS,
   DEPARTMENT_FORM_OPTIONS,
@@ -82,9 +83,10 @@ type ChildKind = 'education' | 'workHistory';
   templateUrl: './employee-records.component.html',
   styleUrl: './employee-records.component.scss'
 })
-export class EmployeeRecordsComponent {
+export class EmployeeRecordsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly employeesApi = inject(EmployeesApiService);
 
   readonly statusFilterOptions = EMPLOYEE_STATUS_OPTIONS;
   readonly approvalFilterOptions = EMPLOYEE_APPROVAL_FILTER_OPTIONS;
@@ -101,7 +103,7 @@ export class EmployeeRecordsComponent {
   readonly currencyOptions = CURRENCY_OPTIONS;
   readonly allSites = allSiteOptions();
 
-  readonly employees = signal<EmployeeRecord[]>(initialEmployeeRecords());
+  readonly employees = signal<EmployeeRecord[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | EmployeeRecord['approvalStatus']>('all');
@@ -228,6 +230,13 @@ export class EmployeeRecordsComponent {
     const filtered = this.allSites.filter((s) => s.projectId === projectId);
     return [{ label: 'No site', value: '' }, ...filtered.map((s) => ({ label: s.label, value: s.value }))];
   });
+
+  ngOnInit(): void {
+    this.employeesApi.list().subscribe({
+      next: (data) => console.log('[EmployeeRecords] GET /employees', data),
+      error: (err) => console.error('[EmployeeRecords] GET /employees failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

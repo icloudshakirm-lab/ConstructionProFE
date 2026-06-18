@@ -7,6 +7,7 @@ import {
   computed,
   effect,
   inject,
+  OnInit,
   signal
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -25,6 +26,7 @@ import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { GpsTrackersApiService } from '../../../core/api/project-planning';
 import { ThemeService } from '../../../core/services/theme.service';
 import { MAP_TILES } from '../../project-management/sites-map/sites-map.data';
 import {
@@ -32,7 +34,6 @@ import {
   GPS_MAP_ZOOM,
   GPS_PROJECT_OPTIONS,
   GPS_STATUS_OPTIONS,
-  GPS_TRACKERS,
   GPS_TYPE_OPTIONS,
   type GpsTracker,
   type GpsTrackerStatus,
@@ -61,9 +62,12 @@ import {
   templateUrl: './gps-tracking.component.html',
   styleUrl: './gps-tracking.component.scss'
 })
-export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
+export class GpsTrackingComponent implements AfterViewInit, OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly themeService = inject(ThemeService);
+  private readonly gpsTrackersApi = inject(GpsTrackersApiService);
+
+  readonly trackers = signal<GpsTracker[]>([]);
 
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('mapFullscreenHost', { static: true }) mapFullscreenHost!: ElementRef<HTMLDivElement>;
@@ -77,7 +81,7 @@ export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
   readonly statusFilter = signal('all');
   readonly searchText = signal('');
   readonly showTrails = signal(true);
-  readonly selectedId = signal<string | null>(GPS_TRACKERS[0]?.id ?? null);
+  readonly selectedId = signal<string | null>(null);
   readonly detailVisible = signal(false);
   readonly detailTracker = signal<GpsTracker | null>(null);
   readonly isFullscreen = signal(false);
@@ -101,7 +105,7 @@ export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
     const status = this.statusFilter();
     const q = this.searchText().trim().toLowerCase();
 
-    return GPS_TRACKERS.filter((t) => {
+    return this.trackers().filter((t) => {
       if (project !== 'all' && t.projectId !== project) return false;
       if (type !== 'all' && t.type !== type) return false;
       if (status !== 'all' && t.status !== status) return false;
@@ -117,7 +121,7 @@ export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
 
   readonly selectedTracker = computed(() => {
     const id = this.selectedId();
-    return GPS_TRACKERS.find((t) => t.id === id) ?? null;
+    return this.trackers().find((t) => t.id === id) ?? null;
   });
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
@@ -150,6 +154,13 @@ export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       if (!this.mapReady) return;
       this.applyMapTheme(this.themeService.theme() === 'dark');
+    });
+  }
+
+  ngOnInit(): void {
+    this.gpsTrackersApi.list().subscribe({
+      next: (data) => console.log('[GpsTracking] GET /gps-trackers', data),
+      error: (err) => console.error('[GpsTracking] GET /gps-trackers failed', err)
     });
   }
 
@@ -349,7 +360,7 @@ export class GpsTrackingComponent implements AfterViewInit, OnDestroy {
   }
 
   private openPopupFor(trackerId: string): void {
-    const t = GPS_TRACKERS.find((x) => x.id === trackerId);
+    const t = this.trackers().find((x) => x.id === trackerId);
     if (!t || !this.markerLayer) return;
     this.markerLayer.eachLayer((layer) => {
       if (layer instanceof L.Marker) {

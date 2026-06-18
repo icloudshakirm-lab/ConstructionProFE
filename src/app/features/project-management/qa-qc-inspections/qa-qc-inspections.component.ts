@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MenuItem, PrimeTemplate } from 'primeng/api';
@@ -11,6 +11,7 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { QaInspectionsApiService } from '../../../core/api/project-planning';
 import {
   BOQ_PROJECTS,
   DEMO_QA_QC_INSPECTIONS,
@@ -45,8 +46,9 @@ import {
   templateUrl: './qa-qc-inspections.component.html',
   styleUrl: './qa-qc-inspections.component.scss'
 })
-export class QaQcInspectionsComponent {
+export class QaQcInspectionsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly qaInspectionsApi = inject(QaInspectionsApiService);
 
   readonly projectOptions = BOQ_PROJECTS;
   readonly siteTeamOptions = SITE_TEAM_OPTIONS;
@@ -55,7 +57,7 @@ export class QaQcInspectionsComponent {
   readonly statusLabels = INSPECTION_STATUS_LABELS;
 
   readonly selectedProjectId = signal('tower-a');
-  readonly inspections = signal<QaQcInspection[]>(structuredClone(DEMO_QA_QC_INSPECTIONS));
+  readonly inspections = signal<QaQcInspection[]>([]);
   readonly selectedId = signal('insp-1');
   readonly flowchartExpanded = signal(true);
 
@@ -76,6 +78,13 @@ export class QaQcInspectionsComponent {
   readonly assignQaEngineer = signal<string | null>(null);
   readonly assignTeamDialogVisible = signal(false);
   readonly assignTeamPick = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.qaInspectionsApi.list().subscribe({
+      next: (data) => console.log('[QaQcInspections] GET /qa-inspections', data),
+      error: (err) => console.error('[QaQcInspections] GET /qa-inspections failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

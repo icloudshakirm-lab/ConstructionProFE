@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MenuItem } from 'primeng/api';
@@ -12,6 +12,7 @@ import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { PayrollRunsApiService } from '../../../core/api/project-planning';
 import {
   PAYROLL_STATUS_FILTER_OPTIONS,
   auditTimestamp,
@@ -46,11 +47,12 @@ import {
   templateUrl: './payroll.component.html',
   styleUrl: './payroll.component.scss'
 })
-export class PayrollComponent {
+export class PayrollComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly payrollRunsApi = inject(PayrollRunsApiService);
 
   readonly statusFilterOptions = PAYROLL_STATUS_FILTER_OPTIONS;
-  readonly runs = signal<PayrollRun[]>(initialPayrollRuns());
+  readonly runs = signal<PayrollRun[]>([]);
 
   readonly statusFilter = signal<'all' | PayrollRun['status']>('all');
   readonly searchText = signal('');
@@ -74,6 +76,13 @@ export class PayrollComponent {
       })
       .sort((a, b) => b.periodMonth.localeCompare(a.periodMonth));
   });
+
+  ngOnInit(): void {
+    this.payrollRunsApi.list().subscribe({
+      next: (data) => console.log('[Payroll] GET /payroll-runs', data),
+      error: (err) => console.error('[Payroll] GET /payroll-runs failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

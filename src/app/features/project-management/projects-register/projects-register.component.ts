@@ -1,4 +1,13 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import {
+  CreateProjectsRequest,
+  ProjectsApiService,
+  SitesApiService,
+  UpdateProjectsRequest,
+  countSitesByProject,
+  projectDtoToRegister
+} from '../../../core/api/project-planning';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -22,11 +31,9 @@ import {
   PROJECT_STATUS_OPTIONS,
   approvalStatusLabel,
   approvalStatusSeverity,
-  auditTimestamp,
   canApproveOrReject,
   canSubmitForApproval,
   formatContractValue,
-  initialProjectRegister,
   newProjectId,
   projectStatusSeverity,
   type ProjectApprovalStatus,
@@ -55,16 +62,22 @@ import {
   templateUrl: './projects-register.component.html',
   styleUrl: './projects-register.component.scss'
 })
-export class ProjectsRegisterComponent {
+export class ProjectsRegisterComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly projectsApi = inject(ProjectsApiService);
+  private readonly sitesApi = inject(SitesApiService);
+
+  readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
 
   readonly statusFilterOptions = PROJECT_STATUS_OPTIONS;
   readonly approvalFilterOptions = PROJECT_APPROVAL_FILTER_OPTIONS;
   readonly formStatusOptions = PROJECT_FORM_STATUS_OPTIONS;
   readonly currencyOptions = PROJECT_CURRENCY_OPTIONS;
 
-  readonly projects = signal<ProjectRegister[]>(initialProjectRegister());
+  /** Loaded from GET /projects (+ site counts). */
+  readonly projects = signal<ProjectRegister[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<ProjectApprovalStatus | 'all'>('all');
@@ -119,6 +132,71 @@ export class ProjectsRegisterComponent {
   readonly formDialogHeader = computed(() =>
     this.formMode() === 'create' ? 'Add project' : 'Edit project'
   );
+
+  ngOnInit(): void {
+    this.loadProjectsFromApi();
+  }
+
+  private loadProjectsFromApi(): void {
+    this.loading.set(true);
+    this.loadError.set(null);
+    forkJoin({
+      projects: this.projectsApi.list(),
+      sites: this.sitesApi.list()
+    }).subscribe({
+      next: ({ projects, sites }) => {
+        const siteCounts = countSitesByProject(sites);
+        const mapped = projects.map((p) => projectDtoToRegister(p, siteCounts[p.id] ?? 0));
+        this.projects.set(mapped);
+        const detailId = this.detailProject()?.id;
+        if (detailId) {
+          const refreshed = mapped.find((p) => p.id === detailId) ?? null;
+          this.detailProject.set(refreshed);
+          if (!refreshed) this.detailVisible.set(false);
+        }
+        if (!this.selectedId() && mapped.length > 0) {
+          this.selectedId.set(mapped[0].id);
+        }
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('[ProjectsRegister] load failed', err);
+        this.loadError.set('Could not load projects from the server.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private buildCreateRequest(id: string, raw: ProjectFormValue): CreateProjectsRequest {
+    return {
+      id,
+      code: id,
+      name: raw.name.trim(),
+      clientName: raw.client.trim(),
+      status: raw.status,
+      approvalStatus: 'draft',
+      contractValue: raw.contractValue,
+      currency: raw.currency,
+      startDate: raw.startDate,
+      endDate: raw.endDate,
+      projectManager: raw.projectManager.trim(),
+      scopeSummary: raw.scopeSummary.trim(),
+      legacyBoqSlug: null,
+      clientId: null,
+      erpCostCenterId: null
+    };
+  }
+
+  private buildUpdateRequest(
+    raw: ProjectFormValue,
+    approvalStatus: string
+  ): UpdateProjectsRequest {
+    const id = this.editingId() ?? newProjectId();
+    return {
+      ...this.buildCreateRequest(id, raw),
+      approvalStatus
+    };
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;
@@ -201,48 +279,39 @@ export class ProjectsRegisterComponent {
       return;
     }
 
-    const payload = {
-      name: raw.name.trim(),
-      client: raw.client.trim(),
-      status: raw.status,
-      contractValue: raw.contractValue,
-      currency: raw.currency,
-      startDate: raw.startDate,
-      endDate: raw.endDate,
-      projectManager: raw.projectManager.trim(),
-      scopeSummary: raw.scopeSummary.trim()
-    };
-
     if (this.formMode() === 'create') {
-      const created: ProjectRegister = {
-        id: newProjectId(),
-        ...payload,
-        approvalStatus: 'draft',
-        linkedSiteCount: 0,
-        audit: [{ at: auditTimestamp(), action: 'Project created', by: 'Project admin' }],
-        attachments: []
-      };
-      this.projects.update((list) => [...list, created]);
-      this.selectedId.set(created.id);
-      this.formVisible.set(false);
+      const id = newProjectId();
+      const body = this.buildCreateRequest(id, raw);
+      this.projectsApi.create(body).subscribe({
+        next: (res) => {
+          console.log('[ProjectsRegister] POST /projects', res);
+          this.loadProjectsFromApi();
+          this.formVisible.set(false);
+        },
+        error: (err) => {
+          console.error('[ProjectsRegister] POST /projects failed', err);
+          this.formError.set('Failed to create project — see console.');
+        }
+      });
       return;
     }
 
     const id = this.editingId();
     if (!id) return;
     const existing = this.projects().find((p) => p.id === id);
-    if (!existing) return;
+    const approvalStatus = existing?.approvalStatus ?? 'draft';
 
-    const updated: ProjectRegister = {
-      ...existing,
-      ...payload,
-      audit: [
-        { at: auditTimestamp(), action: 'Project record updated', by: 'Project admin' },
-        ...existing.audit
-      ]
-    };
-    this.patchProject(updated);
-    this.formVisible.set(false);
+    this.projectsApi.update(id, this.buildUpdateRequest(raw, approvalStatus)).subscribe({
+      next: (res) => {
+        console.log('[ProjectsRegister] PUT /projects/' + id, res);
+        this.loadProjectsFromApi();
+        this.formVisible.set(false);
+      },
+      error: (err) => {
+        console.error('[ProjectsRegister] PUT /projects failed', err);
+        this.formError.set('Failed to update project — see console.');
+      }
+    });
   }
 
   requestDelete(project: ProjectRegister): void {
@@ -258,16 +327,24 @@ export class ProjectsRegisterComponent {
   confirmDelete(): void {
     const target = this.projectToDelete();
     if (!target) return;
-    const next = this.projects().filter((p) => p.id !== target.id);
-    this.projects.set(next);
-    if (this.selectedId() === target.id) {
-      this.selectedId.set(next[0]?.id ?? null);
-    }
-    if (this.detailProject()?.id === target.id) {
-      this.detailVisible.set(false);
-      this.detailProject.set(null);
-    }
-    this.cancelDelete();
+    this.projectsApi.delete(target.id).subscribe({
+      next: () => {
+        console.log('[ProjectsRegister] DELETE /projects/' + target.id);
+        this.loadProjectsFromApi();
+        if (this.selectedId() === target.id) {
+          this.selectedId.set(null);
+        }
+        if (this.detailProject()?.id === target.id) {
+          this.detailVisible.set(false);
+          this.detailProject.set(null);
+        }
+        this.cancelDelete();
+      },
+      error: (err) => {
+        console.error('[ProjectsRegister] DELETE /projects failed', err);
+        this.cancelDelete();
+      }
+    });
   }
 
   openDetail(project: ProjectRegister): void {
@@ -289,37 +366,40 @@ export class ProjectsRegisterComponent {
 
   submitForApproval(project: ProjectRegister): void {
     if (!canSubmitForApproval(project)) return;
-    this.patchProject({
-      ...project,
-      approvalStatus: 'pending_approval',
-      audit: [
-        { at: auditTimestamp(), action: 'Submitted for approval', by: 'Project manager' },
-        ...project.audit
-      ]
-    });
+    this.persistApprovalStatus(project, 'pending_approval');
   }
 
   approveProject(project: ProjectRegister): void {
     if (!canApproveOrReject(project)) return;
-    this.patchProject({
-      ...project,
-      approvalStatus: 'approved',
-      audit: [
-        { at: auditTimestamp(), action: 'Project charter approved', by: 'Commercial director' },
-        ...project.audit
-      ]
-    });
+    this.persistApprovalStatus(project, 'approved');
   }
 
   rejectProject(project: ProjectRegister): void {
     if (!canApproveOrReject(project)) return;
-    this.patchProject({
-      ...project,
-      approvalStatus: 'rejected',
-      audit: [
-        { at: auditTimestamp(), action: 'Approval rejected — revise contract summary', by: 'Commercial director' },
-        ...project.audit
-      ]
+    this.persistApprovalStatus(project, 'rejected');
+  }
+
+  private persistApprovalStatus(
+    project: ProjectRegister,
+    approvalStatus: ProjectApprovalStatus
+  ): void {
+    const body = this.buildUpdateRequest(
+      {
+        name: project.name,
+        client: project.client,
+        status: project.status,
+        contractValue: project.contractValue,
+        currency: project.currency,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        projectManager: project.projectManager,
+        scopeSummary: project.scopeSummary
+      },
+      approvalStatus
+    );
+    this.projectsApi.update(project.id, body).subscribe({
+      next: () => this.loadProjectsFromApi(),
+      error: (err) => console.error('[ProjectsRegister] approval update failed', err)
     });
   }
 
@@ -376,12 +456,5 @@ export class ProjectsRegisterComponent {
   fieldInvalid(name: keyof ProjectFormValue): boolean {
     const c = this.projectForm.controls[name];
     return c.invalid && (c.dirty || c.touched);
-  }
-
-  private patchProject(updated: ProjectRegister): void {
-    this.projects.update((list) => list.map((p) => (p.id === updated.id ? updated : p)));
-    if (this.detailProject()?.id === updated.id) {
-      this.detailProject.set(updated);
-    }
   }
 }

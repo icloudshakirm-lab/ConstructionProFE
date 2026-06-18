@@ -1,5 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import {
+  CreateSitesRequest,
+  ProjectsApiService,
+  SitesApiService,
+  UpdateSitesRequest,
+  siteDtoToRecord
+} from '../../../core/api/project-planning';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -23,7 +31,6 @@ import {
   GEOFENCE_TYPE_OPTIONS,
   SITE_APPROVAL_FILTER_OPTIONS,
   SITE_OPERATIONAL_OPTIONS,
-  SITE_PROJECT_FILTER_OPTIONS,
   type GeofenceRecord,
   type GeofenceZoneType,
   type SiteApprovalStatus,
@@ -36,9 +43,6 @@ import {
   auditTimestamp,
   canApproveOrReject,
   canSubmitForApproval,
-  initialContacts,
-  initialGeofences,
-  initialSites,
   newId,
   parentSiteOptions,
   projectNameForId,
@@ -105,13 +109,21 @@ type ContactFormValue = {
   templateUrl: './sites-management.component.html',
   styleUrl: './sites-management.component.scss'
 })
-export class SitesManagementComponent {
+export class SitesManagementComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly sitesApi = inject(SitesApiService);
+  private readonly projectsApi = inject(ProjectsApiService);
 
-  readonly projectFilterOptions = SITE_PROJECT_FILTER_OPTIONS;
-  /** Project choices for site form (excludes "All projects"). */
-  readonly projectFormOptions = SITE_PROJECT_FILTER_OPTIONS.filter((o) => o.value !== 'all');
+  readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
+  readonly projectOptionsFromApi = signal<Array<{ label: string; value: string }>>([]);
+
+  readonly projectFilterOptions = computed(() => [
+    { label: 'All projects', value: 'all' },
+    ...this.projectOptionsFromApi()
+  ]);
+  readonly projectFormOptions = computed(() => this.projectOptionsFromApi());
   readonly approvalFilterOptions = SITE_APPROVAL_FILTER_OPTIONS;
   readonly operationalOptions = SITE_OPERATIONAL_OPTIONS;
   readonly geofenceTypeOptions = GEOFENCE_TYPE_OPTIONS;
@@ -121,9 +133,9 @@ export class SitesManagementComponent {
   readonly approvalFilter = signal<SiteApprovalStatus | 'all'>('all');
   readonly searchText = signal('');
 
-  readonly sites = signal<SiteRecord[]>(initialSites());
-  readonly geofences = signal<GeofenceRecord[]>(initialGeofences(initialSites()));
-  readonly contacts = signal<SiteContactRecord[]>(initialContacts(initialSites()));
+  readonly sites = signal<SiteRecord[]>([]);
+  readonly geofences = signal<GeofenceRecord[]>([]);
+  readonly contacts = signal<SiteContactRecord[]>([]);
 
   readonly formVisible = signal(false);
   readonly formMode = signal<'create' | 'edit'>('create');
@@ -214,6 +226,78 @@ export class SitesManagementComponent {
     return `${mode} ${labels[kind]}`;
   });
 
+  ngOnInit(): void {
+    this.loadSitesFromApi();
+  }
+
+  private loadSitesFromApi(): void {
+    this.loading.set(true);
+    this.loadError.set(null);
+    forkJoin({
+      sites: this.sitesApi.list(),
+      projects: this.projectsApi.list()
+    }).subscribe({
+      next: ({ sites, projects }) => {
+        const nameById = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+        this.projectOptionsFromApi.set(
+          projects.map((p) => ({ label: p.name, value: p.id }))
+        );
+        const mapped = sites.map((s) => siteDtoToRecord(s, nameById[s.projectId] ?? s.projectId));
+        this.sites.set(mapped);
+
+        const detailId = this.detailSite()?.id;
+        if (detailId) {
+          const refreshed = mapped.find((s) => s.id === detailId) ?? null;
+          this.detailSite.set(refreshed);
+          if (!refreshed) this.detailVisible.set(false);
+        }
+
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('[SitesManagement] load failed', err);
+        this.loadError.set('Could not load sites from the server.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private siteRecordToFormValue(site: SiteRecord): SiteFormValue {
+    return {
+      projectId: site.projectId,
+      parentSiteId: site.parentSiteId ?? '',
+      name: site.name,
+      location: site.location,
+      superintendent: site.superintendent,
+      progressPct: site.progressPct,
+      zoneCode: site.zoneCode,
+      operationalStatus: site.operationalStatus
+    };
+  }
+
+  private buildCreateSiteRequest(id: string, raw: SiteFormValue): CreateSitesRequest {
+    return {
+      id,
+      projectId: raw.projectId,
+      parentSiteId: raw.parentSiteId || null,
+      name: raw.name.trim(),
+      location: raw.location.trim(),
+      zoneCode: raw.zoneCode.trim() || raw.location.slice(0, 8).toUpperCase(),
+      superintendent: raw.superintendent.trim(),
+      progressPct: raw.progressPct,
+      operationalStatus: raw.operationalStatus,
+      approvalStatus: 'draft',
+      lat: null,
+      lng: null
+    };
+  }
+
+  private buildUpdateSiteRequest(raw: SiteFormValue, approvalStatus: string): UpdateSitesRequest {
+    const id = this.editingId() ?? newId('S');
+    const { id: _id, ...rest } = this.buildCreateSiteRequest(id, raw);
+    return { ...rest, approvalStatus };
+  }
+
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;
     const mod = moduleId ? getModuleById(moduleId) : undefined;
@@ -257,7 +341,7 @@ export class SitesManagementComponent {
     this.formError.set(null);
     if (kind === 'site') {
       this.siteForm.reset({
-        projectId: SITE_PROJECT_FILTER_OPTIONS[1]?.value ?? '',
+        projectId: this.projectFormOptions()[0]?.value ?? '',
         parentSiteId: '',
         name: '',
         location: '',
@@ -359,48 +443,40 @@ export class SitesManagementComponent {
       return;
     }
     const raw = this.siteForm.getRawValue() as SiteFormValue;
-    const projectName = projectNameForId(raw.projectId);
 
     if (this.formMode() === 'create') {
-      const created: SiteRecord = {
-        id: newId('S'),
-        projectId: raw.projectId,
-        projectName,
-        parentSiteId: raw.parentSiteId || null,
-        name: raw.name.trim(),
-        location: raw.location.trim(),
-        superintendent: raw.superintendent.trim(),
-        progressPct: raw.progressPct,
-        zoneCode: raw.zoneCode.trim() || raw.location.slice(0, 8).toUpperCase(),
-        operationalStatus: raw.operationalStatus,
-        approvalStatus: 'draft',
-        audit: [{ at: auditTimestamp(), action: 'Site created', by: 'Site admin' }],
-        attachments: []
-      };
-      this.sites.update((l) => [...l, created]);
-      this.formVisible.set(false);
+      const id = newId('S');
+      const body = this.buildCreateSiteRequest(id, raw);
+      this.sitesApi.create(body).subscribe({
+        next: (res) => {
+          console.log('[SitesManagement] POST /sites', res);
+          this.loadSitesFromApi();
+          this.formVisible.set(false);
+        },
+        error: (err) => {
+          console.error('[SitesManagement] POST /sites failed', err);
+          this.formError.set('Failed to create site — see console.');
+        }
+      });
       return;
     }
 
     const id = this.editingId();
+    if (!id) return;
     const existing = this.sites().find((s) => s.id === id);
-    if (!existing) return;
-    const updated: SiteRecord = {
-      ...existing,
-      projectId: raw.projectId,
-      projectName,
-      parentSiteId: raw.parentSiteId || null,
-      name: raw.name.trim(),
-      location: raw.location.trim(),
-      superintendent: raw.superintendent.trim(),
-      progressPct: raw.progressPct,
-      zoneCode: raw.zoneCode.trim(),
-      operationalStatus: raw.operationalStatus,
-      audit: [{ at: auditTimestamp(), action: 'Site updated', by: 'Site admin' }, ...existing.audit]
-    };
-    this.patchSite(updated);
-    this.syncGeofenceContactProjectNames(updated);
-    this.formVisible.set(false);
+    const approvalStatus = existing?.approvalStatus ?? 'draft';
+
+    this.sitesApi.update(id, this.buildUpdateSiteRequest(raw, approvalStatus)).subscribe({
+      next: (res) => {
+        console.log('[SitesManagement] PUT /sites/' + id, res);
+        this.loadSitesFromApi();
+        this.formVisible.set(false);
+      },
+      error: (err) => {
+        console.error('[SitesManagement] PUT /sites failed', err);
+        this.formError.set('Failed to update site — see console.');
+      }
+    });
   }
 
   private saveGeofence(): void {
@@ -518,10 +594,20 @@ export class SitesManagementComponent {
     if (!id) return;
     const kind = this.deleteKind();
     if (kind === 'site') {
-      this.sites.update((l) => l.filter((s) => s.id !== id));
-      this.geofences.update((l) => l.filter((g) => g.siteId !== id));
-      this.contacts.update((l) => l.filter((c) => c.siteId !== id));
-    } else if (kind === 'geofence') {
+      this.sitesApi.delete(id).subscribe({
+        next: () => {
+          this.loadSitesFromApi();
+          this.closeDetailIfDeleted(id, kind);
+          this.deleteConfirmVisible.set(false);
+        },
+        error: (err) => {
+          console.error('[SitesManagement] DELETE /sites failed', err);
+          this.deleteConfirmVisible.set(false);
+        }
+      });
+      return;
+    }
+    if (kind === 'geofence') {
       this.geofences.update((l) => l.filter((g) => g.id !== id));
     } else {
       this.contacts.update((l) => l.filter((c) => c.id !== id));
@@ -653,7 +739,13 @@ export class SitesManagementComponent {
       if (!site) return;
       if (status === 'pending_approval' && !canSubmitForApproval(site.approvalStatus)) return;
       if (status !== 'pending_approval' && !canApproveOrReject(site.approvalStatus)) return;
-      this.patchSite({ ...site, approvalStatus: status, audit: [entry, ...site.audit] });
+
+      this.sitesApi
+        .update(id, this.buildUpdateSiteRequest(this.siteRecordToFormValue(site), status))
+        .subscribe({
+          next: () => this.loadSitesFromApi(),
+          error: (err) => console.error('[SitesManagement] approval update failed', err)
+        });
       return;
     }
     if (kind === 'geofence') {

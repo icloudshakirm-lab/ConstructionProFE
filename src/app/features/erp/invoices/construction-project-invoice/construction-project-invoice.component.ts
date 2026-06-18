@@ -11,6 +11,7 @@ import { InvoiceItemsTableComponent } from '../../../../shared/components/invoic
 import { VoucherEntriesTableComponent } from '../../../../shared/components/voucher-entries-table/voucher-entries-table.component';
 import { LookupsApiService } from '../../../../core/api/lookups-api.service';
 import { TransactionsApiService } from '../../../../core/api/transactions-api.service';
+import { ProjectPlanningInvoicesApiService } from '../../../../core/api/project-planning';
 import type {
   ChildTransactionDTO,
   CreateChildTransactionRequest,
@@ -46,6 +47,7 @@ export class ConstructionProjectInvoiceComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly lookups = inject(LookupsApiService);
   private readonly txApi = inject(TransactionsApiService);
+  private readonly projectPlanningInvoicesApi = inject(ProjectPlanningInvoicesApiService);
   private readonly route = inject(ActivatedRoute);
 
   readonly projectOptions = DEMO_PROJECTS.map((p) => ({
@@ -102,6 +104,12 @@ export class ConstructionProjectInvoiceComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.projectPlanningInvoicesApi.list().subscribe({
+      next: (data) => console.log('[ConstructionProjectInvoice] GET /project-planning-invoices', data),
+      error: (err) =>
+        console.error('[ConstructionProjectInvoice] GET /project-planning-invoices failed', err)
+    });
+
     const routeId = this.route.snapshot.paramMap.get('id');
     const now = new Date();
 

@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { DailySiteReportsApiService } from '../../../core/api/project-planning';
 import {
   DSR_APPROVAL_FILTER_OPTIONS,
   PROJECT_FILTER_OPTIONS,
@@ -75,9 +76,10 @@ type ChildKind = 'quantity' | 'photo';
   templateUrl: './daily-progress.component.html',
   styleUrl: './daily-progress.component.scss'
 })
-export class DailyProgressComponent {
+export class DailyProgressComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly dailySiteReportsApi = inject(DailySiteReportsApiService);
 
   readonly approvalFilterOptions = DSR_APPROVAL_FILTER_OPTIONS;
   readonly signoffFilterOptions = SIGNOFF_FILTER_OPTIONS;
@@ -87,7 +89,7 @@ export class DailyProgressComponent {
   readonly boqOptions = boqLineOptions();
   readonly allSites = allSiteFormOptions();
 
-  readonly records = signal<DailyProgressRecord[]>(initialDailyProgressRecords());
+  readonly records = signal<DailyProgressRecord[]>([]);
 
   readonly approvalFilter = signal<'all' | DailyProgressRecord['approvalStatus']>('all');
   readonly signoffFilter = signal<'all' | 'signed' | 'pending'>('all');
@@ -184,6 +186,13 @@ export class DailyProgressComponent {
     const kind = this.childFormKind() === 'quantity' ? 'Quantity line' : 'Progress photo';
     return this.childFormMode() === 'create' ? `Add ${kind.toLowerCase()}` : `Edit ${kind.toLowerCase()}`;
   });
+
+  ngOnInit(): void {
+    this.dailySiteReportsApi.list().subscribe({
+      next: (data) => console.log('[DailyProgress] GET /daily-site-reports', data),
+      error: (err) => console.error('[DailyProgress] GET /daily-site-reports failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

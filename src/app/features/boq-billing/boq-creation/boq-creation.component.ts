@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MenuItem, PrimeTemplate } from 'primeng/api';
@@ -11,6 +11,7 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { ProjectsApiService } from '../../../core/api/project-planning';
 import {
   BOQ_PROJECTS,
   BOQ_UNITS,
@@ -46,8 +47,9 @@ interface SectionRow {
   templateUrl: './boq-creation.component.html',
   styleUrl: './boq-creation.component.scss'
 })
-export class BoqCreationComponent {
+export class BoqCreationComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly projectsApi = inject(ProjectsApiService);
 
   readonly projectOptions = BOQ_PROJECTS;
   readonly unitOptions = BOQ_UNITS.map((u) => ({ label: u, value: u }));
@@ -59,13 +61,28 @@ export class BoqCreationComponent {
 
   readonly selectedProjectId = signal('tower-a');
   readonly boqTitle = signal('Bill of Quantities — Tower Block A');
-  readonly sections = signal<BoqSection[]>(structuredClone(DEMO_BOQ_SECTIONS));
-  readonly selectedSectionId = signal<string>(DEMO_BOQ_SECTIONS.find((s) => s.items.length)?.id ?? 'sec-a');
+  readonly sections = signal<BoqSection[]>([]);
+  readonly selectedSectionId = signal<string>('');
 
   readonly sectionDialogVisible = signal(false);
   readonly sectionDraftCode = signal('');
   readonly sectionDraftTitle = signal('');
   readonly sectionDraftParentId = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.projectsApi.list().subscribe({
+      next: (projects) => {
+        console.log('[BoqCreation] GET /projects', projects);
+        const projectId = projects[0]?.id ?? 'P-001';
+        this.projectsApi.getBoq(projectId).subscribe({
+          next: (boq) => console.log('[BoqCreation] GET /projects/' + projectId + '/boq', boq),
+          error: (err) =>
+            console.error('[BoqCreation] GET /projects/' + projectId + '/boq failed', err)
+        });
+      },
+      error: (err) => console.error('[BoqCreation] GET /projects failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

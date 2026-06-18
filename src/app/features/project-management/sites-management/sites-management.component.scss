@@ -43,6 +43,19 @@
   min-height: 0;
 }
 
+.sites-mgmt-page__loading,
+.sites-mgmt-page__error {
+  margin: 0 0 0.65rem;
+  padding: 1rem;
+  border-radius: var(--p-content-border-radius);
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+}
+
+.sites-mgmt-page__error {
+  color: var(--p-red-500);
+}
+
 .sites-mgmt-page__tab-bar {
   display: flex;
   flex-wrap: wrap;

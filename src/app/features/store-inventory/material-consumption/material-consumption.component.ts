@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { MaterialConsumptionApiService } from '../../../core/api/project-planning';
 import {
   BOQ_SECTION_FILTER_OPTIONS,
   CONSUMPTION_APPROVAL_FILTER_OPTIONS,
@@ -65,9 +66,10 @@ import {
   templateUrl: './material-consumption.component.html',
   styleUrl: './material-consumption.component.scss'
 })
-export class MaterialConsumptionComponent {
+export class MaterialConsumptionComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly materialConsumptionApi = inject(MaterialConsumptionApiService);
 
   readonly statusFilterOptions = CONSUMPTION_STATUS_OPTIONS;
   readonly approvalFilterOptions = CONSUMPTION_APPROVAL_FILTER_OPTIONS;
@@ -75,7 +77,7 @@ export class MaterialConsumptionComponent {
   readonly costCodeFilterOptions = COST_CODE_FILTER_OPTIONS;
   readonly sectionFilterOptions = BOQ_SECTION_FILTER_OPTIONS;
 
-  readonly records = signal<MaterialConsumptionRecord[]>(initialConsumptionRecords());
+  readonly records = signal<MaterialConsumptionRecord[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | MaterialConsumptionRecord['approvalStatus']>('all');
@@ -124,6 +126,13 @@ export class MaterialConsumptionComponent {
   });
 
   readonly summary = computed(() => projectConsumptionSummary(this.records(), this.projectFilter()));
+
+  ngOnInit(): void {
+    this.materialConsumptionApi.list().subscribe({
+      next: (data) => console.log('[MaterialConsumption] GET /material-consumption', data),
+      error: (err) => console.error('[MaterialConsumption] GET /material-consumption failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;

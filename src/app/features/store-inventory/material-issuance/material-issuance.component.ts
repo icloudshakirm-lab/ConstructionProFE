@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { getModuleById } from '../../../core/constants/feature-registry';
+import { MaterialIssuancesApiService } from '../../../core/api/project-planning';
 import {
   COST_CODE_OPTIONS,
   ISSUANCE_APPROVAL_FILTER_OPTIONS,
@@ -78,9 +79,10 @@ import {
   templateUrl: './material-issuance.component.html',
   styleUrl: './material-issuance.component.scss'
 })
-export class MaterialIssuanceComponent {
+export class MaterialIssuanceComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly materialIssuancesApi = inject(MaterialIssuancesApiService);
 
   readonly statusFilterOptions = ISSUANCE_STATUS_OPTIONS;
   readonly approvalFilterOptions = ISSUANCE_APPROVAL_FILTER_OPTIONS;
@@ -96,7 +98,7 @@ export class MaterialIssuanceComponent {
   }));
   readonly allSites = allSiteFormOptions();
 
-  readonly records = signal<MaterialIssuanceRecord[]>(initialMaterialIssuances());
+  readonly records = signal<MaterialIssuanceRecord[]>([]);
 
   readonly statusFilter = signal('all');
   readonly approvalFilter = signal<'all' | MaterialIssuanceRecord['approvalStatus']>('all');
@@ -189,6 +191,13 @@ export class MaterialIssuanceComponent {
   readonly lineFormHeader = computed(() =>
     this.lineFormMode() === 'create' ? 'Add material line (BOQ tagged)' : 'Edit material line'
   );
+
+  ngOnInit(): void {
+    this.materialIssuancesApi.list().subscribe({
+      next: (data) => console.log('[MaterialIssuance] GET /material-issuances', data),
+      error: (err) => console.error('[MaterialIssuance] GET /material-issuances failed', err)
+    });
+  }
 
   readonly breadcrumbs = computed<MenuItem[]>(() => {
     const moduleId = this.route.snapshot.data['moduleId'] as string | undefined;
